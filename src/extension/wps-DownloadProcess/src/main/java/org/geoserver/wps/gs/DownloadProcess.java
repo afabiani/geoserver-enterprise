@@ -198,6 +198,10 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         sendMail(email, progressListener);
 
+                        if (progressListener != null) {
+                            progressListener.complete();
+                        }
+
                         return output;
                     } catch (Exception e) {
                         cause = e;
@@ -457,6 +461,10 @@ public class DownloadProcess extends AbstractDownloadProcess {
             writeVectorialOutput(outputFormat, progressListener, features, extension, os);
 
             sendMail(email, progressListener);
+
+            if (progressListener != null) {
+                progressListener.complete();
+            }
 
             return output;
         } catch (Exception e) {
