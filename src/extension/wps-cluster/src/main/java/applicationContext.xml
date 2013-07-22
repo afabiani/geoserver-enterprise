@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>     
+
+    <import resource="applicationContext-processStorageDatasource.xml"/>
+
+    <!--=====================================================================-->
+	<!--
+		Need one search processor and one metadata util per persistence unit
+		(i.e. EntityManagerFactory). We're wiring these to the Generic DAOs
+		using an autowire annotation in BaseDAO.
+	-->
+	<bean id="processStorageSearchProcessor" class="com.googlecode.genericdao.search.jpa.JPASearchProcessor">
+		<constructor-arg ref="processStorageMetadataUtil" />
+	</bean>
+
+	<bean id="processStorageMetadataUtil" class="com.googlecode.genericdao.search.jpa.hibernate.HibernateMetadataUtil"
+		factory-method="getInstanceForEntityManagerFactory">
+		<constructor-arg ref="processStorageEntityManagerFactory" />
+	</bean>
+
+    <!--=====================================================================-->
+    <!-- DAOs -->
+    <!--=====================================================================-->
+	<bean id="processStorageDAO" class="org.geoserver.wps.executor.storage.dao.impl.ProcessDescriptorDAOImpl">
+		<property name="searchProcessor" ref="processStorageSearchProcessor" />
+	</bean>
+	    
+    <!-- The clustered process runner -->
+    <bean id="clusteredProcessManager" class="org.geoserver.wps.executor.ClusterProcessManager">
+      <constructor-arg ref="wpsResourceManager"/>
+    </bean>
+
+    <!-- Configures some WPS subsystems with the current config values and keeps them up to date -->
+    <bean id="clusteredWpsInitializer" class="org.geoserver.wps.WPSInitializer">
+      <constructor-arg index="0" ref="executionManager"/>
+      <constructor-arg index="1" ref="clusteredProcessManager"/>
+      <constructor-arg index="2" ref="wpsStorageCleaner"/>
+    </bean>
+    
+	<!-- Process Storages -->
+	<bean id="defaultClusteredProcessStorage" class="org.geoserver.wps.executor.storage.DefaultProcessStorage">
+		<constructor-arg index="0" ref="processStorageDAO" />
+	</bean>
+
+	<!-- Cluster File-Publisher URL Manglers -->
+	<bean id="defaultClusterFilePublisherURLMangler" class="org.geoserver.wps.executor.util.DefaultClusterFilePublisherURLMangler">
+		<constructor-arg index="0" ref="geoServer"/>
+	</bean>
+
+</beans>

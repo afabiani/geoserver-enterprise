@@ -161,6 +161,15 @@
     </profile>
 
     <profile>
+      <id>wps-cluster</id>
+      <modules>
+        <module>wps-cluster</module>
+        <module>wps-ClusterManagerProcess</module>
+        <module>wps-DownloadProcess</module>
+      </modules>
+    </profile>
+	
+    <profile>
       <id>querylayer</id>
       <modules>
         <module>querylayer</module>
