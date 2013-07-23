@@ -1,3 +1,7 @@
+/* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, availible at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
 import java.io.StringWriter;
@@ -12,8 +16,19 @@ import org.geoserver.wps.ppio.ExecutionStatusListPPIO;
 import org.geoserver.wps.ppio.ExecutionStatusListPPIO.ExecutionStatusList;
 import org.geotools.util.NullProgressListener;
 
+/**
+ * The Class ClusterManagerProcessTest.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ */
 public class ClusterManagerProcessTest extends GeoServerTestSupport {
 
+    /**
+     * Populate data directory.
+     *
+     * @param dataDirectory the data directory
+     * @throws Exception the exception
+     */
     @Override
     protected void populateDataDirectory(MockData dataDirectory) throws Exception {
         super.populateDataDirectory(dataDirectory);
@@ -22,7 +37,9 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * PPIO Test
+     * PPIO Test.
+     *
+     * @throws Exception the exception
      */
     public void testEncodeStatus() throws Exception {
         ClusterManagerProcess managerProcess = new ClusterManagerProcess(getGeoServer());

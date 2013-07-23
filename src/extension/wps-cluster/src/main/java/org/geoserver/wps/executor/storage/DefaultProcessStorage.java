@@ -31,16 +31,24 @@ import com.googlecode.genericdao.search.Search;
 import com.thoughtworks.xstream.XStream;
 
 /**
- * @author Alessio
- * 
+ * The Class DefaultProcessStorage.
+ *
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         ApplicationListener<ApplicationEvent> {
 
+    /** The marshaller. */
     private XStream marshaller = new XStream();
 
+    /** The process descriptor dao. */
     private ProcessDescriptorDAO processDescriptorDAO;
 
+    /**
+     * Instantiates a new default process storage.
+     *
+     * @param processDescriptorDAO the process descriptor dao
+     */
     public DefaultProcessStorage(ProcessDescriptorDAO processDescriptorDAO) {
         this.processDescriptorDAO = processDescriptorDAO;
     }
@@ -49,6 +57,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * (non-Javadoc)
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#putStatus(java.lang.String, java.lang.String, org.geoserver.wps.executor.ExecutionStatus)
+     */
+    /**
+     * Put status.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param status the status
      */
     @Override
     public void putStatus(String clusterId, String executionId, ExecutionStatus status) {
@@ -77,6 +92,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#getStatus(java.lang.String)
      */
+    /**
+     * Gets the status.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @return the status
+     */
     @Override
     public ExecutionStatus getStatus(String clusterId, String executionId) {
         Search search = new Search(ProcessDescriptor.class);
@@ -97,6 +119,12 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         }
     }
 
+    /**
+     * Gets the status.
+     *
+     * @param executionId the execution id
+     * @return the status
+     */
     @Override
     public List<ExecutionStatusEx> getStatus(String executionId) {
         List<ExecutionStatusEx> status = new ArrayList<ExecutionStatusEx>();
@@ -124,6 +152,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#removeStatus(java.lang.String)
      */
+    /**
+     * Removes the status.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @return the execution status
+     */
     @Override
     public ExecutionStatus removeStatus(String clusterId, String executionId) {
         // TODO Auto-generated method stub
@@ -135,6 +170,11 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#getAll()
      */
+    /**
+     * Gets the all.
+     *
+     * @return the all
+     */
     @Override
     public Collection<ExecutionStatus> getAll() {
         return Collections.EMPTY_LIST;
@@ -144,6 +184,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * (non-Javadoc)
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#updatePhase(java.lang.String, org.geoserver.wps.executor.ExecutionStatus.ProcessState)
+     */
+    /**
+     * Update phase.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param phase the phase
      */
     @Override
     public void updatePhase(String clusterId, String executionId, ProcessState phase) {
@@ -171,6 +218,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#updateProgress(java.lang.String, float)
      */
+    /**
+     * Update progress.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param progress the progress
+     */
     @Override
     public void updateProgress(String clusterId, String executionId, float progress) {
         Search search = new Search(ProcessDescriptor.class);
@@ -196,6 +250,14 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * (non-Javadoc)
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#getOutput(java.lang.String, long)
+     */
+    /**
+     * Gets the output.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param timeout the timeout
+     * @return the output
      */
     @Override
     public Map<String, Object> getOutput(String clusterId, String executionId, long timeout) {
@@ -226,6 +288,12 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#getInstance(java.lang.String)
      */
+    /**
+     * Gets the single instance of DefaultProcessStorage.
+     *
+     * @param executionId the execution id
+     * @return single instance of DefaultProcessStorage
+     */
     @Override
     public String getInstance(String executionId) {
         Search search = new Search(ProcessDescriptor.class);
@@ -244,6 +312,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * (non-Javadoc)
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#putOutput(java.lang.String, java.lang.String)
+     */
+    /**
+     * Put output.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param status the status
      */
     @Override
     public void putOutput(String clusterId, String executionId, ExecutionStatus status) {
@@ -272,6 +347,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @see org.geoserver.wps.executor.ProcessStorage#putOutput(java.lang.String, java.lang.Exception)
      */
+    /**
+     * Put output.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param e the e
+     */
     @Override
     public void putOutput(String clusterId, String executionId, Exception e) {
         Search search = new Search(ProcessDescriptor.class);
@@ -292,16 +374,35 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         }
     }
 
+    /**
+     * Gets the priority.
+     *
+     * @return the priority
+     */
     @Override
     public int getPriority() {
         return ExtensionPriority.LOWEST;
     }
 
+    /**
+     * On application event.
+     *
+     * @param event the event
+     */
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
         // TODO Auto-generated method stub
     }
 
+    /**
+     * Submit.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
+     * @param background the background
+     */
     @Override
     public void submit(String clusterId, String executionId, Name processName,
             Map<String, Object> inputs, boolean background) {
@@ -326,6 +427,14 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         }
     }
 
+    /**
+     * Submit chained.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
+     */
     @Override
     public void submitChained(String clusterId, String executionId, Name processName,
             Map<String, Object> inputs) {
@@ -349,6 +458,13 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         }
     }
 
+    /**
+     * Store result.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param result the result
+     */
     @Override
     public void storeResult(String clusterId, String executionId, Object result) {
         Search search = new Search(ProcessDescriptor.class);
@@ -381,6 +497,11 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         }
     }
 
+    /**
+     * Gets the file publisher url manglers.
+     *
+     * @return the file publisher url manglers
+     */
     public static List<ClusterFilePublisherURLMangler> getFilePublisherURLManglers() {
         return GeoServerExtensions.extensions(ClusterFilePublisherURLMangler.class);
     }

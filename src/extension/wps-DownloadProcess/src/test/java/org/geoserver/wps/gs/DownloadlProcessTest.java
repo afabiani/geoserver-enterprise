@@ -1,3 +1,7 @@
+/* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, availible at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
 import java.io.File;
@@ -42,8 +46,19 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 
+/**
+ * The Class DownloadlProcessTest.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ */
 public class DownloadlProcessTest extends GeoServerTestSupport {
 
+    /**
+     * Populate data directory.
+     *
+     * @param dataDirectory the data directory
+     * @throws Exception the exception
+     */
     @Override
     protected void populateDataDirectory(MockData dataDirectory) throws Exception {
         super.populateDataDirectory(dataDirectory);
@@ -51,9 +66,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         dataDirectory.addWcs10Coverages();
     }
 
-    /**
-     * Test download of vectorial data
-     */
+    /** Test download of vectorial data. */
 
     final static Polygon roi;
     static {
@@ -65,6 +78,11 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         }
     }
 
+    /**
+     * Test get features as shapefile.
+     *
+     * @throws Exception the exception
+     */
     public void testGetFeaturesAsShapefile() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
 
@@ -92,6 +110,11 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         assertEquals(rawSource.size(), rawTarget.size());
     }
 
+    /**
+     * Test filtered clipped features.
+     *
+     * @throws Exception the exception
+     */
     public void testFilteredClippedFeatures() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
 
@@ -133,6 +156,13 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
                 srcGeometry.contains(trgGeometry));
     }
 
+    /**
+     * Decode shape.
+     *
+     * @param input the input
+     * @return the object
+     * @throws Exception the exception
+     */
     public Object decodeShape(InputStream input) throws Exception {
         // create the temp directory and register it as a temporary resource
         File tempDir = IOUtils.createTempDirectory("shpziptemp");
@@ -189,6 +219,11 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         }
     }
 
+    /**
+     * Test get features as gml.
+     *
+     * @throws Exception the exception
+     */
     public void testGetFeaturesAsGML() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
 
@@ -237,6 +272,11 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         assertEquals(rawSource.size(), rawTarget.size());
     }
 
+    /**
+     * Test get features as geo json.
+     *
+     * @throws Exception the exception
+     */
     public void testGetFeaturesAsGeoJSON() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
 
@@ -265,7 +305,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * Test download of raster data
+     * Test download of raster data.
+     *
+     * @throws Exception the exception
      */
     public void testDownloadRaster() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
@@ -351,7 +393,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * PPIO Test
+     * PPIO Test.
+     *
+     * @throws Exception the exception
      */
     public void testZipPPIO() throws Exception {
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
@@ -385,7 +429,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * Test download estimator for raster data
+     * Test download estimator for raster data.
+     *
+     * @throws Exception the exception
      */
     public void testDownloadEstimatorReadLimitsRaster() throws Exception {
 
@@ -418,6 +464,11 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         assertFalse(true);
     }
 
+    /**
+     * Test download estimator write limits raster.
+     *
+     * @throws Exception the exception
+     */
     public void testDownloadEstimatorWriteLimitsRaster() throws Exception {
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
@@ -450,7 +501,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * Test download estimator for vectorial data
+     * Test download estimator for vectorial data.
+     *
+     * @throws Exception the exception
      */
     public void testDownloadEstimatorMaxFeaturesLimit() throws Exception {
 
@@ -480,13 +533,18 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * Test download physical limit for raster data
+     * Test download physical limit for raster data.
+     *
+     * @throws Exception the exception
      */
     public void testDownloadPhysicalLimitsRaster() throws Exception {
         ProcessListener listener = new ProcessListener(new ExecutionStatus(null, "0",
                 ProcessState.RUNNING, 0));
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
-        downloadProcess.setHardOutputLimit(10);
+
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        estimator.setHardOutputLimit(10);
+
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON (( -127.57473954542964 54.06575021619523, -130.8545966116691 52.00807146727025, -129.50812897394974 49.85372324691927, -130.5300633861675 49.20465679591609, -129.25955033314003 48.60392508062591, -128.00975216684665 50.986137055052474, -125.8623089087404 48.63154492960477, -123.984159178178 50.68231871628503, -126.91186316993704 52.15307567440926, -125.3444367403868 53.54787804784162, -127.57473954542964 54.06575021619523 ))");
@@ -509,13 +567,18 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
     }
 
     /**
-     * Test download physical limit for vectorial data
+     * Test download physical limit for vectorial data.
+     *
+     * @throws Exception the exception
      */
     public void testDownloadPhysicalLimitsVector() throws Exception {
         ProcessListener listener = new ProcessListener(new ExecutionStatus(null, "0",
                 ProcessState.RUNNING, 0));
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
-        downloadProcess.setHardOutputLimit(1);
+
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        estimator.setHardOutputLimit(1);
+
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         try {
             downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
@@ -545,63 +608,133 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         assertFalse(true);
     }
 
+    /**
+     * The listener interface for receiving process events.
+     * The class that is interested in processing a process
+     * event implements this interface, and the object created
+     * with that class is registered with a component using the
+     * component's <code>addProcessListener<code> method. When
+     * the process event occurs, that object's appropriate
+     * method is invoked.
+     *
+     * @see ProcessEvent
+     */
     static class ProcessListener implements ProgressListener {
 
+        /** The Constant LOGGER. */
         static final Logger LOGGER = Logging.getLogger(ProcessListener.class);
 
+        /** The status. */
         ExecutionStatus status;
 
+        /** The task. */
         InternationalString task;
 
+        /** The description. */
         String description;
 
+        /** The exception. */
         Throwable exception;
 
+        /**
+         * Instantiates a new process listener.
+         *
+         * @param status the status
+         */
         public ProcessListener(ExecutionStatus status) {
             this.status = status;
         }
 
+        /**
+         * Gets the task.
+         *
+         * @return the task
+         */
         public InternationalString getTask() {
             return task;
         }
 
+        /**
+         * Sets the task.
+         *
+         * @param task the new task
+         */
         public void setTask(InternationalString task) {
             this.task = task;
         }
 
+        /**
+         * Gets the description.
+         *
+         * @return the description
+         */
         public String getDescription() {
             return this.description;
         }
 
+        /**
+         * Sets the description.
+         *
+         * @param description the new description
+         */
         public void setDescription(String description) {
             this.description = description;
 
         }
 
+        /**
+         * Started.
+         */
         public void started() {
             status.setPhase(ProcessState.RUNNING);
         }
 
+        /**
+         * Progress.
+         *
+         * @param percent the percent
+         */
         public void progress(float percent) {
             status.setProgress(percent);
         }
 
+        /**
+         * Gets the progress.
+         *
+         * @return the progress
+         */
         public float getProgress() {
             return status.getProgress();
         }
 
+        /**
+         * Complete.
+         */
         public void complete() {
             // nothing to do
         }
 
+        /**
+         * Dispose.
+         */
         public void dispose() {
             // nothing to do
         }
 
+        /**
+         * Checks if is canceled.
+         *
+         * @return true, if is canceled
+         */
         public boolean isCanceled() {
             return status.getPhase() == ProcessState.CANCELLED;
         }
 
+        /**
+         * Sets the canceled.
+         *
+         * @param cancel the new canceled
+         */
         public void setCanceled(boolean cancel) {
             if (cancel == true) {
                 status.setPhase(ProcessState.CANCELLED);
@@ -609,12 +742,24 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         }
 
+        /**
+         * Warning occurred.
+         *
+         * @param source the source
+         * @param location the location
+         * @param warning the warning
+         */
         public void warningOccurred(String source, String location, String warning) {
             LOGGER.log(Level.WARNING,
                     "Got a warning during process execution " + status.getExecutionId() + ": "
                             + warning);
         }
 
+        /**
+         * Exception occurred.
+         *
+         * @param exception the exception
+         */
         public void exceptionOccurred(Throwable exception) {
             this.exception = exception;
         }

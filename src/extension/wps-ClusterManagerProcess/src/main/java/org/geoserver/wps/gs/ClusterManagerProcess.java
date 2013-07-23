@@ -22,17 +22,31 @@ import org.geotools.process.gs.GSProcess;
 import org.geotools.util.logging.Logging;
 import org.opengis.util.ProgressListener;
 
+/**
+ * The Class ClusterManagerProcess.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ */
 @DescribeProcess(title = "Enterprise Cluster-Manager Process", description = "Allows to retrieve the Execution Status of the Cluster running processes.")
 public class ClusterManagerProcess implements GSProcess {
 
+    /** The Constant LOGGER. */
     protected static final Logger LOGGER = Logging.getLogger(ClusterManagerProcess.class);
 
+    /** The geo server. */
     protected GeoServer geoServer;
 
+    /** The catalog. */
     protected Catalog catalog;
 
+    /** The available storages. */
     private List<ProcessStorage> availableStorages;
 
+    /**
+     * Instantiates a new cluster manager process.
+     *
+     * @param geoServer the geo server
+     */
     public ClusterManagerProcess(GeoServer geoServer) {
         this.geoServer = geoServer;
         this.catalog = geoServer.getCatalog();
@@ -40,6 +54,14 @@ public class ClusterManagerProcess implements GSProcess {
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
     }
 
+    /**
+     * Execute.
+     *
+     * @param executionId the execution id
+     * @param progressListener the progress listener
+     * @return the list
+     * @throws ProcessException the process exception
+     */
     @DescribeResult(name = "result", description = "Zipped output files to download")
     public List<ExecutionStatus> execute(
             @DescribeParameter(name = "executionId", min = 1, description = "The requested WPS ExecutionId") String executionId,

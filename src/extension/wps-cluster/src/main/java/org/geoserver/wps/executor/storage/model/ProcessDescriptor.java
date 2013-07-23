@@ -22,7 +22,9 @@ import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 /**
- *
+ * The Class ProcessDescriptor.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 @Entity(name = "ProcessDescriptor")
 @Table(name = "gs_processdescriptor")
@@ -40,23 +42,29 @@ public class ProcessDescriptor implements Identifiable, Serializable {
     @Column
     private Long id;
 
+    /** The cluster id. */
     @Column(nullable = false, updatable = true)
     private String clusterId;
 
+    /** The execution id. */
     @Column(nullable = false, updatable = true)
     private String executionId;
 
+    /** The phase. */
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false, updatable = true)
     private ProcessState phase;
 
+    /** The status. */
     @Lob
     @Column(nullable = false, updatable = true)
     private String status;
 
+    /** The progress. */
     @Column(nullable = false, updatable = true)
     private float progress;
 
+    /** The result. */
     @Column(nullable = true, updatable = true)
     private String result;
 
@@ -67,62 +75,137 @@ public class ProcessDescriptor implements Identifiable, Serializable {
 
     }
 
+    /**
+     * Gets the id.
+     *
+     * @return the id
+     */
     public Long getId() {
         return id;
     }
 
+    /**
+     * Sets the id.
+     *
+     * @param id the new id
+     */
     public void setId(Long id) {
         this.id = id;
     }
 
+    /**
+     * Sets the cluster id.
+     *
+     * @param clusterId the new cluster id
+     */
     public void setClusterId(String clusterId) {
         this.clusterId = clusterId;
     }
 
+    /**
+     * Gets the cluster id.
+     *
+     * @return the cluster id
+     */
     public String getClusterId() {
         return clusterId;
     }
 
+    /**
+     * Sets the execution id.
+     *
+     * @param executionId the new execution id
+     */
     public void setExecutionId(String executionId) {
         this.executionId = executionId;
     }
 
+    /**
+     * Gets the execution id.
+     *
+     * @return the execution id
+     */
     public String getExecutionId() {
         return executionId;
     }
 
+    /**
+     * Sets the phase.
+     *
+     * @param phase the new phase
+     */
     public void setPhase(ProcessState phase) {
         this.phase = phase;
     }
 
+    /**
+     * Gets the phase.
+     *
+     * @return the phase
+     */
     public ProcessState getPhase() {
         return phase;
     }
 
+    /**
+     * Sets the status.
+     *
+     * @param status the new status
+     */
     public void setStatus(String status) {
         this.status = status;
     }
 
+    /**
+     * Gets the status.
+     *
+     * @return the status
+     */
     public String getStatus() {
         return status;
     }
 
+    /**
+     * Sets the progress.
+     *
+     * @param progress the new progress
+     */
     public void setProgress(float progress) {
         this.progress = progress;
     }
 
+    /**
+     * Gets the progress.
+     *
+     * @return the progress
+     */
     public float getProgress() {
         return progress;
     }
 
+    /**
+     * Sets the result.
+     *
+     * @param result the new result
+     */
     public void setResult(String result) {
         this.result = result;
     }
 
+    /**
+     * Gets the result.
+     *
+     * @return the result
+     */
     public String getResult() {
         return result;
     }
 
+    /**
+     * Hash code.
+     *
+     * @return the int
+     */
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -136,6 +219,12 @@ public class ProcessDescriptor implements Identifiable, Serializable {
         return result;
     }
 
+    /**
+     * Equals.
+     *
+     * @param obj the obj
+     * @return true, if successful
+     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -185,6 +274,11 @@ public class ProcessDescriptor implements Identifiable, Serializable {
         return true;
     }
 
+    /**
+     * To string.
+     *
+     * @return the string
+     */
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

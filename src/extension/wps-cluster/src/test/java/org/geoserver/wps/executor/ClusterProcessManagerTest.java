@@ -25,6 +25,11 @@ import com.thoughtworks.xstream.XStream;
  */
 public class ClusterProcessManagerTest extends WPSTestSupport {
 
+    /**
+     * Test serialization.
+     *
+     * @throws Exception the exception
+     */
     public void testSerialization() throws Exception {
 
         ExecutionStatusExTest statusSrc = new ExecutionStatusExTest(Ows11Util.name("test_process"),
@@ -68,43 +73,83 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
         }
     }
 
+    /**
+     * The Class MyClass.
+     */
     class MyClass {
+        
+        /** The value. */
         private BigDecimal value;
 
+        /**
+         * Sets the value.
+         *
+         * @param value the new value
+         */
         public void setValue(BigDecimal value) {
             this.value = value;
         }
 
+        /**
+         * Gets the value.
+         *
+         * @return the value
+         */
         public BigDecimal getValue() {
             return value;
         }
     }
 
     /**
-     * A pimped up test execution status
-     * 
+     * A pimped up test execution status.
+     *
      * @author Alessio Fabiani - GeoSolutions
      */
     static class ExecutionStatusExTest extends ExecutionStatus {
 
+        /** The output. */
         private Map<String, Object> output;
 
+        /** The listener. */
         ProcessListener listener;
 
+        /**
+         * Instantiates a new execution status ex test.
+         *
+         * @param processName the process name
+         * @param executionId the execution id
+         */
         public ExecutionStatusExTest(Name processName, String executionId) {
             super(processName, executionId, ProcessState.QUEUED, 0);
         }
 
+        /**
+         * Gets the status.
+         *
+         * @return the status
+         */
         public ExecutionStatus getStatus() {
             return new ExecutionStatus(processName, executionId, phase, progress);
         }
 
+        /**
+         * Sets the phase.
+         *
+         * @param phase the new phase
+         */
         @Override
         public void setPhase(ProcessState phase) {
             super.setPhase(phase);
 
         }
 
+        /**
+         * Gets the output.
+         *
+         * @param timeout the timeout
+         * @return the output
+         * @throws Exception the exception
+         */
         @Override
         public Map<String, Object> getOutput(long timeout) throws Exception {
             if (output == null)
@@ -112,6 +157,11 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
             return output;
         }
 
+        /**
+         * Sets the output.
+         *
+         * @param output the output
+         */
         public void setOutput(Map<String, Object> output) {
             this.output = output;
         }

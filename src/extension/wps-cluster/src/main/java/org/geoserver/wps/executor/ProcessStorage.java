@@ -16,7 +16,7 @@ import org.opengis.feature.type.Name;
  * instances.
  * 
  * @author "Mauro Bartolomeoli - mauro.bartolomeoli@geo-solutions.it"
- * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public interface ProcessStorage {
 
@@ -31,128 +31,166 @@ public interface ProcessStorage {
 
     /**
      * Retrieves the status of a process from the storage.
-     * 
+     *
+     * @param clusterId the cluster id
      * @param executionId process id
-     * @return
+     * @return the status
      */
     public ExecutionStatus getStatus(String clusterId, String executionId);
 
     /**
      * Retrieves the status of the process from the storage.
-     * 
-     * @param executionId
+     *
+     * @param executionId the execution id
+     * @return the status
      */
     public List<ExecutionStatusEx> getStatus(String executionId);
 
     /**
      * Removes the status of a process from the storage. The last status is returned.
-     * 
+     *
+     * @param clusterId the cluster id
      * @param executionId process id
-     * @return
+     * @return the execution status
      */
     public ExecutionStatus removeStatus(String clusterId, String executionId);
 
     /**
      * Gets the status of all executing processes on all the instances of the cluster.
-     * 
-     * @return
+     *
+     * @return the all
      */
     public Collection<ExecutionStatus> getAll();
 
     /**
      * Updates the phase of a process.
-     * 
-     * @param executionId
-     * @param phase
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param phase the phase
      */
     public void updatePhase(String clusterId, String executionId, ProcessState phase);
 
     /**
      * Updates the progress of a process.
-     * 
-     * @param executionId
-     * @param progress
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param progress the progress
      */
     public void updateProgress(String clusterId, String executionId, float progress);
 
     /**
      * Retrieves the output of a process, with the given max timeout.
-     * 
-     * @param executionId
-     * @param timeout
-     * @return
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param timeout the timeout
+     * @return the output
      */
     public Map<String, Object> getOutput(String clusterId, String executionId, long timeout);
 
     /**
      * Gets the id of the instance executing a process.
-     * 
-     * @param executionId
-     * @return
+     *
+     * @param executionId the execution id
+     * @return single instance of ProcessStorage
      */
     public String getInstance(String executionId);
 
     /**
      * Puts the output of a process on the storage.
-     * 
-     * @param executionId
-     * @param output
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param status the status
      */
     public void putOutput(String clusterId, String executionId, ExecutionStatus status);
 
     /**
      * Puts the output error of a process on the storage.
-     * 
-     * @param executionId
-     * @param e
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param e the e
      */
     public void putOutput(String clusterId, String executionId, Exception e);
 
     /**
-     * 
-     * @param executionId
-     * @param processName
-     * @param inputs
-     * @param background
+     * Submit.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
+     * @param background the background
      */
     public void submit(String clusterId, String executionId, Name processName,
             Map<String, Object> inputs, boolean background);
 
     /**
-     * 
-     * @param executionId
-     * @param processName
-     * @param inputs
+     * Submit chained.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
      */
     public void submitChained(String clusterId, String executionId, Name processName,
             Map<String, Object> inputs);
 
     /**
-     * 
-     * @param clusterId
-     * @param executionId
-     * @param value
+     * Store result.
+     *
+     * @param clusterId the cluster id
+     * @param executionId the execution id
+     * @param value the value
      */
     public void storeResult(String clusterId, String executionId, Object value);
 
+    /**
+     * The Class ExecutionStatusEx.
+     */
     public static class ExecutionStatusEx extends ExecutionStatus {
 
+        /** The result. */
         private String result;
 
+        /**
+         * Instantiates a new execution status ex.
+         *
+         * @param status the status
+         */
         public ExecutionStatusEx(ExecutionStatus status) {
             super(status.getProcessName(), status.getExecutionId(), status.getPhase(), status
                     .getProgress());
         }
 
+        /**
+         * Instantiates a new execution status ex.
+         *
+         * @param status the status
+         * @param result the result
+         */
         public ExecutionStatusEx(ExecutionStatus status, String result) {
             this(status);
             this.result = result;
         }
 
+        /**
+         * Sets the result.
+         *
+         * @param result the new result
+         */
         public void setResult(String result) {
             this.result = result;
         }
 
+        /**
+         * Gets the result.
+         *
+         * @return the result
+         */
         public String getResult() {
             return result;
         }

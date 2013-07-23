@@ -31,16 +31,27 @@ import org.opengis.feature.type.Name;
  * 
  * @author "Mauro Bartolomeoli - mauro.bartolomeoli@geo-solutions.it"
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
- * 
  */
 public class ClusterProcessManager extends DefaultProcessManager {
 
+    /** The cluster id. */
     private String clusterId;
 
+    /** The local processes. */
     private Map<String, ExecutionStatus> localProcesses;
 
+    /** The available storages. */
     private List<ProcessStorage> availableStorages;
 
+    /**
+     * Submit chained.
+     *
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
+     * @return the map
+     * @throws ProcessException the process exception
+     */
     @Override
     public Map<String, Object> submitChained(String executionId, Name processName,
             Map<String, Object> inputs) throws ProcessException {
@@ -77,6 +88,15 @@ public class ClusterProcessManager extends DefaultProcessManager {
         return result;
     }
 
+    /**
+     * Submit.
+     *
+     * @param executionId the execution id
+     * @param processName the process name
+     * @param inputs the inputs
+     * @param background the background
+     * @throws ProcessException the process exception
+     */
     @Override
     public void submit(String executionId, Name processName, Map<String, Object> inputs,
             boolean background) throws ProcessException {
@@ -100,14 +120,27 @@ public class ClusterProcessManager extends DefaultProcessManager {
         executions.put(executionId, status);
     }
 
+    /**
+     * The Class ClusterProcessCallable.
+     */
     class ClusterProcessCallable implements Callable<Map<String, Object>> {
 
+        /** The inputs. */
         Map<String, Object> inputs;
 
+        /** The status. */
         ExecutionStatus status;
 
+        /** The listener. */
         ProcessListener listener;
 
+        /**
+         * Instantiates a new cluster process callable.
+         *
+         * @param inputs the inputs
+         * @param status the status
+         * @param listener the listener
+         */
         public ClusterProcessCallable(Map<String, Object> inputs, ExecutionStatus status,
                 ProcessListener listener) {
             this.inputs = inputs;
@@ -115,6 +148,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
             this.listener = listener;
         }
 
+        /**
+         * Call.
+         *
+         * @return the map
+         * @throws Exception the exception
+         */
         @Override
         public Map<String, Object> call() throws Exception {
             resourceManager.setCurrentExecutionId(status.getExecutionId());
@@ -183,14 +222,28 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
     }
 
+    /**
+     * The Class ExecutionsManager.
+     */
     class ExecutionsManager extends AbstractMap<String, ExecutionStatus> {
 
+        /**
+         * Entry set.
+         *
+         * @return the sets the
+         */
         @Override
         public Set<java.util.Map.Entry<String, ExecutionStatus>> entrySet() {
             // implementation not needed by ProcessManager
             return null;
         }
 
+        /**
+         * Gets the.
+         *
+         * @param executionId the execution id
+         * @return the execution status
+         */
         @Override
         public ExecutionStatus get(Object executionId) {
             if (executionId == null) {
@@ -215,6 +268,13 @@ public class ClusterProcessManager extends DefaultProcessManager {
             return status;
         }
 
+        /**
+         * Put.
+         *
+         * @param executionId the execution id
+         * @param status the status
+         * @return the execution status
+         */
         @Override
         public ExecutionStatus put(String executionId, ExecutionStatus status) {
             localProcesses.put(executionId, status);
@@ -226,6 +286,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
             return status;
         }
 
+        /**
+         * Removes the.
+         *
+         * @param executionId the execution id
+         * @return the execution status
+         */
         @Override
         public ExecutionStatus remove(Object executionId) {
             if (executionId == null) {
@@ -243,6 +309,11 @@ public class ClusterProcessManager extends DefaultProcessManager {
             return status;
         }
 
+        /**
+         * Values.
+         *
+         * @return the collection
+         */
         @Override
         public Collection<ExecutionStatus> values() {
             if (availableStorages != null && availableStorages.size() > 0) {
@@ -255,32 +326,65 @@ public class ClusterProcessManager extends DefaultProcessManager {
         }
     }
 
+    /**
+     * The Class ClusterExecutionStatus.
+     */
     class ClusterExecutionStatus extends ExecutionStatusEx {
 
+        /** The local process. */
         private boolean localProcess;
 
+        /** The cluster id. */
         private String clusterId;
 
+        /**
+         * Instantiates a new cluster execution status.
+         *
+         * @param processName the process name
+         * @param clusterId the cluster id
+         * @param executionId the execution id
+         */
         public ClusterExecutionStatus(Name processName, String clusterId, String executionId) {
             super(processName, executionId);
             this.clusterId = clusterId;
             this.localProcess = this.clusterId == ClusterProcessManager.this.clusterId;
         }
 
+        /**
+         * Instantiates a new cluster execution status.
+         *
+         * @param clusterId the cluster id
+         * @param status the status
+         */
         public ClusterExecutionStatus(String clusterId, ExecutionStatus status) {
             this(status.getProcessName(), clusterId, status.getExecutionId());
             this.phase = status.getPhase();
             this.progress = status.getProgress();
         }
 
+        /**
+         * Checks if is local process.
+         *
+         * @return true, if is local process
+         */
         public boolean isLocalProcess() {
             return localProcess;
         }
 
+        /**
+         * Gets the cluster id.
+         *
+         * @return the cluster id
+         */
         public String getClusterId() {
             return clusterId;
         }
 
+        /**
+         * Sets the phase.
+         *
+         * @param phase the new phase
+         */
         @Override
         public void setPhase(ProcessState phase) {
             if (availableStorages != null && availableStorages.size() > 0) {
@@ -299,6 +403,13 @@ public class ClusterProcessManager extends DefaultProcessManager {
             }
         }
 
+        /**
+         * Gets the output.
+         *
+         * @param timeout the timeout
+         * @return the output
+         * @throws Exception the exception
+         */
         @Override
         public Map<String, Object> getOutput(long timeout) throws Exception {
             Map<String, Object> output = null;
@@ -327,11 +438,21 @@ public class ClusterProcessManager extends DefaultProcessManager {
             return output;
         }
 
+        /**
+         * Gets the status.
+         *
+         * @return the status
+         */
         @Override
         public ExecutionStatus getStatus() {
             return this;
         }
 
+        /**
+         * Sets the progress.
+         *
+         * @param progress the new progress
+         */
         @Override
         public void setProgress(float progress) {
             if (availableStorages != null && availableStorages.size() > 0) {
@@ -342,6 +463,11 @@ public class ClusterProcessManager extends DefaultProcessManager {
         }
     }
 
+    /**
+     * Instantiates a new cluster process manager.
+     *
+     * @param resourceManager the resource manager
+     */
     public ClusterProcessManager(WPSResourceManager resourceManager) {
         super(resourceManager);
 
@@ -354,38 +480,67 @@ public class ClusterProcessManager extends DefaultProcessManager {
         }
     }
 
+    /**
+     * Gets the cluster id.
+     *
+     * @return the cluster id
+     */
     public String getClusterId() {
         return clusterId;
     }
 
+    /**
+     * Creates the executions manager.
+     *
+     * @return the map
+     */
     @Override
     protected Map<String, ExecutionStatus> createExecutionsManager() {
         localProcesses = super.createExecutionsManager();
         return new ExecutionsManager();
     }
 
+    /**
+     * Creates the execution status.
+     *
+     * @param processName the process name
+     * @param executionId the execution id
+     * @return the execution status ex
+     */
     @Override
     protected ExecutionStatusEx createExecutionStatus(Name processName, String executionId) {
         return new ClusterExecutionStatus(processName, clusterId, executionId);
     }
 
+    /**
+     * Gets the priority.
+     *
+     * @return the priority
+     */
     @Override
     public int getPriority() {
         return ExtensionPriority.HIGHEST;
     }
 
     /**
-     * Listens to the process progress and allows to cancel it
-     * 
+     * Listens to the process progress and allows to cancel it.
+     *
      * @author Andrea Aime - GeoSolutions
      */
     public class ClusterProcessListener extends ProcessListener {
 
+        /**
+         * Instantiates a new cluster process listener.
+         *
+         * @param status the status
+         */
         public ClusterProcessListener(ExecutionStatus status) {
             super(status);
         }
 
         /**
+         * Sets the status.
+         *
          * @param status the status to set
          */
         public void setStatus(ExecutionStatus status) {
@@ -393,6 +548,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
         }
 
         /**
+         * Gets the status.
+         *
          * @return the status
          */
         public ExecutionStatus getStatus() {

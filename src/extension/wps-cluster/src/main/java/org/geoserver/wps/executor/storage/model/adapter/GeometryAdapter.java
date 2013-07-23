@@ -1,4 +1,4 @@
-/* Copyright (c) 2001 - 2011 TOPP - www.openplans.org. All rights reserved.
+/* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
  * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
@@ -15,6 +15,8 @@ import com.vividsolutions.jts.io.WKTWriter;
  * The Class GeometryAdapter.
  * 
  * @param <G> the generic type
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class GeometryAdapter<G extends Geometry> extends XmlAdapter<String, G> {
 
@@ -22,6 +24,13 @@ public class GeometryAdapter<G extends Geometry> extends XmlAdapter<String, G> {
      * (non-Javadoc)
      * 
      * @see javax.xml.bind.annotation.adapters.XmlAdapter#unmarshal(java.lang.Object)
+     */
+    /**
+     * Unmarshal.
+     *
+     * @param val the val
+     * @return the g
+     * @throws ParseException the parse exception
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -43,6 +52,13 @@ public class GeometryAdapter<G extends Geometry> extends XmlAdapter<String, G> {
      * (non-Javadoc)
      * 
      * @see javax.xml.bind.annotation.adapters.XmlAdapter#marshal(java.lang.Object)
+     */
+    /**
+     * Marshal.
+     *
+     * @param the_geom the the_geom
+     * @return the string
+     * @throws ParseException the parse exception
      */
     @Override
     public String marshal(G the_geom) throws ParseException {

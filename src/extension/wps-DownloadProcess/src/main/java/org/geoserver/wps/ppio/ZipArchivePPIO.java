@@ -1,5 +1,5 @@
-/* Copyright (c) 2001 - 2013 OpenPlans - www.openplans.org. All rights reserved.
- * This code is licensed under the GPL 2.0 license, available at the root
+/* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
 package org.geoserver.wps.ppio;
@@ -21,18 +21,27 @@ import org.geoserver.data.util.IOUtils;
 import org.geoserver.wps.resource.WPSResourceManager;
 
 /**
- * Handles input and output of feature collections as zipped files
+ * Handles input and output of feature collections as zipped files.
  * 
- * @author Andrea Aime - OpenGeo
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class ZipArchivePPIO extends BinaryPPIO {
 
+    /** The geo server. */
     GeoServer geoServer;
 
+    /** The catalog. */
     Catalog catalog;
 
+    /** The resources. */
     WPSResourceManager resources;
 
+    /**
+     * Instantiates a new zip archive ppio.
+     *
+     * @param geoServer the geo server
+     * @param resources the resources
+     */
     protected ZipArchivePPIO(GeoServer geoServer, WPSResourceManager resources) {
         super(File.class, File.class, "application/zip");
         this.geoServer = geoServer;
@@ -40,6 +49,13 @@ public class ZipArchivePPIO extends BinaryPPIO {
         this.resources = resources;
     }
 
+    /**
+     * Encode.
+     *
+     * @param output the output
+     * @param os the os
+     * @throws Exception the exception
+     */
     @Override
     public void encode(final Object output, OutputStream os) throws Exception {
         ZipOutputStream zipout = new ZipOutputStream(os);
@@ -58,6 +74,13 @@ public class ZipArchivePPIO extends BinaryPPIO {
         }
     }
 
+    /**
+     * Decode.
+     *
+     * @param input the input
+     * @return the object
+     * @throws Exception the exception
+     */
     @Override
     public Object decode(InputStream input) throws Exception {
         // create the temp directory and register it as a temporary resource
@@ -102,13 +125,27 @@ public class ZipArchivePPIO extends BinaryPPIO {
         return directory;
     }
 
+    /**
+     * Gets the file extension.
+     *
+     * @return the file extension
+     */
     @Override
     public String getFileExtension() {
         return "zip";
     }
 
+    /**
+     * The Class ZipArchive.
+     */
     public static class ZipArchive extends ZipArchivePPIO {
 
+        /**
+         * Instantiates a new zip archive.
+         *
+         * @param geoServer the geo server
+         * @param resources the resources
+         */
         public ZipArchive(GeoServer geoServer, WPSResourceManager resources) {
             super(geoServer, resources);
         }

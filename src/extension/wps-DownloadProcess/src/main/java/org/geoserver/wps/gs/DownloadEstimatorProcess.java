@@ -1,5 +1,5 @@
 /* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
- * This code is licensed under the GPL 2.0 license, available at the root
+ * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
 package org.geoserver.wps.gs;
@@ -25,26 +25,59 @@ import org.opengis.util.ProgressListener;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * The Class DownloadEstimatorProcess.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ */
 @DescribeProcess(title = "Enterprise Download Process", description = "Downloads Layer Stream and provides a ZIP.")
 public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
-    protected static final Logger LOGGER = Logging.getLogger(DownloadEstimatorProcess.class);
+    /** The Constant LOGGER. */
+    private static final Logger LOGGER = Logging.getLogger(DownloadEstimatorProcess.class);
 
-    private static final long DEFAULT_MAX_FEATURES = 1000000;
+    /** The Constant DEFAULT_MAX_FEATURES. */
+    public static final long DEFAULT_MAX_FEATURES = 1000000;
 
+    /** The max features. */
     private long maxFeatures;
 
+    /** The read limits. */
     private long readLimits;
 
+    /** The write limits. */
     private long writeLimits;
 
+    /** The hard output limit. */
+    private long hardOutputLimit;
+
+    /**
+     * Instantiates a new download estimator process.
+     *
+     * @param geoServer the geo server
+     */
     public DownloadEstimatorProcess(GeoServer geoServer) {
         super(geoServer);
         this.maxFeatures = DEFAULT_MAX_FEATURES;
         this.readLimits = 0;
         this.writeLimits = 0;
+        this.hardOutputLimit = 0;
     }
 
+    /**
+     * Execute.
+     *
+     * @param layerName the layer name
+     * @param filter the filter
+     * @param email the email
+     * @param outputFormat the output format
+     * @param targetCRS the target crs
+     * @param roi the roi
+     * @param cropToGeometry the crop to geometry
+     * @param progressListener the progress listener
+     * @return the boolean
+     * @throws ProcessException the process exception
+     */
     @DescribeResult(name = "result", description = "Download Limits are respected or not!")
     public Boolean execute(
             @DescribeParameter(name = "layerName", min = 1, description = "Original layer to download") String layerName,
@@ -221,6 +254,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Sets the max features.
+     *
      * @param maxFeatures the maxFeatures to set
      */
     public void setMaxFeatures(long maxFeatures) {
@@ -228,6 +263,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Gets the max features.
+     *
      * @return the maxFeatures
      */
     public long getMaxFeatures() {
@@ -235,6 +272,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Sets the read limits.
+     *
      * @param readLimits the readLimits to set
      */
     public void setReadLimits(long readLimits) {
@@ -242,6 +281,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Gets the read limits.
+     *
      * @return the readLimits
      */
     public long getReadLimits() {
@@ -249,6 +290,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Sets the write limits.
+     *
      * @param writeLimits the writeLimits to set
      */
     public void setWriteLimits(long writeLimits) {
@@ -256,10 +299,30 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
     }
 
     /**
+     * Gets the write limits.
+     *
      * @return the writeLimits
      */
     public long getWriteLimits() {
         return writeLimits;
     }
 
+
+    /**
+     * Sets the hard output limit.
+     *
+     * @param hardOutputLimit the hardOutputLimit to set
+     */
+    public void setHardOutputLimit(long hardOutputLimit) {
+        this.hardOutputLimit = hardOutputLimit;
+    }
+
+    /**
+     * Gets the hard output limit.
+     *
+     * @return the hardOutputLimit
+     */
+    public long getHardOutputLimit() {
+        return hardOutputLimit;
+    }
 }

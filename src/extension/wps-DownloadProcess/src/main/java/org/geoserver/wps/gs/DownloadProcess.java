@@ -61,39 +61,51 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.Point;
 
+/**
+ * The Class DownloadProcess.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ */
 @DescribeProcess(title = "Enterprise Download Process", description = "Downloads Layer Stream and provides a ZIP.")
 public class DownloadProcess extends AbstractDownloadProcess {
 
-    protected static final Logger LOGGER = Logging.getLogger(DownloadProcess.class);
+    /** The Constant LOGGER. */
+    private static final Logger LOGGER = Logging.getLogger(DownloadProcess.class);
 
+    /** The estimator. */
     DownloadEstimatorProcess estimator;
 
-    protected SendMail sendMail;
+    /** The send mail. */
+    private SendMail sendMail;
 
-    protected long hardOutputLimit;
-
+    /**
+     * Instantiates a new download process.
+     *
+     * @param geoServer the geo server
+     * @param sendMail the send mail
+     * @param estimator the estimator
+     */
     public DownloadProcess(GeoServer geoServer, SendMail sendMail,
             DownloadEstimatorProcess estimator) {
         super(geoServer);
         this.sendMail = sendMail;
-        this.hardOutputLimit = 0;
         this.estimator = estimator;
     }
 
     /**
-     * @param hardOutputLimit the hardOutputLimit to set
+     * Execute.
+     *
+     * @param layerName the layer name
+     * @param filter the filter
+     * @param email the email
+     * @param outputFormat the output format
+     * @param targetCRS the target crs
+     * @param roi the roi
+     * @param cropToGeometry the crop to geometry
+     * @param progressListener the progress listener
+     * @return the file
+     * @throws ProcessException the process exception
      */
-    public void setHardOutputLimit(long hardOutputLimit) {
-        this.hardOutputLimit = hardOutputLimit;
-    }
-
-    /**
-     * @return the hardOutputLimit
-     */
-    public long getHardOutputLimit() {
-        return hardOutputLimit;
-    }
-
     @DescribeResult(name = "result", description = "Zipped output files to download")
     public File execute(
             @DescribeParameter(name = "layerName", min = 1, description = "Original layer to download") String layerName,
@@ -112,7 +124,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
         if (layerName != null) {
 
             getLayerAndResourceInfo(layerName);
-            
+
             if (storeInfo == null) {
                 cause = new IllegalArgumentException("Unable to locate feature:"
                         + resourceInfo.getName());
@@ -161,7 +173,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
                         // writing the output
                         final File output = File.createTempFile(resourceInfo.getName(), "."
                                 + extension, getWpsOutputStorage());
-                        long limit = (hardOutputLimit > 0 ? hardOutputLimit * 1024
+                        long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
+                                .getHardOutputLimit() * 1024
                                 : (estimator != null && estimator.getWriteLimits() > 0 ? estimator
                                         .getWriteLimits() * 1024 : Long.MAX_VALUE));
                         OutputStream os = new LimitedFileOutputStream(new FileOutputStream(output),
@@ -218,13 +231,13 @@ public class DownloadProcess extends AbstractDownloadProcess {
     }
 
     /**
-     * @param outputFormat
-     * @param progressListener
-     * @param gc
-     * @param finalCovergae
-     * @param extension
-     * @param os
-     * @throws IOException
+     * Write raster output.
+     *
+     * @param outputFormat the output format
+     * @param progressListener the progress listener
+     * @param extension the extension
+     * @param os the os
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     private void writeRasterOutput(String outputFormat, final ProgressListener progressListener,
             String extension, OutputStream os) throws IOException {
@@ -275,14 +288,16 @@ public class DownloadProcess extends AbstractDownloadProcess {
     }
 
     /**
-     * @param filter
-     * @param email
-     * @param outputFormat
-     * @param targetCRS
-     * @param roi
-     * @param cropToGeometry
-     * @param progressListener
-     * @return
+     * Handle vectorial layer download.
+     *
+     * @param filter the filter
+     * @param email the email
+     * @param outputFormat the output format
+     * @param targetCRS the target crs
+     * @param roi the roi
+     * @param cropToGeometry the crop to geometry
+     * @param progressListener the progress listener
+     * @return the file
      */
     private File handleVectorialLayerDownload(String filter, String email, String outputFormat,
             CoordinateReferenceSystem targetCRS, Geometry roi, Boolean cropToGeometry,
@@ -420,9 +435,10 @@ public class DownloadProcess extends AbstractDownloadProcess {
             // writing the output
             final File output = File.createTempFile(resourceInfo.getName(), "." + extension,
                     getWpsOutputStorage());
-            long limit = (hardOutputLimit > 0 ? hardOutputLimit * 1024 : (estimator != null
-                    && estimator.getWriteLimits() > 0 ? estimator.getWriteLimits() * 1024
-                    : Long.MAX_VALUE));
+            long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
+                    .getHardOutputLimit() * 1024
+                    : (estimator != null && estimator.getWriteLimits() > 0 ? estimator
+                            .getWriteLimits() * 1024 : Long.MAX_VALUE));
             OutputStream os = new LimitedFileOutputStream(new FileOutputStream(output), limit) {
 
                 @Override
@@ -454,13 +470,15 @@ public class DownloadProcess extends AbstractDownloadProcess {
     }
 
     /**
-     * @param outputFormat
-     * @param progressListener
-     * @param features
-     * @param extension
-     * @param os
-     * @throws IOException
-     * @throws Exception
+     * Write vectorial output.
+     *
+     * @param outputFormat the output format
+     * @param progressListener the progress listener
+     * @param features the features
+     * @param extension the extension
+     * @param os the os
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws Exception the exception
      */
     private void writeVectorialOutput(String outputFormat, final ProgressListener progressListener,
             SimpleFeatureCollection features, String extension, OutputStream os)
@@ -512,9 +530,11 @@ public class DownloadProcess extends AbstractDownloadProcess {
     }
 
     /**
-     * @param email
-     * @param progressListener
-     * @throws IOException
+     * Send mail.
+     *
+     * @param email the email
+     * @param progressListener the progress listener
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     private void sendMail(String email, final ProgressListener progressListener) throws IOException {
         if (email != null && sendMail != null) {

@@ -11,16 +11,16 @@ import java.io.File;
  * 
  * It can be used to plug into GeoServer custom URL manglers for the publishing of processes outputs files.
  * 
- * @author Alessio
- * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public interface ClusterFilePublisherURLMangler {
 
     /**
-     * 
-     * @param file
-     * @return
-     * @throws Exception
+     * Gets the publishing url.
+     *
+     * @param file the file
+     * @return the publishing url
+     * @throws Exception the exception
      */
     public String getPublishingURL(File file) throws Exception;
 

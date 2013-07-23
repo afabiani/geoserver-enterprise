@@ -11,7 +11,7 @@ import java.util.Properties;
 /**
  * The Class MailConfiguration.
  * 
- * @author frank
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class MailConfiguration {
 
@@ -21,7 +21,7 @@ public class MailConfiguration {
     /** The from address. */
     private String fromAddress;
 
-    /** The from address name */
+    /** The from address name. */
     private String fromAddressname;
 
     /** The mail smtp auth. */
@@ -73,10 +73,20 @@ public class MailConfiguration {
         return fromAddress;
     }
 
+    /**
+     * Sets the from addressname.
+     *
+     * @param fromAddressname the new from addressname
+     */
     public void setFromAddressname(String fromAddressname) {
         this.fromAddressname = fromAddressname;
     }
 
+    /**
+     * Gets the from addressname.
+     *
+     * @return the from addressname
+     */
     public String getFromAddressname() {
         return fromAddressname;
     }

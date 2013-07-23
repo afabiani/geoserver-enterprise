@@ -7,8 +7,8 @@ package org.geoserver.wps.executor.storage.dao;
 import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
 
 /**
- * Public interface to define operations on ProcessDescriptor
- * 
+ * Public interface to define operations on ProcessDescriptor.
+ *
  * @author Alessio Fabiani (alessio.fabiani at geo-solutions.it)
  */
 

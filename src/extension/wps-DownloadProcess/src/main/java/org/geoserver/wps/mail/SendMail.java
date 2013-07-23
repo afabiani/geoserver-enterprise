@@ -27,16 +27,17 @@ import freemarker.template.TemplateException;
 /**
  * The Class SendMail.
  * 
- * @author frank
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class SendMail {
 
     /** The props. */
     private Properties props;
 
+    /** The conf. */
     final MailConfiguration conf = new MailConfiguration();
 
-    /** FreeMarker templates **/
+    /** FreeMarker templates *. */
     static final Configuration templates;
 
     static {
@@ -49,8 +50,8 @@ public class SendMail {
 
     /**
      * Instantiates a new send mail.
-     * 
-     * @throws IOException
+     *
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     public SendMail() throws IOException {
         props = conf.loadConfiguration();
@@ -58,12 +59,11 @@ public class SendMail {
 
     /**
      * Send an EMail to a specified address.
-     * 
+     *
      * @param address the to address
-     * 
      * @param subject the email address
-     * 
      * @param body message to send
+     * @throws MessagingException the messaging exception
      * @throws IOException Signals that an I/O exception has occurred.
      */
     public void send(String address, String subject, String body) throws MessagingException,
@@ -98,10 +98,12 @@ public class SendMail {
     }
 
     /**
-     * Send a notification to the specified address
-     * 
-     * @param toAddress
-     * @throws IOException
+     * Send a notification to the specified address.
+     *
+     * @param toAddress the to address
+     * @param executiondId the executiond id
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws MessagingException the messaging exception
      */
     public void sendFinishedNotification(String toAddress, String executiondId) throws IOException,
             MessagingException {

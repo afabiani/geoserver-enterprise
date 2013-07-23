@@ -1,5 +1,5 @@
 /* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
- * This code is licensed under the GPL 2.0 license, available at the root
+ * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
 package org.geoserver.wps.gs.utils;
@@ -10,6 +10,8 @@ import java.io.OutputStream;
 
 /**
  * An output stream, which limits its data size. This stream is used, if the content length is unknown.
+ * 
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public abstract class LimitedFileOutputStream extends FilterOutputStream {
     /**
@@ -59,14 +61,15 @@ public abstract class LimitedFileOutputStream extends FilterOutputStream {
     }
 
     /**
-     * Reads the next byte of data from this input stream. The value byte is returned as an <code>int</code> in the range <code>0</code> to
+     * Writes the next byte of data from this input stream. The value byte is returned as an <code>int</code> in the range <code>0</code> to
      * <code>255</code>. If no byte is available because the end of the stream has been reached, the value <code>-1</code> is returned. This method
      * blocks until input data is available, the end of the stream is detected, or an exception is thrown.
      * <p>
      * This method simply performs <code>in.read()</code> and returns the result.
-     * 
+     *
+     * @param b the b
      * @return the next byte of data, or <code>-1</code> if the end of the stream is reached.
-     * @exception IOException if an I/O error occurs.
+     * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */
     public void write(int b) throws IOException {
@@ -76,20 +79,17 @@ public abstract class LimitedFileOutputStream extends FilterOutputStream {
     }
 
     /**
-     * Reads up to <code>len</code> bytes of data from this input stream into an array of bytes. If <code>len</code> is not zero, the method blocks
+     * Writes up to <code>len</code> bytes of data from this input stream into an array of bytes. If <code>len</code> is not zero, the method blocks
      * until some input is available; otherwise, no bytes are read and <code>0</code> is returned.
      * <p>
      * This method simply performs <code>in.read(b, off, len)</code> and returns the result.
-     * 
+     *
      * @param b the buffer into which the data is read.
      * @param off The start offset in the destination array <code>b</code>.
      * @param len the maximum number of bytes read.
      * @return the total number of bytes read into the buffer, or <code>-1</code> if there is no more data because the end of the stream has been
-     *         reached.
-     * @exception NullPointerException If <code>b</code> is <code>null</code>.
-     * @exception IndexOutOfBoundsException If <code>off</code> is negative, <code>len</code> is negative, or <code>len</code> is greater than
-     *            <code>b.length - off</code>
-     * @exception IOException if an I/O error occurs.
+     * reached.
+     * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */
     public void write(byte[] b, int off, int len) throws IOException {
@@ -112,8 +112,8 @@ public abstract class LimitedFileOutputStream extends FilterOutputStream {
 
     /**
      * Closes this input stream and releases any system resources associated with the stream. This method simply performs <code>in.close()</code>.
-     * 
-     * @exception IOException if an I/O error occurs.
+     *
+     * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */
     public void close() throws IOException {

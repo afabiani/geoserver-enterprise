@@ -18,20 +18,23 @@ import javax.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 /**
- * 
- * The base DAO furnish a set of methods usually used
- * 
+ * The base DAO furnish a set of methods usually used.
+ *
+ * @param <T> the generic type
+ * @param <ID> the generic type
  * @author Tobia Di Pisa (tobia.dipisa@geo-solutions.it)
+ * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 @Repository(value = "processStorage")
 public class BaseDAO<T, ID extends Serializable> extends GenericDAOImpl<T, ID> {
 
+    /** The entity manager. */
     @PersistenceContext(unitName = "processStorageEntityManagerFactory")
     private EntityManager entityManager;
 
     /**
-     * EntityManager setting
-     * 
+     * EntityManager setting.
+     *
      * @param entityManager the entity manager to set
      */
     @Override
@@ -41,8 +44,8 @@ public class BaseDAO<T, ID extends Serializable> extends GenericDAOImpl<T, ID> {
     }
 
     /**
-     * JPASearchProcessor setting
-     * 
+     * JPASearchProcessor setting.
+     *
      * @param searchProcessor the search processor to set
      */
     @Override
@@ -54,6 +57,11 @@ public class BaseDAO<T, ID extends Serializable> extends GenericDAOImpl<T, ID> {
      * (non-Javadoc)
      * 
      * @see com.trg.dao.jpa.JPABaseDAO#em()
+     */
+    /**
+     * Em.
+     *
+     * @return the entity manager
      */
     @Override
     public EntityManager em() {
