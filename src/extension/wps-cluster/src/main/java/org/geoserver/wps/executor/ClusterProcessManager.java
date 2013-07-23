@@ -490,17 +490,6 @@ public class ClusterProcessManager extends DefaultProcessManager {
     }
 
     /**
-     * Creates the executions manager.
-     *
-     * @return the map
-     */
-    @Override
-    protected Map<String, ExecutionStatus> createExecutionsManager() {
-        localProcesses = super.createExecutionsManager();
-        return new ExecutionsManager();
-    }
-
-    /**
      * Creates the execution status.
      *
      * @param processName the process name

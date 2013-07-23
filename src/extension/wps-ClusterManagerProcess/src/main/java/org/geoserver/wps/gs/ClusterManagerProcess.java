@@ -44,7 +44,7 @@ public class ClusterManagerProcess implements GSProcess {
 
     /**
      * Instantiates a new cluster manager process.
-     *
+     * 
      * @param geoServer the geo server
      */
     public ClusterManagerProcess(GeoServer geoServer) {
@@ -56,7 +56,7 @@ public class ClusterManagerProcess implements GSProcess {
 
     /**
      * Execute.
-     *
+     * 
      * @param executionId the execution id
      * @param progressListener the progress listener
      * @return the list
@@ -82,12 +82,22 @@ public class ClusterManagerProcess implements GSProcess {
                         for (ExecutionStatus exStatus : status) {
                             boolean canUpdate = true;
 
-                            for (ExecutionStatus storedStatus : processesStatus) {
-                                if (storedStatus.getExecutionId().equals(exStatus.getExecutionId())
-                                        && exStatus.getProgress() < storedStatus.getProgress())
-                                    canUpdate = false;
+                            if (exStatus.getProcessName().getLocalPart()
+                                    .equalsIgnoreCase("TestProcess") || !exStatus.getExecutionId().equals(executionId))
+                                canUpdate = false;
+                            
+                            if (canUpdate) {
+                                for (ExecutionStatus storedStatus : processesStatus) {
+                                    if (exStatus.getProcessName().getLocalPart()
+                                            .equalsIgnoreCase("TestProcess")
+                                            || !storedStatus.getExecutionId().equals(
+                                                    exStatus.getExecutionId())
+                                            || (storedStatus.getExecutionId().equals(
+                                                    exStatus.getExecutionId()) && exStatus
+                                                    .getProgress() < storedStatus.getProgress()))
+                                        canUpdate = false;
+                                }
                             }
-
                             if (canUpdate) {
                                 processesStatus.add(exStatus);
                             }
