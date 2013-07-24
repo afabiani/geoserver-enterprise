@@ -33,7 +33,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 public class DefaultProcessManager implements ProcessManager, ExtensionPriority,
         ApplicationListener<ApplicationEvent> {
 
-	ConcurrentHashMap<String, ExecutionStatusEx> executions = new ConcurrentHashMap<String, DefaultProcessManager.ExecutionStatusEx>();
+    ConcurrentHashMap<String, ExecutionStatusEx> executions = new ConcurrentHashMap<String, DefaultProcessManager.ExecutionStatusEx>();
 
     ThreadPoolExecutor synchService;
 
@@ -112,7 +112,7 @@ public class DefaultProcessManager implements ProcessManager, ExtensionPriority,
     @Override
     public void submit(String executionId, Name processName, Map<String, Object> inputs,
             boolean background) throws ProcessException {
-    	ExecutionStatusEx status = new ExecutionStatusEx(processName, executionId);
+        ExecutionStatusEx status = new ExecutionStatusEx(processName, executionId);
         ProcessListener listener = new ProcessListener(status);
         status.listener = listener;
         ProcessCallable callable = new ProcessCallable(inputs, status);
@@ -147,11 +147,11 @@ public class DefaultProcessManager implements ProcessManager, ExtensionPriority,
             return null;
         }
         try {
-        	if (timeout <= 0) {
+            if (timeout <= 0) {
                 return status.future.get();
             } else {
                 return status.future.get(timeout, TimeUnit.MILLISECONDS);
-            }            
+            }
         } catch (Exception e) {
             if (e instanceof ExecutionException && e.getCause() instanceof Exception) {
                 e = (Exception) e.getCause();
@@ -173,7 +173,7 @@ public class DefaultProcessManager implements ProcessManager, ExtensionPriority,
         if (status != null) {
             status.setPhase(ProcessState.CANCELLED);
             status.future.cancel(true);
-            status.listener.setCanceled(true);            
+            status.listener.setCanceled(true);
         }
     }
 
