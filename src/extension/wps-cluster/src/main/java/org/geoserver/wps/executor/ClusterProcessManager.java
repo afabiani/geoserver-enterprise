@@ -169,8 +169,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
             try {
                 Process p = pf.create(processName);
                 result = p.execute(inputs, listener);
+                String executionId = status.executionId;
                 if (listener.exception != null) {
-                    String executionId = status.executionId;
                     status.setPhase(ProcessState.FAILED);
 
                     if (availableStorages != null && availableStorages.size() > 0) {
@@ -190,6 +190,22 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
                     throw new WPSException("Process failed: " + listener.exception.getMessage(),
                             listener.exception);
+                }
+                else
+                {
+                    if (availableStorages != null && availableStorages.size() > 0) {
+                        for (ProcessStorage storage : availableStorages) {
+                            String clusterId = storage.getInstance(executionId);
+                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
+                                    processName, executionId, ProcessState.COMPLETED, 100));
+                            
+                            for (Entry<String, Object> entry : result.entrySet()) {
+                                if (entry.getKey().equalsIgnoreCase("result"))
+                                    storage.storeResult(clusterId, executionId, entry.getValue());
+                            }
+                        }
+                    }
+
                 }
                 return result;
             } catch (Exception e) {
