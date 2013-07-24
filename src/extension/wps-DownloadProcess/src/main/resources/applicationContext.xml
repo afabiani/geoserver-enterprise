@@ -25,7 +25,6 @@
 		<constructor-arg index="0" ref="geoServer"/>
 		<constructor-arg index="1" ref="wpsSendMail"/>
 		<constructor-arg index="2" ref="enterpriseDownloadEstimatorProcess"/>
-		<property name="hardOutputLimit" value="${enterpriseDownloadProcess.hardOutputLimit}" />
 	</bean>
 
 	<bean id="enterpriseDownloadEstimatorProcess" class="org.geoserver.wps.gs.DownloadEstimatorProcess">
@@ -33,6 +32,7 @@
 		<property name="maxFeatures" value="${enterpriseDownloadEstimatorProcess.maxFeatures}" />
 		<property name="readLimits" value="${enterpriseDownloadEstimatorProcess.readLimits}" />
 		<property name="writeLimits" value="${enterpriseDownloadEstimatorProcess.writeLimits}" />
+		<property name="hardOutputLimit" value="${enterpriseDownloadEstimatorProcess.hardOutputLimit}" />
 	</bean>
 
 	<!-- The PPIO that need to be registered into SPI because of their dependencies -->
