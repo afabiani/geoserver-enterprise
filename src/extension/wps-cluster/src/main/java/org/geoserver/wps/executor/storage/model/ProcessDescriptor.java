@@ -65,6 +65,7 @@ public class ProcessDescriptor implements Identifiable, Serializable {
     private float progress;
 
     /** The result. */
+    @Lob
     @Column(nullable = true, updatable = true)
     private String result;
 
