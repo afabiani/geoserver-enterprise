@@ -80,7 +80,7 @@ import com.vividsolutions.jts.geom.Point;
 
 /**
  * The Class AbstractDownloadProcess.
- *
+ * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public abstract class AbstractDownloadProcess implements GSProcess {
@@ -126,7 +126,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Instantiates a new abstract download process.
-     *
+     * 
      * @param geoServer the geo server
      */
     public AbstractDownloadProcess(GeoServer geoServer) {
@@ -136,7 +136,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the feature source.
-     *
+     * 
      * @param featureSource the featureSource to set
      */
     public void setFeatureSource(SimpleFeatureSource featureSource) {
@@ -145,7 +145,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the feature source.
-     *
+     * 
      * @return the featureSource
      */
     public SimpleFeatureSource getFeatureSource() {
@@ -154,7 +154,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Execute.
-     *
+     * 
      * @param layerName the layer name
      * @param filter the filter
      * @param email the email
@@ -179,27 +179,26 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the layer and resource info.
-     *
+     * 
      * @param layerName the layer name
      * @return the layer and resource info
      */
     protected void getLayerAndResourceInfo(String layerName) {
-        if (layerInfo == null || resourceInfo == null || storeInfo == null) {
-            layerInfo = catalog.getLayerByName(layerName);
-            resourceInfo = layerInfo.getResource();
-            storeInfo = resourceInfo.getStore();
-        }
+        layerInfo = catalog.getLayerByName(layerName);
+        resourceInfo = layerInfo.getResource();
+        storeInfo = resourceInfo.getStore();
     }
 
     /**
      * Gets the feature source.
-     *
+     * 
      * @param dataStore the data store
      * @param progressListener the progress listener
      * @return the feature source
      * @throws Exception the exception
      */
-    protected SimpleFeatureSource getFeatureSource(DataStoreInfo dataStore, ProgressListener progressListener) throws Exception {
+    protected SimpleFeatureSource getFeatureSource(DataStoreInfo dataStore,
+            ProgressListener progressListener) throws Exception {
         SimpleFeatureType targetType;
         // grab the data store
         DataStore ds = (DataStore) dataStore.getDataStore(null);
@@ -235,7 +234,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the coverage.
-     *
+     * 
      * @param coverage the coverage
      * @param roi the roi
      * @param targetCRS the target crs
@@ -419,7 +418,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the charset.
-     *
+     * 
      * @return the charset
      */
     public static Charset getCharset() {
@@ -435,7 +434,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the wps output storage.
-     *
+     * 
      * @return the wps output storage
      */
     public static File getWpsOutputStorage() {
@@ -460,7 +459,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Mkdir.
-     *
+     * 
      * @param file the file
      */
     public static void mkdir(File file) {
@@ -471,7 +470,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Creates the coverage.
-     *
+     * 
      * @param name the name
      * @param raster the raster
      * @param envelope the envelope
@@ -498,7 +497,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Computes the size of a grid coverage given its grid envelope and the target sample model.
-     *
+     * 
      * @param envelope the envelope
      * @param sm the sm
      * @return the coverage size
@@ -533,7 +532,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Utility function to format a byte amount into a human readable string.
-     *
+     * 
      * @param bytes the bytes
      * @return the string
      */
@@ -549,7 +548,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the gc.
-     *
+     * 
      * @param gc the gc to set
      */
     public void setGc(GridCoverage2D gc) {
@@ -558,7 +557,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the gc.
-     *
+     * 
      * @return the gc
      */
     public GridCoverage2D getGc() {
@@ -567,7 +566,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the final coverage.
-     *
+     * 
      * @param finalCoverage the finalCoverage to set
      */
     public void setFinalCoverage(GridCoverage2D finalCoverage) {
@@ -576,7 +575,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the final coverage.
-     *
+     * 
      * @return the finalCoverage
      */
     public GridCoverage2D getFinalCoverage() {
