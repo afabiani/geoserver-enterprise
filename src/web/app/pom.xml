@@ -657,6 +657,26 @@
       </dependencies>
     </profile>
     <profile>
+      <id>wps-cluster</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-cluster</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>WPS-ClusterManagerProcess</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>WPS-DownloadProcess</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>css</id>
       <dependencies>
         <dependency>

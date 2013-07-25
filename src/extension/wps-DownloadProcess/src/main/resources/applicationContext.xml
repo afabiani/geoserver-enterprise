@@ -29,10 +29,17 @@
 
 	<bean id="enterpriseDownloadEstimatorProcess" class="org.geoserver.wps.gs.DownloadEstimatorProcess">
 		<constructor-arg index="0" ref="geoServer"/>
+<<<<<<< HEAD
 		<property name="maxFeatures" value="${enterpriseDownloadEstimatorProcess.maxFeatures}" />
 		<property name="readLimits" value="${enterpriseDownloadEstimatorProcess.readLimits}" />
 		<property name="writeLimits" value="${enterpriseDownloadEstimatorProcess.writeLimits}" />
 		<property name="hardOutputLimit" value="${enterpriseDownloadEstimatorProcess.hardOutputLimit}" />
+=======
+		<property name="hardOutputLimit" value="${enterpriseDownloadEstimatorProcess.hardOutputLimit}" />
+		<property name="maxFeatures" value="${enterpriseDownloadEstimatorProcess.maxFeatures}" />
+		<property name="readLimits" value="${enterpriseDownloadEstimatorProcess.readLimits}" />
+		<property name="writeLimits" value="${enterpriseDownloadEstimatorProcess.writeLimits}" />
+>>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
 	</bean>
 
 	<!-- The PPIO that need to be registered into SPI because of their dependencies -->

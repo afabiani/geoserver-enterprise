@@ -80,7 +80,7 @@ import com.vividsolutions.jts.geom.Point;
 
 /**
  * The Class AbstractDownloadProcess.
- * 
+ *
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public abstract class AbstractDownloadProcess implements GSProcess {
@@ -126,7 +126,11 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Instantiates a new abstract download process.
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param geoServer the geo server
      */
     public AbstractDownloadProcess(GeoServer geoServer) {
@@ -136,7 +140,11 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the feature source.
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param featureSource the featureSource to set
      */
     public void setFeatureSource(SimpleFeatureSource featureSource) {
@@ -145,7 +153,11 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the feature source.
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @return the featureSource
      */
     public SimpleFeatureSource getFeatureSource() {
@@ -154,7 +166,11 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Execute.
+<<<<<<< HEAD
      * 
+=======
+     *
+>>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param layerName the layer name
      * @param filter the filter
      * @param email the email
@@ -179,7 +195,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the layer and resource info.
-     * 
+     *
      * @param layerName the layer name
      * @return the layer and resource info
      */
@@ -191,7 +207,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the feature source.
-     * 
+     *
      * @param dataStore the data store
      * @param progressListener the progress listener
      * @return the feature source
@@ -234,7 +250,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the coverage.
-     * 
+     *
      * @param coverage the coverage
      * @param roi the roi
      * @param targetCRS the target crs
@@ -418,7 +434,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the charset.
-     * 
+     *
      * @return the charset
      */
     public static Charset getCharset() {
@@ -434,7 +450,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the wps output storage.
-     * 
+     *
      * @return the wps output storage
      */
     public static File getWpsOutputStorage() {
@@ -497,7 +513,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Computes the size of a grid coverage given its grid envelope and the target sample model.
-     * 
+     *
      * @param envelope the envelope
      * @param sm the sm
      * @return the coverage size
@@ -548,7 +564,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the gc.
-     * 
+     *
      * @param gc the gc to set
      */
     public void setGc(GridCoverage2D gc) {
@@ -557,7 +573,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the gc.
-     * 
+     *
      * @return the gc
      */
     public GridCoverage2D getGc() {
@@ -566,7 +582,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the final coverage.
-     * 
+     *
      * @param finalCoverage the finalCoverage to set
      */
     public void setFinalCoverage(GridCoverage2D finalCoverage) {
@@ -575,7 +591,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the final coverage.
-     * 
+     *
      * @return the finalCoverage
      */
     public GridCoverage2D getFinalCoverage() {
