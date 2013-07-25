@@ -279,10 +279,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     cause = new IllegalStateException(
                             "Could not find a writer for the specified outputFormat!");
                     if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not complete the Download Process", cause));
+                        progressListener.exceptionOccurred(new ProcessException(cause));
                     }
-                    throw new ProcessException("Could not complete the Download Process", cause);
+                    throw new ProcessException(cause);
                 }
             }
         } finally {
@@ -318,10 +317,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 } catch (Exception e) {
                     cause = new WPSException("Unable to parse input expression", e);
                     if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not complete the Download Process", cause));
+                        progressListener.exceptionOccurred(new ProcessException(cause));
                     }
-                    throw new ProcessException("Could not complete the Download Process", cause);
+                    throw new ProcessException(cause);
                 }
             } else {
                 ra = Filter.INCLUDE;
@@ -414,10 +412,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
             if (features == null || features.isEmpty()) {
                 cause = new WPSException("Got an empty feature collection.");
                 if (progressListener != null) {
-                    progressListener.exceptionOccurred(new ProcessException(
-                            "Could not complete the Download Process", cause));
+                    progressListener.exceptionOccurred(new ProcessException(cause));
                 }
-                throw new ProcessException("Could not complete the Download Process", cause);
+                throw new ProcessException(cause);
             }
 
             if (needResample) {
@@ -450,8 +447,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     IOException e = new IOException(
                             "Download Exceeded the maximum HARD allowed size!");
                     if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not complete the Download Process", e));
+                        progressListener.exceptionOccurred(new ProcessException(e));
                     }
                     throw e;
                 }
@@ -470,10 +466,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
         } catch (Exception e) {
             cause = e;
             if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(
-                        "Could not complete the Download Process", cause));
+                progressListener.exceptionOccurred(new ProcessException(cause));
             }
-            throw new ProcessException("Could not complete the Download Process", cause);
+            throw new ProcessException(cause);
         }
     }
 
@@ -516,10 +511,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 if (!encoded) {
                     cause = new WPSException("DXF Extension is not available.");
                     if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not complete the Download Process", cause));
+                        progressListener.exceptionOccurred(new ProcessException(cause));
                     }
-                    throw new ProcessException("Could not complete the Download Process", cause);
+                    throw new ProcessException(cause);
                 }
             } else {
                 /**

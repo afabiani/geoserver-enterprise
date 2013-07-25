@@ -593,12 +593,12 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         } catch (ProcessException e) {
             assertEquals(
-                    "Could not complete the Download Process: Download Exceeded the maximum HARD allowed size!",
+                    "java.io.IOException: Download Exceeded the maximum HARD allowed size!: Download Exceeded the maximum HARD allowed size!",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
 
             Throwable le = listener.exception;
             assertEquals(
-                    "Could not complete the Download Process: Download Exceeded the maximum HARD allowed size!",
+                    "java.io.IOException: Download Exceeded the maximum HARD allowed size!: Download Exceeded the maximum HARD allowed size!",
                     le.getMessage()
                             + (le.getCause() != null ? ": " + le.getCause().getMessage() : ""));
 

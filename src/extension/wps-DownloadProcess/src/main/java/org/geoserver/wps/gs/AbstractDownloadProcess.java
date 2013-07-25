@@ -238,10 +238,9 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             cause = new WPSException(
                     "No TypeName detected on source schema.Cannot proceeed further.");
             if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(
-                        "Could not complete the Download Process", cause));
+                progressListener.exceptionOccurred(new ProcessException(cause));
             }
-            throw new ProcessException("Could not complete the Download Process", cause);
+            throw new ProcessException(cause);
         }
 
         // get the features
@@ -267,10 +266,9 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             cause = new IllegalArgumentException(
                     "Grid to world tranform is not an AffineTransform:" + resourceInfo.getName());
             if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(
-                        "Could not complete the Download Process", cause));
+                progressListener.exceptionOccurred(new ProcessException(cause));
             }
-            throw new ProcessException("Could not complete the Download Process", cause);
+            throw new ProcessException(cause);
         }
         AffineTransform tr = (AffineTransform) tempTransform;
 
@@ -332,10 +330,9 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             progressListener.setCanceled(true);
             cause = new IllegalStateException("Final envelope is empty!");
             if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(
-                        "Could not complete the Download Process", cause));
+                progressListener.exceptionOccurred(new ProcessException(cause));
             }
-            throw new ProcessException("Could not complete the Download Process", cause);
+            throw new ProcessException(cause);
         }
 
         if ((envelope.getLowerCorner().getOrdinate(0) == envelope.getUpperCorner().getOrdinate(0))
