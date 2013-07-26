@@ -21,6 +21,7 @@ import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.ResponseUtils;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wcs.response.WCSStorageCleaner;
 import org.geotools.util.logging.Logging;
 
@@ -43,7 +44,18 @@ public class WPSStorageCleaner extends TimerTask {
     public WPSStorageCleaner(GeoServerDataDirectory dataDirectory) throws IOException,
             ConfigurationException {
         // get the temporary storage for WPS
-        storage = dataDirectory.findOrCreateDir("temp/wps");
+        try {
+            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
+            File temp = null;
+            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
+                temp = dataDirectory.findOrCreateDataDir("temp/wps");
+            else {
+                temp = new File(wpsOutputStorage, "wps");
+            }
+            storage = temp;
+        } catch (Exception e) {
+            throw new IOException("Could not find the temporary storage directory for WPS");
+        }
     }
 
     @Override
@@ -103,8 +115,7 @@ public class WPSStorageCleaner extends TimerTask {
     }
 
     /**
-     * The file expiration delay in milliseconds. A file will be deleted when it's been around more
-     * than expirationDelay
+     * The file expiration delay in milliseconds. A file will be deleted when it's been around more than expirationDelay
      * 
      * @return
      */
@@ -114,6 +125,7 @@ public class WPSStorageCleaner extends TimerTask {
 
     /**
      * Sets the temp file expiration delay
+     * 
      * @param expirationDelay
      */
     public void setExpirationDelay(long expirationDelay) {
@@ -121,8 +133,7 @@ public class WPSStorageCleaner extends TimerTask {
     }
 
     /**
-     * Given a file inside the root storage directory returns a URL to retrieve it via the file
-     * publisher
+     * Given a file inside the root storage directory returns a URL to retrieve it via the file publisher
      * 
      * @param file
      * @return

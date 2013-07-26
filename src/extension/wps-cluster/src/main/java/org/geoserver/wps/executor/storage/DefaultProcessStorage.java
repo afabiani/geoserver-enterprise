@@ -32,7 +32,7 @@ import com.thoughtworks.xstream.XStream;
 
 /**
  * The Class DefaultProcessStorage.
- *
+ * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
@@ -46,7 +46,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Instantiates a new default process storage.
-     *
+     * 
      * @param processDescriptorDAO the process descriptor dao
      */
     public DefaultProcessStorage(ProcessDescriptorDAO processDescriptorDAO) {
@@ -60,7 +60,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Put status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param status the status
@@ -94,7 +94,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Gets the status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the status
@@ -121,7 +121,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Gets the status.
-     *
+     * 
      * @param executionId the execution id
      * @return the status
      */
@@ -154,14 +154,27 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Removes the status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the execution status
      */
     @Override
     public ExecutionStatus removeStatus(String clusterId, String executionId) {
-        // TODO Auto-generated method stub
+        Search search = new Search(ProcessDescriptor.class);
+        search.addFilterEqual("clusterId", clusterId);
+        search.addFilterEqual("executionId", executionId);
+        search.addSortDesc("id");
+        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
+
+        if (processes != null && processes.size() > 0) {
+            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
+            ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+            if (processDescriptorDAO.remove(process)) {
+                return status;
+            }
+        }
+
         return null;
     }
 
@@ -172,7 +185,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Gets the all.
-     *
+     * 
      * @return the all
      */
     @Override
@@ -187,7 +200,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Update phase.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param phase the phase
@@ -220,7 +233,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Update progress.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param progress the progress
@@ -253,7 +266,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Gets the output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param timeout the timeout
@@ -290,7 +303,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Gets the single instance of DefaultProcessStorage.
-     *
+     * 
      * @param executionId the execution id
      * @return single instance of DefaultProcessStorage
      */
@@ -315,7 +328,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Put output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param status the status
@@ -349,7 +362,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     /**
      * Put output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param e the e
@@ -376,7 +389,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Gets the priority.
-     *
+     * 
      * @return the priority
      */
     @Override
@@ -386,7 +399,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * On application event.
-     *
+     * 
      * @param event the event
      */
     @Override
@@ -396,7 +409,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Submit.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param processName the process name
@@ -429,7 +442,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Submit chained.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param processName the process name
@@ -460,7 +473,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Store result.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param result the result
@@ -499,7 +512,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Gets the file publisher url manglers.
-     *
+     * 
      * @return the file publisher url manglers
      */
     public static List<ClusterFilePublisherURLMangler> getFilePublisherURLManglers() {

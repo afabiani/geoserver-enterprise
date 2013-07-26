@@ -7,8 +7,9 @@ package org.geoserver.wps.executor.util;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.geoserver.config.GeoServer;
+import org.geoserver.ows.Dispatcher;
+import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.platform.ExtensionPriority;
 import org.springframework.context.ApplicationEvent;
@@ -28,7 +29,7 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
 
     /**
      * Instantiates a new default cluster file publisher url mangler.
-     *
+     * 
      * @param geoserver the geoserver
      */
     public DefaultClusterFilePublisherURLMangler(GeoServer geoserver) {
@@ -37,7 +38,7 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
 
     /**
      * Gets the publishing url.
-     *
+     * 
      * @param file the file
      * @return the publishing url
      * @throws Exception the exception
@@ -47,14 +48,22 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
         File gsTempFolder = GeoserverDataDirectory.findCreateConfigDir("temp");
         FileUtils.copyFileToDirectory(file, gsTempFolder, true);
 
-        String url = geoserver.getGlobal().getSettings().getProxyBaseUrl();
-        url = url == null ? "/" : url;
-        return ResponseUtils.appendPath(url, "/temp/" + FilenameUtils.getName(file.getName()));
+        String baseURL = geoserver.getGlobal().getSettings().getProxyBaseUrl();
+        if (baseURL == null || baseURL.length() == 0) {
+            if (Dispatcher.REQUEST.get() != null) {
+                baseURL = ResponseUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest());
+            }
+        }
+        baseURL = (baseURL == null ? "/" : baseURL);
+        // return ResponseUtils.appendPath(baseURL, "/temp/" + FilenameUtils.getName(file.getName()));
+
+        String path = "/temp/" + gsTempFolder.toURI().relativize(file.toURI()).getPath();
+        return ResponseUtils.buildURL(baseURL, path, null, URLType.RESOURCE);
     }
 
     /**
      * On application event.
-     *
+     * 
      * @param event the event
      */
     @Override
@@ -64,7 +73,7 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
 
     /**
      * Gets the priority.
-     *
+     * 
      * @return the priority
      */
     @Override
