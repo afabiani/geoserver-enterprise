@@ -4,6 +4,8 @@
  */
 package org.geoserver.wps.gs;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.logging.Logger;
 
 import org.geoserver.catalog.CoverageInfo;
@@ -19,9 +21,11 @@ import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.util.logging.Logging;
+import org.geotools.xml.Parser;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.util.ProgressListener;
+import org.xml.sax.InputSource;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -53,7 +57,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Instantiates a new download estimator process.
-     *
+     * 
      * @param geoServer the geo server
      */
     public DownloadEstimatorProcess(GeoServer geoServer) {
@@ -66,7 +70,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Execute.
-     *
+     * 
      * @param layerName the layer name
      * @param filter the filter
      * @param email the email
@@ -111,14 +115,25 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                     if (filter != null) {
                         try {
                             ra = ECQL.toFilter(filter);
-                        } catch (Exception e) {
-                            cause = new WPSException("Unable to parse input expression", e);
-                            if (progressListener != null) {
-                                progressListener.exceptionOccurred(new ProcessException(
-                                        "Could not complete the Download Process", cause));
+                        } catch (Exception e_cql) {
+                            try {
+                                Parser parser = new Parser(
+                                        new org.geotools.filter.v1_0.OGCConfiguration());
+                                Reader reader = new StringReader(filter);
+                                // set the input source with the correct encoding
+                                InputSource source = new InputSource(reader);
+                                source.setEncoding(getCharset().name());
+                                ra = (Filter) parser.parse(source);
+
+                            } catch (Exception e_ogc) {
+                                cause = new WPSException("Unable to parse input expression", e_ogc);
+                                if (progressListener != null) {
+                                    progressListener.exceptionOccurred(new ProcessException(
+                                            "Could not complete the Download Process", cause));
+                                }
+                                throw new ProcessException(
+                                        "Could not complete the Download Process", cause);
                             }
-                            throw new ProcessException("Could not complete the Download Process",
-                                    cause);
                         }
                     } else {
                         ra = Filter.INCLUDE;
@@ -179,8 +194,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                          * Checking that the coverage described by the specified geometry and sample model does not exceeds the read limits
                          */
                         // compute the coverage memory usage and compare with limit
-                        long actual = getCoverageSize(getGc().getGridGeometry().getGridRange2D(), getGc()
-                                .getRenderedImage().getSampleModel());
+                        long actual = getCoverageSize(getGc().getGridGeometry().getGridRange2D(),
+                                getGc().getRenderedImage().getSampleModel());
                         if (readLimits > 0 && actual > readLimits * 1024) {
                             if (progressListener != null) {
                                 progressListener.exceptionOccurred(new ProcessException(
@@ -200,8 +215,9 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                          * Checking that the coverage described by the specified geometry and sample model does not exceeds the output limits
                          */
                         // compute the coverage memory usage and compare with limit
-                        actual = getCoverageSize(getFinalCoverage().getGridGeometry().getGridRange2D(),
-                                getFinalCoverage().getRenderedImage().getSampleModel());
+                        actual = getCoverageSize(getFinalCoverage().getGridGeometry()
+                                .getGridRange2D(), getFinalCoverage().getRenderedImage()
+                                .getSampleModel());
                         if (writeLimits > 0 && actual > writeLimits * 1024) {
                             if (progressListener != null) {
                                 progressListener
@@ -255,7 +271,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Sets the max features.
-     *
+     * 
      * @param maxFeatures the maxFeatures to set
      */
     public void setMaxFeatures(long maxFeatures) {
@@ -264,7 +280,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Gets the max features.
-     *
+     * 
      * @return the maxFeatures
      */
     public long getMaxFeatures() {
@@ -273,7 +289,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Sets the read limits.
-     *
+     * 
      * @param readLimits the readLimits to set
      */
     public void setReadLimits(long readLimits) {
@@ -282,7 +298,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Gets the read limits.
-     *
+     * 
      * @return the readLimits
      */
     public long getReadLimits() {
@@ -291,7 +307,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Sets the write limits.
-     *
+     * 
      * @param writeLimits the writeLimits to set
      */
     public void setWriteLimits(long writeLimits) {
@@ -300,17 +316,16 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Gets the write limits.
-     *
+     * 
      * @return the writeLimits
      */
     public long getWriteLimits() {
         return writeLimits;
     }
 
-
     /**
      * Sets the hard output limit.
-     *
+     * 
      * @param hardOutputLimit the hardOutputLimit to set
      */
     public void setHardOutputLimit(long hardOutputLimit) {
@@ -319,7 +334,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
 
     /**
      * Gets the hard output limit.
-     *
+     * 
      * @return the hardOutputLimit
      */
     public long getHardOutputLimit() {
