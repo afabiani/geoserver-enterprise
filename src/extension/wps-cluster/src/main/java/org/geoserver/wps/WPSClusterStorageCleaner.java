@@ -99,7 +99,7 @@ public class WPSClusterStorageCleaner extends TimerTask {
                             || executionStatus.getPhase().equals(ProcessState.COMPLETED)
                             || executionStatus.getPhase().equals(ProcessState.FAILED)
                             || executionStatus.getProgress() == 100.0f) {
-                        storage.removeStatus(clusterId, executionStatus.getExecutionId());
+                        storage.removeStatus(clusterId, executionStatus.getExecutionId(), true);
                     }
                 }
             }

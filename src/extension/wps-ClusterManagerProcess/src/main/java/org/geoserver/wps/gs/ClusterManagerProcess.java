@@ -76,7 +76,7 @@ public class ClusterManagerProcess implements GSProcess {
 
             if (availableStorages != null && availableStorages.size() > 0) {
                 for (ProcessStorage storage : availableStorages) {
-                    List<ExecutionStatusEx> status = storage.getStatus(executionId);
+                    List<ExecutionStatusEx> status = storage.getStatus(executionId, true);
 
                     if (status != null && status.size() > 0) {
                         for (ExecutionStatus exStatus : status) {
@@ -89,9 +89,10 @@ public class ClusterManagerProcess implements GSProcess {
                             }
 
                             if (exStatus.getProcessName().getLocalPart()
-                                    .equalsIgnoreCase("TestProcess") || !exStatus.getExecutionId().equals(executionId))
+                                    .equalsIgnoreCase("TestProcess")
+                                    || !exStatus.getExecutionId().equals(executionId))
                                 canUpdate = false;
-                            
+
                             if (canUpdate) {
                                 for (ExecutionStatus storedStatus : processesStatus) {
                                     if (exStatus.getProcessName().getLocalPart()

@@ -32,6 +32,11 @@
     <!-- The clustered process runner -->
     <bean id="clusteredProcessManager" class="org.geoserver.wps.executor.ClusterProcessManager">
       <constructor-arg ref="wpsResourceManager"/>
+      <constructor-arg>
+        <list>
+            <value>ClusterManager</value>
+        </list>
+      </constructor-arg>
     </bean>
 
     <!-- Configures some WPS subsystems with the current config values and keeps them up to date -->
@@ -78,7 +83,7 @@
       And finally the class that instantiates the scheduled tasks and
       makes them run
     -->
-    <bean id="wpsClusterTimerFactory" class="org.springframework.scheduling.timer.TimerFactoryBean"
+    <!-- bean id="wpsClusterTimerFactory" class="org.springframework.scheduling.timer.TimerFactoryBean"
       lazy-init="false">
       <property name="scheduledTimerTasks">
         <list>
@@ -86,6 +91,6 @@
         </list>
       </property>
       <property name="daemon" value="true" />
-    </bean>
+    </bean -->
 
 </beans>

@@ -66,7 +66,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param status the status
      */
     @Override
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status) {
+    public void putStatus(String clusterId, String executionId, ExecutionStatus status,
+            Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -74,7 +75,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
         } else {
             ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
                     status.getPhase(), status.getProgress());
@@ -100,21 +102,24 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return the status
      */
     @Override
-    public ExecutionStatus getStatus(String clusterId, String executionId) {
+    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
         search.addSortDesc("id");
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
-        if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not retrieve the status of process [" + executionId
-                    + "]");
-        } else {
-            ExecutionStatusEx status = new ExecutionStatusEx(
-                    (ExecutionStatus) marshaller.fromXML(processes.get(0).getStatus()), processes
-                            .get(0).getResult());
+        ExecutionStatusEx status = new ExecutionStatusEx(
+                (ExecutionStatus) marshaller.fromXML(processes.get(0).getStatus()), processes
+                        .get(0).getResult());
 
+        if (processes == null || processes.isEmpty()) {
+            if (!silently)
+                throw new ProcessException("Could not retrieve the status of process ["
+                        + executionId + "]");
+            else
+                return status;
+        } else {
             return status;
         }
     }
@@ -126,7 +131,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return the status
      */
     @Override
-    public List<ExecutionStatusEx> getStatus(String executionId) {
+    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently) {
         List<ExecutionStatusEx> status = new ArrayList<ExecutionStatusEx>();
 
         Search search = new Search(ProcessDescriptor.class);
@@ -135,8 +140,11 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            // throw new ProcessException("Could not retrieve the status of process ["+executionId+"]");
-            return null;
+            if (!silently)
+                throw new ProcessException("Could not retrieve the status of process ["
+                        + executionId + "]");
+            else
+                return status;
         } else {
             for (ProcessDescriptor process : processes) {
                 status.add(new ExecutionStatusEx((ExecutionStatus) marshaller.fromXML(process
@@ -160,7 +168,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return the execution status
      */
     @Override
-    public ExecutionStatus removeStatus(String clusterId, String executionId) {
+    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -206,7 +214,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param phase the phase
      */
     @Override
-    public void updatePhase(String clusterId, String executionId, ProcessState phase) {
+    public void updatePhase(String clusterId, String executionId, ProcessState phase,
+            Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -214,8 +223,9 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not retrieve the phase of process [" + executionId
-                    + "]");
+            if (!silently)
+                throw new ProcessException("Could not retrieve the phase of process ["
+                        + executionId + "]");
         } else {
             ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
             ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
@@ -239,7 +249,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param progress the progress
      */
     @Override
-    public void updateProgress(String clusterId, String executionId, float progress) {
+    public void updateProgress(String clusterId, String executionId, float progress,
+            Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -247,8 +258,9 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not retrieve the progress of process [" + executionId
-                    + "]");
+            if (!silently)
+                throw new ProcessException("Could not retrieve the progress of process ["
+                        + executionId + "]");
         } else {
             ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
             ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
@@ -273,7 +285,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return the output
      */
     @Override
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout) {
+    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout,
+            Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -281,7 +294,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
         } else {
             ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
             ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
@@ -308,14 +322,17 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return single instance of DefaultProcessStorage
      */
     @Override
-    public String getInstance(String executionId) {
+    public String getInstance(String executionId, Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("executionId", executionId);
         search.addSortDesc("id");
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
+            else
+                return null;
         } else {
             return processes.get(0).getClusterId();
         }
@@ -334,7 +351,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param status the status
      */
     @Override
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status) {
+    public void putOutput(String clusterId, String executionId, ExecutionStatus status,
+            Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -342,7 +360,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
         } else {
             ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
                     status.getPhase(), status.getProgress());
@@ -368,7 +387,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param e the e
      */
     @Override
-    public void putOutput(String clusterId, String executionId, Exception e) {
+    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -376,7 +395,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
         } else {
             Writer out = new StringWriter();
             PrintWriter pw = new PrintWriter(out);
@@ -479,7 +499,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param result the result
      */
     @Override
-    public void storeResult(String clusterId, String executionId, Object result) {
+    public void storeResult(String clusterId, String executionId, Object result, Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
         search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
@@ -487,7 +507,8 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            throw new ProcessException("Could not find any process [" + executionId + "]");
+            if (!silently)
+                throw new ProcessException("Could not find any process [" + executionId + "]");
         } else {
             ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
             if (result instanceof File) {

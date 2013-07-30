@@ -20,7 +20,7 @@ import org.springframework.context.ApplicationListener;
 
 /**
  * The Class TestProcessStorage.
- *
+ * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
@@ -28,7 +28,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * On application event.
-     *
+     * 
      * @param event the event
      */
     public void onApplicationEvent(ApplicationEvent event) {
@@ -38,7 +38,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Gets the priority.
-     *
+     * 
      * @return the priority
      */
     public int getPriority() {
@@ -47,35 +47,36 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Put status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param status the status
      */
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status) {
+    public void putStatus(String clusterId, String executionId, ExecutionStatus status,
+            Boolean silently) {
         // TODO Auto-generated method stub
 
     }
 
     /**
      * Gets the status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the status
      */
-    public ExecutionStatus getStatus(String clusterId, String executionId) {
+    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
      * Gets the status.
-     *
+     * 
      * @param executionId the execution id
      * @return the status
      */
-    public List<ExecutionStatusEx> getStatus(String executionId) {
+    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently) {
         List<ExecutionStatusEx> status = new ArrayList<ExecutionStatusEx>();
 
         ExecutionStatusEx exStatus = new ExecutionStatusEx(new ExecutionStatus(new NameImpl("gs",
@@ -87,19 +88,19 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Removes the status.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the execution status
      */
-    public ExecutionStatus removeStatus(String clusterId, String executionId) {
+    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
      * Gets the all.
-     *
+     * 
      * @return the all
      */
     public Collection<ExecutionStatus> getAll() {
@@ -109,79 +110,83 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Update phase.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param phase the phase
      */
-    public void updatePhase(String clusterId, String executionId, ProcessState phase) {
+    public void updatePhase(String clusterId, String executionId, ProcessState phase,
+            Boolean silently) {
         // TODO Auto-generated method stub
 
     }
 
     /**
      * Update progress.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param progress the progress
      */
-    public void updateProgress(String clusterId, String executionId, float progress) {
+    public void updateProgress(String clusterId, String executionId, float progress,
+            Boolean silently) {
         // TODO Auto-generated method stub
 
     }
 
     /**
      * Gets the output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param timeout the timeout
      * @return the output
      */
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout) {
+    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout,
+            Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
      * Gets the single instance of TestProcessStorage.
-     *
+     * 
      * @param executionId the execution id
      * @return single instance of TestProcessStorage
      */
-    public String getInstance(String executionId) {
+    public String getInstance(String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
 
     /**
      * Put output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param status the status
      */
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status) {
+    public void putOutput(String clusterId, String executionId, ExecutionStatus status,
+            Boolean silently) {
         // TODO Auto-generated method stub
 
     }
 
     /**
      * Put output.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param e the e
      */
-    public void putOutput(String clusterId, String executionId, Exception e) {
+    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
 
     /**
      * Submit.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param processName the process name
@@ -196,7 +201,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Submit chained.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param processName the process name
@@ -210,12 +215,12 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     /**
      * Store result.
-     *
+     * 
      * @param clusterId the cluster id
      * @param executionId the execution id
      * @param value the value
      */
-    public void storeResult(String clusterId, String executionId, Object value) {
+    public void storeResult(String clusterId, String executionId, Object value, Boolean silently) {
         // TODO Auto-generated method stub
 
     }

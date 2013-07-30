@@ -27,7 +27,7 @@ public interface ProcessStorage {
      * @param executionId process id
      * @param status current process status
      */
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status);
+    public void putStatus(String clusterId, String executionId, ExecutionStatus status, Boolean silently);
 
     /**
      * Retrieves the status of a process from the storage.
@@ -36,7 +36,7 @@ public interface ProcessStorage {
      * @param executionId process id
      * @return the status
      */
-    public ExecutionStatus getStatus(String clusterId, String executionId);
+    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently);
 
     /**
      * Retrieves the status of the process from the storage.
@@ -44,7 +44,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @return the status
      */
-    public List<ExecutionStatusEx> getStatus(String executionId);
+    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently);
 
     /**
      * Removes the status of a process from the storage. The last status is returned.
@@ -53,7 +53,7 @@ public interface ProcessStorage {
      * @param executionId process id
      * @return the execution status
      */
-    public ExecutionStatus removeStatus(String clusterId, String executionId);
+    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently);
 
     /**
      * Gets the status of all executing processes on all the instances of the cluster.
@@ -69,7 +69,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @param phase the phase
      */
-    public void updatePhase(String clusterId, String executionId, ProcessState phase);
+    public void updatePhase(String clusterId, String executionId, ProcessState phase, Boolean silently);
 
     /**
      * Updates the progress of a process.
@@ -78,7 +78,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @param progress the progress
      */
-    public void updateProgress(String clusterId, String executionId, float progress);
+    public void updateProgress(String clusterId, String executionId, float progress, Boolean silently);
 
     /**
      * Retrieves the output of a process, with the given max timeout.
@@ -88,7 +88,7 @@ public interface ProcessStorage {
      * @param timeout the timeout
      * @return the output
      */
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout);
+    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout, Boolean silently);
 
     /**
      * Gets the id of the instance executing a process.
@@ -96,7 +96,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @return single instance of ProcessStorage
      */
-    public String getInstance(String executionId);
+    public String getInstance(String executionId, Boolean silently);
 
     /**
      * Puts the output of a process on the storage.
@@ -105,7 +105,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @param status the status
      */
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status);
+    public void putOutput(String clusterId, String executionId, ExecutionStatus status, Boolean silently);
 
     /**
      * Puts the output error of a process on the storage.
@@ -114,7 +114,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @param e the e
      */
-    public void putOutput(String clusterId, String executionId, Exception e);
+    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently);
 
     /**
      * Submit.
@@ -146,7 +146,7 @@ public interface ProcessStorage {
      * @param executionId the execution id
      * @param value the value
      */
-    public void storeResult(String clusterId, String executionId, Object value);
+    public void storeResult(String clusterId, String executionId, Object value, Boolean silently);
 
     /**
      * The Class ExecutionStatusEx.

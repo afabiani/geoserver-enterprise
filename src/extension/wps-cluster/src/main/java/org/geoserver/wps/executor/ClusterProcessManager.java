@@ -5,6 +5,7 @@
 package org.geoserver.wps.executor;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +44,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
     /** The available storages. */
     private List<ProcessStorage> availableStorages;
 
+    /** The list of excluded proces names. */
+    private List<String> processNamesEsclusionList;
+
     /**
      * Submit chained.
-     *
+     * 
      * @param executionId the execution id
      * @param processName the process name
      * @param inputs the inputs
@@ -55,12 +59,6 @@ public class ClusterProcessManager extends DefaultProcessManager {
     @Override
     public Map<String, Object> submitChained(String executionId, Name processName,
             Map<String, Object> inputs) throws ProcessException {
-        if (availableStorages != null && availableStorages.size() > 0) {
-            for (ProcessStorage storage : availableStorages) {
-                storage.submitChained(clusterId, executionId, processName, inputs);
-            }
-        }
-
         // straight execution, no thread pooling, we're already running in the parent process thread
         ClusterProcessListener listener = new ClusterProcessListener(new ExecutionStatus(
                 processName, executionId, ProcessState.RUNNING, 0));
@@ -73,15 +71,17 @@ public class ClusterProcessManager extends DefaultProcessManager {
         Process p = pf.create(processName);
         Map<String, Object> result = p.execute(inputs, listener);
         if (listener.exception != null) {
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    String clusterId = storage.getInstance(executionId.toString());
-                    storage.putStatus(clusterId, executionId, new ExecutionStatus(processName,
-                            executionId, ProcessState.FAILED, 100));
-                    storage.storeResult(clusterId, executionId, listener.exception.getMessage());
+            if (!(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                if (availableStorages != null && availableStorages.size() > 0) {
+                    for (ProcessStorage storage : availableStorages) {
+                        String clusterId = storage.getInstance(executionId.toString(), false);
+                        storage.putStatus(clusterId, executionId, new ExecutionStatus(processName,
+                                executionId, ProcessState.FAILED, 100), false);
+                        storage.storeResult(clusterId, executionId,
+                                listener.exception.getMessage(), false);
+                    }
                 }
             }
-
             throw new ProcessException("Process failed: " + listener.exception.getMessage(),
                     listener.exception);
         }
@@ -90,7 +90,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
     /**
      * Submit.
-     *
+     * 
      * @param executionId the execution id
      * @param processName the process name
      * @param inputs the inputs
@@ -100,13 +100,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
     @Override
     public void submit(String executionId, Name processName, Map<String, Object> inputs,
             boolean background) throws ProcessException {
-        if (availableStorages != null && availableStorages.size() > 0) {
-            for (ProcessStorage storage : availableStorages) {
-                storage.submit(clusterId, executionId, processName, inputs, background);
-            }
-        }
-
-        ExecutionStatusEx status = createExecutionStatus(processName, executionId);
+        ExecutionStatusEx status = createExecutionStatus(processName, executionId, background);
         ClusterProcessListener listener = new ClusterProcessListener(status);
         status.listener = listener;
         ClusterProcessCallable callable = new ClusterProcessCallable(inputs, status, listener);
@@ -136,7 +130,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Instantiates a new cluster process callable.
-         *
+         * 
          * @param inputs the inputs
          * @param status the status
          * @param listener the listener
@@ -150,7 +144,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Call.
-         *
+         * 
          * @return the map
          * @throws Exception the exception
          */
@@ -166,42 +160,53 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
             // execute the process
             Map<String, Object> result = null;
+            Process p = null;
             try {
-                Process p = pf.create(processName);
+                p = pf.create(processName);
+
+                if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                    if (availableStorages != null && availableStorages.size() > 0) {
+                        for (ProcessStorage storage : availableStorages) {
+                            storage.submit(clusterId, status.getExecutionId(), processName, inputs,
+                                    ((ClusterExecutionStatus) status).isBackground());
+                        }
+                    }
+                }
+
                 result = p.execute(inputs, listener);
                 String executionId = status.executionId;
                 if (listener.exception != null) {
                     status.setPhase(ProcessState.FAILED);
 
-                    if (availableStorages != null && availableStorages.size() > 0) {
-                        for (ProcessStorage storage : availableStorages) {
-                            String clusterId = storage.getInstance(executionId);
-                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                    processName, executionId, ProcessState.FAILED, 100));
-                            storage.storeResult(
-                                    clusterId,
-                                    executionId,
-                                    listener.exception.getMessage()
-                                            + ": "
-                                            + (listener.exception.getCause() != null ? listener.exception
-                                                    .getCause().getMessage() : ""));
+                    if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                        if (availableStorages != null && availableStorages.size() > 0) {
+                            for (ProcessStorage storage : availableStorages) {
+                                String clusterId = storage.getInstance(executionId, false);
+                                storage.putStatus(clusterId, executionId, new ExecutionStatus(
+                                        processName, executionId, ProcessState.FAILED, 100), false);
+                                storage.storeResult(
+                                        clusterId,
+                                        executionId,
+                                        listener.exception.getMessage()
+                                                + ": "
+                                                + (listener.exception.getCause() != null ? listener.exception
+                                                        .getCause().getMessage() : ""), false);
+                            }
                         }
                     }
-
                     throw new WPSException("Process failed: " + listener.exception.getMessage(),
                             listener.exception);
-                }
-                else
-                {
+                } else if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
                     if (availableStorages != null && availableStorages.size() > 0) {
                         for (ProcessStorage storage : availableStorages) {
-                            String clusterId = storage.getInstance(executionId);
+                            String clusterId = storage.getInstance(executionId, false);
                             storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                    processName, executionId, ProcessState.COMPLETED, 100));
-                            
+                                    processName, executionId, ProcessState.COMPLETED, 100), false);
+
                             for (Entry<String, Object> entry : result.entrySet()) {
                                 if (entry.getKey().equalsIgnoreCase("result"))
-                                    storage.storeResult(clusterId, executionId, entry.getValue());
+                                    storage.storeResult(clusterId, executionId, entry.getValue(),
+                                            false);
                             }
                         }
                     }
@@ -213,16 +218,16 @@ public class ClusterProcessManager extends DefaultProcessManager {
                     String executionId = status.executionId;
                     status.setPhase(ProcessState.FAILED);
 
-                    if (availableStorages != null && availableStorages.size() > 0) {
-                        for (ProcessStorage storage : availableStorages) {
-                            String clusterId = storage.getInstance(executionId);
-                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                    processName, executionId, ProcessState.FAILED, 100));
-                            storage.storeResult(clusterId, executionId,
-                                    e.getMessage()
-                                            + ": "
-                                            + (e.getCause() != null ? e.getCause().getMessage()
-                                                    : ""));
+                    if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                        if (availableStorages != null && availableStorages.size() > 0) {
+                            for (ProcessStorage storage : availableStorages) {
+                                String clusterId = storage.getInstance(executionId, false);
+                                storage.putStatus(clusterId, executionId, new ExecutionStatus(
+                                        processName, executionId, ProcessState.FAILED, 100), false);
+                                storage.storeResult(clusterId, executionId, e.getMessage() + ": "
+                                        + (e.getCause() != null ? e.getCause().getMessage() : ""),
+                                        false);
+                            }
                         }
                     }
                     throw new WPSException("Process failed: " + e.getMessage(), e);
@@ -245,7 +250,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Entry set.
-         *
+         * 
          * @return the sets the
          */
         @Override
@@ -256,7 +261,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Gets the.
-         *
+         * 
          * @param executionId the execution id
          * @return the execution status
          */
@@ -273,10 +278,10 @@ public class ClusterProcessManager extends DefaultProcessManager {
             if (status != null)
                 if (availableStorages != null && availableStorages.size() > 0) {
                     for (ProcessStorage storage : availableStorages) {
-                        if (storage.getInstance(executionId.toString()) != null) {
-                            String clusterId = storage.getInstance(executionId.toString());
+                        if (storage.getInstance(executionId.toString(), true) != null) {
+                            String clusterId = storage.getInstance(executionId.toString(), true);
                             // return new ClusterExecutionStatus(clusterId, storage.getStatus(clusterId, executionId.toString()));
-                            storage.putStatus(clusterId, executionId.toString(), status);
+                            storage.putStatus(clusterId, executionId.toString(), status, true);
                         }
                     }
                 }
@@ -286,7 +291,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Put.
-         *
+         * 
          * @param executionId the execution id
          * @param status the status
          * @return the execution status
@@ -296,7 +301,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
             localProcesses.put(executionId, status);
             if (availableStorages != null && availableStorages.size() > 0) {
                 for (ProcessStorage storage : availableStorages) {
-                    storage.putStatus(clusterId, executionId, status);
+                    storage.putStatus(clusterId, executionId, status, true);
                 }
             }
             return status;
@@ -304,7 +309,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Removes the.
-         *
+         * 
          * @param executionId the execution id
          * @return the execution status
          */
@@ -317,7 +322,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
             if (localProcesses.containsKey(executionId)) {
                 if (availableStorages != null && availableStorages.size() > 0) {
                     for (ProcessStorage storage : availableStorages) {
-                        status = storage.removeStatus(clusterId, executionId.toString());
+                        status = storage.removeStatus(clusterId, executionId.toString(), true);
                     }
                 }
                 return localProcesses.remove(executionId);
@@ -327,7 +332,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Values.
-         *
+         * 
          * @return the collection
          */
         @Override
@@ -353,34 +358,39 @@ public class ClusterProcessManager extends DefaultProcessManager {
         /** The cluster id. */
         private String clusterId;
 
+        /** The background. */
+        private boolean background;
+
         /**
          * Instantiates a new cluster execution status.
-         *
+         * 
          * @param processName the process name
          * @param clusterId the cluster id
          * @param executionId the execution id
          */
-        public ClusterExecutionStatus(Name processName, String clusterId, String executionId) {
+        public ClusterExecutionStatus(Name processName, String clusterId, String executionId,
+                boolean background) {
             super(processName, executionId);
             this.clusterId = clusterId;
             this.localProcess = this.clusterId == ClusterProcessManager.this.clusterId;
+            this.background = background;
         }
 
         /**
          * Instantiates a new cluster execution status.
-         *
+         * 
          * @param clusterId the cluster id
          * @param status the status
          */
         public ClusterExecutionStatus(String clusterId, ExecutionStatus status) {
-            this(status.getProcessName(), clusterId, status.getExecutionId());
+            this(status.getProcessName(), clusterId, status.getExecutionId(), false);
             this.phase = status.getPhase();
             this.progress = status.getProgress();
         }
 
         /**
          * Checks if is local process.
-         *
+         * 
          * @return true, if is local process
          */
         public boolean isLocalProcess() {
@@ -389,7 +399,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Gets the cluster id.
-         *
+         * 
          * @return the cluster id
          */
         public String getClusterId() {
@@ -398,21 +408,21 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Sets the phase.
-         *
+         * 
          * @param phase the new phase
          */
         @Override
         public void setPhase(ProcessState phase) {
             if (availableStorages != null && availableStorages.size() > 0) {
                 for (ProcessStorage storage : availableStorages) {
-                    storage.updatePhase(clusterId, executionId, phase);
+                    storage.updatePhase(clusterId, executionId, phase, true);
                     if (phase == ProcessState.COMPLETED && localProcess) {
                         try {
                             ExecutionStatus newStatus = new ExecutionStatus(
                                     Ows11Util.name(clusterId), executionId, phase, 100.0f);
-                            storage.putOutput(clusterId, executionId, newStatus);
+                            storage.putOutput(clusterId, executionId, newStatus, true);
                         } catch (Exception e) {
-                            storage.putOutput(clusterId, executionId, e);
+                            storage.putOutput(clusterId, executionId, e, true);
                         }
                     }
                 }
@@ -421,7 +431,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Gets the output.
-         *
+         * 
          * @param timeout the timeout
          * @return the output
          * @throws Exception the exception
@@ -437,13 +447,13 @@ public class ClusterProcessManager extends DefaultProcessManager {
             if (availableStorages != null && availableStorages.size() > 0) {
                 for (ProcessStorage storage : availableStorages) {
                     Map<String, Object> psOutput = storage.getOutput(clusterId, executionId,
-                            timeout);
+                            timeout, true);
 
                     if (output != null) {
                         // Special case when output contains a file
                         for (Entry<String, Object> entry : output.entrySet()) {
                             if (entry.getKey().equalsIgnoreCase("result"))
-                                storage.storeResult(clusterId, executionId, entry.getValue());
+                                storage.storeResult(clusterId, executionId, entry.getValue(), true);
                         }
                     } else if (psOutput != null) {
                         output = psOutput;
@@ -456,7 +466,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Gets the status.
-         *
+         * 
          * @return the status
          */
         @Override
@@ -466,28 +476,43 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Sets the progress.
-         *
+         * 
          * @param progress the new progress
          */
         @Override
         public void setProgress(float progress) {
             if (availableStorages != null && availableStorages.size() > 0) {
                 for (ProcessStorage storage : availableStorages) {
-                    storage.updateProgress(clusterId, executionId, progress);
+                    storage.updateProgress(clusterId, executionId, progress, true);
                 }
             }
+        }
+
+        /**
+         * @param background the background to set
+         */
+        public void setBackground(boolean background) {
+            this.background = background;
+        }
+
+        /**
+         * @return the background
+         */
+        public boolean isBackground() {
+            return background;
         }
     }
 
     /**
      * Instantiates a new cluster process manager.
-     *
+     * 
      * @param resourceManager the resource manager
      */
     public ClusterProcessManager(WPSResourceManager resourceManager) {
         super(resourceManager);
 
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
+        processNamesEsclusionList = new ArrayList<String>();
 
         if (GeoServerExtensions.getProperty("CLUSTER_PROCESS_MANAGER_ID") != null) {
             clusterId = GeoServerExtensions.getProperty("CLUSTER_PROCESS_MANAGER_ID");
@@ -497,8 +522,21 @@ public class ClusterProcessManager extends DefaultProcessManager {
     }
 
     /**
+     * Instantiates a new cluster process manager using a list of excluded processes.
+     * 
+     * @param resourceManager
+     * @param clusterId
+     * @param localProcesses
+     * @param availableStorages
+     */
+    public ClusterProcessManager(WPSResourceManager resourceManager, List<String> processNamesEsclusionList) {
+        this(resourceManager);
+        this.processNamesEsclusionList = processNamesEsclusionList;
+    }
+
+    /**
      * Gets the cluster id.
-     *
+     * 
      * @return the cluster id
      */
     public String getClusterId() {
@@ -507,19 +545,20 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
     /**
      * Creates the execution status.
-     *
+     * 
      * @param processName the process name
      * @param executionId the execution id
+     * @param background
      * @return the execution status ex
      */
-    @Override
-    protected ExecutionStatusEx createExecutionStatus(Name processName, String executionId) {
-        return new ClusterExecutionStatus(processName, clusterId, executionId);
+    protected ExecutionStatusEx createExecutionStatus(Name processName, String executionId,
+            boolean background) {
+        return new ClusterExecutionStatus(processName, clusterId, executionId, background);
     }
 
     /**
      * Gets the priority.
-     *
+     * 
      * @return the priority
      */
     @Override
@@ -529,14 +568,14 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
     /**
      * Listens to the process progress and allows to cancel it.
-     *
+     * 
      * @author Andrea Aime - GeoSolutions
      */
     public class ClusterProcessListener extends ProcessListener {
 
         /**
          * Instantiates a new cluster process listener.
-         *
+         * 
          * @param status the status
          */
         public ClusterProcessListener(ExecutionStatus status) {
@@ -545,7 +584,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Sets the status.
-         *
+         * 
          * @param status the status to set
          */
         public void setStatus(ExecutionStatus status) {
@@ -554,7 +593,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
         /**
          * Gets the status.
-         *
+         * 
          * @return the status
          */
         public ExecutionStatus getStatus() {
