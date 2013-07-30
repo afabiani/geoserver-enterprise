@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
-import javax.mail.MessagingException;
 
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
@@ -80,7 +79,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Instantiates a new download process.
-     *
+     * 
      * @param geoServer the geo server
      * @param sendMail the send mail
      * @param estimator the estimator
@@ -94,7 +93,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Execute.
-     *
+     * 
      * @param layerName the layer name
      * @param filter the filter
      * @param email the email
@@ -136,9 +135,13 @@ public class DownloadProcess extends AbstractDownloadProcess {
             }
 
             if (storeInfo instanceof DataStoreInfo) {
+                sendMail(email, progressListener, true);
+
                 return handleVectorialLayerDownload(filter, email, outputFormat, targetCRS, roi,
                         cropToGeometry, progressListener);
             } else if (storeInfo instanceof CoverageStoreInfo) {
+                sendMail(email, progressListener, true);
+
                 final CoverageStoreInfo coverageStore = (CoverageStoreInfo) storeInfo;
                 final CoverageInfo coverage = catalog.getCoverageByName(resourceInfo.getName());
 
@@ -196,7 +199,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         writeRasterOutput(outputFormat, progressListener, extension, os);
 
-                        sendMail(email, progressListener);
+                        sendMail(email, progressListener, false);
 
                         if (progressListener != null) {
                             progressListener.complete();
@@ -236,7 +239,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Write raster output.
-     *
+     * 
      * @param outputFormat the output format
      * @param progressListener the progress listener
      * @param extension the extension
@@ -292,7 +295,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Handle vectorial layer download.
-     *
+     * 
      * @param filter the filter
      * @param email the email
      * @param outputFormat the output format
@@ -437,9 +440,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
             final File output = File.createTempFile(resourceInfo.getName(), "." + extension,
                     getWpsOutputStorage());
             long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
-                    .getHardOutputLimit() * 1024
-                    : (estimator != null && estimator.getWriteLimits() > 0 ? estimator
-                            .getWriteLimits() * 1024 : Long.MAX_VALUE));
+                    .getHardOutputLimit() * 1024 : (estimator != null
+                    && estimator.getWriteLimits() > 0 ? estimator.getWriteLimits() * 1024
+                    : Long.MAX_VALUE));
             OutputStream os = new LimitedFileOutputStream(new FileOutputStream(output), limit) {
 
                 @Override
@@ -456,7 +459,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
             writeVectorialOutput(outputFormat, progressListener, features, extension, os);
 
-            sendMail(email, progressListener);
+            sendMail(email, progressListener, false);
 
             if (progressListener != null) {
                 progressListener.complete();
@@ -474,7 +477,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Write vectorial output.
-     *
+     * 
      * @param outputFormat the output format
      * @param progressListener the progress listener
      * @param features the features
@@ -533,19 +536,26 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
     /**
      * Send mail.
-     *
+     * 
      * @param email the email
      * @param progressListener the progress listener
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    private void sendMail(String email, final ProgressListener progressListener) throws IOException {
+    private void sendMail(String email, final ProgressListener progressListener, boolean started) {
         if (email != null && sendMail != null) {
             if (progressListener != null && progressListener instanceof ClusterProcessListener) {
                 try {
-                    sendMail.sendFinishedNotification(email,
-                            ((ClusterProcessListener) progressListener).getStatus()
-                                    .getExecutionId());
-                } catch (MessagingException e) {
+                    if (started) {
+                        sendMail.sendStartedNotification(email,
+                                ((ClusterProcessListener) progressListener).getStatus()
+                                        .getExecutionId());
+
+                    } else {
+                        sendMail.sendFinishedNotification(email,
+                                ((ClusterProcessListener) progressListener).getStatus()
+                                        .getExecutionId());
+                    }
+                } catch (Exception e) {
                     LOGGER.warning("Could not send the notification email : "
                             + e.getLocalizedMessage());
                 }

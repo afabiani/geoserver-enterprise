@@ -1,5 +1,5 @@
 /* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
- * This code is licensed under the GPL 2.0 license, availible at the root
+ * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
 package org.geoserver.wps.mail;
@@ -24,6 +24,7 @@ import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 
+// TODO: Auto-generated Javadoc
 /**
  * The Class SendMail.
  * 
@@ -50,7 +51,7 @@ public class SendMail {
 
     /**
      * Instantiates a new send mail.
-     *
+     * 
      * @throws IOException Signals that an I/O exception has occurred.
      */
     public SendMail() throws IOException {
@@ -59,7 +60,7 @@ public class SendMail {
 
     /**
      * Send an EMail to a specified address.
-     *
+     * 
      * @param address the to address
      * @param subject the email address
      * @param body message to send
@@ -99,7 +100,7 @@ public class SendMail {
 
     /**
      * Send a notification to the specified address.
-     *
+     * 
      * @param toAddress the to address
      * @param executiondId the executiond id
      * @throws IOException Signals that an I/O exception has occurred.
@@ -109,8 +110,24 @@ public class SendMail {
             MessagingException {
 
         // load template for the password reset email
-        Template mailTemplate = templates.getTemplate("NotificationMail.ftl");
+        Template mailTemplate = templates.getTemplate("FinishedNotificationMail.ftl");
 
+        StringWriter body = fillMailBody(toAddress, executiondId, mailTemplate);
+
+        send(toAddress, conf.getSubjet(), body.toString());
+    }
+
+    /**
+     * Fill mail body.
+     * 
+     * @param toAddress the to address
+     * @param executiondId the executiond id
+     * @param mailTemplate the mail template
+     * @return the string writer
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    private StringWriter fillMailBody(String toAddress, String executiondId, Template mailTemplate)
+            throws IOException {
         StringWriter body = new StringWriter();
 
         if (mailTemplate != null) {
@@ -128,6 +145,23 @@ public class SendMail {
         } else {
             body.append(conf.getBody());
         }
+        return body;
+    }
+
+    /**
+     * Send started notification.
+     * 
+     * @param toAddress the to address
+     * @param executiondId the executiond id
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws MessagingException the messaging exception
+     */
+    public void sendStartedNotification(String toAddress, String executiondId) throws IOException,
+            MessagingException {
+        // load template for the password reset email
+        Template mailTemplate = templates.getTemplate("StartedNotificationMail.ftl");
+
+        StringWriter body = fillMailBody(toAddress, executiondId, mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
     }
