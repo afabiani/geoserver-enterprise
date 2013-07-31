@@ -88,7 +88,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
             @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") String filter,
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
-            @DescribeParameter(name = "targetCRS", min = 1, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
             @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             ProgressListener progressListener) throws ProcessException {
@@ -188,7 +189,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                     throw new ProcessException("Could not complete the Download Process", cause);
                 } else {
                     try {
-                        getCoverage(coverage, roi, targetCRS, progressListener);
+                        getCoverage(coverage, roi, roiCRS, targetCRS, cropToGeometry, progressListener);
 
                         /**
                          * Checking that the coverage described by the specified geometry and sample model does not exceeds the read limits

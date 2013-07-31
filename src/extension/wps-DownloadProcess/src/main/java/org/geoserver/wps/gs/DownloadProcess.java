@@ -54,6 +54,7 @@ import org.opengis.filter.spatial.Intersects;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
 import org.opengis.util.ProgressListener;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -111,13 +112,14 @@ public class DownloadProcess extends AbstractDownloadProcess {
             @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") String filter,
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
-            @DescribeParameter(name = "targetCRS", min = 1, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
             @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             final ProgressListener progressListener) throws ProcessException {
 
         if (estimator != null)
-            estimator.execute(layerName, filter, email, outputFormat, targetCRS, roi,
+            estimator.execute(layerName, filter, email, outputFormat, targetCRS, roiCRS, roi,
                     cropToGeometry, progressListener);
 
         if (layerName != null) {
@@ -135,12 +137,13 @@ public class DownloadProcess extends AbstractDownloadProcess {
             }
 
             if (storeInfo instanceof DataStoreInfo) {
-                sendMail(email, progressListener, true);
+                sendMail(email, progressListener, null, true);
 
-                return handleVectorialLayerDownload(filter, email, outputFormat, targetCRS, roi,
-                        cropToGeometry, progressListener);
+                return handleVectorialLayerDownload(filter, email, outputFormat, targetCRS, roiCRS,
+                        roi, cropToGeometry, progressListener);
+
             } else if (storeInfo instanceof CoverageStoreInfo) {
-                sendMail(email, progressListener, true);
+                sendMail(email, progressListener, null, true);
 
                 final CoverageStoreInfo coverageStore = (CoverageStoreInfo) storeInfo;
                 final CoverageInfo coverage = catalog.getCoverageByName(resourceInfo.getName());
@@ -161,7 +164,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
                             setGc(estimator.getGc());
                             setFinalCoverage(estimator.getFinalCoverage());
                         } else {
-                            getCoverage(coverage, roi, targetCRS, progressListener);
+                            getCoverage(coverage, roi, roiCRS, targetCRS, cropToGeometry,
+                                    progressListener);
                         }
 
                         String extension = null;
@@ -199,7 +203,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         writeRasterOutput(outputFormat, progressListener, extension, os);
 
-                        sendMail(email, progressListener, false);
+                        sendMail(email, progressListener, output, false);
 
                         if (progressListener != null) {
                             progressListener.complete();
@@ -306,8 +310,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * @return the file
      */
     private File handleVectorialLayerDownload(String filter, String email, String outputFormat,
-            CoordinateReferenceSystem targetCRS, Geometry roi, Boolean cropToGeometry,
-            final ProgressListener progressListener) {
+            CoordinateReferenceSystem targetCRS, CoordinateReferenceSystem roiCRS, Geometry roi,
+            Boolean cropToGeometry, final ProgressListener progressListener) {
         final DataStoreInfo dataStore = (DataStoreInfo) storeInfo;
 
         Filter ra = null;
@@ -340,33 +344,39 @@ public class DownloadProcess extends AbstractDownloadProcess {
             if (features.getSchema().getCoordinateReferenceSystem() != null) {
                 referenceCRS = features.getSchema().getCoordinateReferenceSystem();
             } else {
-                referenceCRS = targetCRS;
+                referenceCRS = roiCRS;
             }
             srs = CRS.toSRS(referenceCRS);
 
+            roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, referenceCRS));
+
             final com.vividsolutions.jts.geom.Envelope envelope = roi.getEnvelopeInternal();
 
-            ReferencedEnvelope refEnvelope = new ReferencedEnvelope(envelope, targetCRS);
+            ReferencedEnvelope refEnvelope = new ReferencedEnvelope(envelope, referenceCRS);
 
-            // reproject the coverage envelope if needed
-            if (!CRS.equalsIgnoreMetadata(targetCRS, referenceCRS)) {
+            // reproject the feature envelope if needed
+            MathTransform targetTX = null;
+            if (targetCRS != null) {
+                if (!CRS.equalsIgnoreMetadata(targetCRS, referenceCRS)) {
 
-                // testing reprojection...
-                try {
-                    /* if (! ( */CRS.findMathTransform(targetCRS, referenceCRS) /*
-                                                                                 * instanceof AffineTransform) ) throw new
-                                                                                 * ProcessException("Could not reproject to reference CRS")
-                                                                                 */;
-                } catch (Exception e) {
-                    if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not reproject to reference CRS", e));
+                    // testing reprojection...
+                    try {
+                        /* if (! ( */targetTX = CRS.findMathTransform(targetCRS, referenceCRS) /*
+                                                                                                * instanceof AffineTransform) ) throw new
+                                                                                                * ProcessException
+                                                                                                * ("Could not reproject to reference CRS")
+                                                                                                */;
+                    } catch (Exception e) {
+                        if (progressListener != null) {
+                            progressListener.exceptionOccurred(new ProcessException(
+                                    "Could not reproject to reference CRS", e));
+                        }
+                        throw new ProcessException("Could not reproject to reference CRS", e);
                     }
-                    throw new ProcessException("Could not reproject to reference CRS", e);
-                }
 
-                refEnvelope = refEnvelope.transform(referenceCRS, true);
-                needResample = true;
+                    refEnvelope = refEnvelope.transform(targetCRS, true);
+                    needResample = true;
+                }
             }
 
             // ---- START - Envelope and geometry sanity checks
@@ -382,8 +392,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 throw new ProcessException(
                         "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
             }
-            Geometry clipGeometry = (needResample ? JTS.transform(roi,
-                    CRS.findMathTransform(targetCRS, referenceCRS)) : roi);
+            Geometry clipGeometry = (needResample ? JTS.transform(roi, targetTX) : roi);
             // clipGeometry = clipGeometry.intersection(other);
 
             if (clipGeometry instanceof Point || clipGeometry instanceof MultiPoint) {
@@ -459,7 +468,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
             writeVectorialOutput(outputFormat, progressListener, features, extension, os);
 
-            sendMail(email, progressListener, false);
+            sendMail(email, progressListener, output, false);
 
             if (progressListener != null) {
                 progressListener.complete();
@@ -539,9 +548,11 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * 
      * @param email the email
      * @param progressListener the progress listener
+     * @param output
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    private void sendMail(String email, final ProgressListener progressListener, boolean started) {
+    private void sendMail(String email, final ProgressListener progressListener, File output,
+            boolean started) {
         if (email != null && sendMail != null) {
             if (progressListener != null && progressListener instanceof ClusterProcessListener) {
                 try {
@@ -553,7 +564,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     } else {
                         sendMail.sendFinishedNotification(email,
                                 ((ClusterProcessListener) progressListener).getStatus()
-                                        .getExecutionId());
+                                        .getExecutionId(), output);
                     }
                 } catch (Exception e) {
                     LOGGER.warning("Could not send the notification email : "

@@ -4,6 +4,8 @@
  */
 package org.geoserver.wps.mail;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -75,7 +77,7 @@ public class MailConfiguration {
 
     /**
      * Sets the from addressname.
-     *
+     * 
      * @param fromAddressname the new from addressname
      */
     public void setFromAddressname(String fromAddressname) {
@@ -84,7 +86,7 @@ public class MailConfiguration {
 
     /**
      * Gets the from addressname.
-     *
+     * 
      * @return the from addressname
      */
     public String getFromAddressname() {
@@ -170,8 +172,11 @@ public class MailConfiguration {
      * @throws IOException Signals that an I/O exception has occurred.
      */
     public Properties loadConfiguration() throws IOException {
-        InputStream inputStream = this.getClass().getClassLoader()
-                .getResourceAsStream("mail.properties");
+        // InputStream inputStream = this.getClass().getClassLoader()
+        // .getResourceAsStream("mail.properties");
+
+        InputStream inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath()
+                .getParentFile(), "mail.properties"));
 
         Properties properties = new Properties();
         // load the inputStream using the Properties

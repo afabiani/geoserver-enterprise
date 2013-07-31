@@ -35,19 +35,22 @@ public class WPSClusterStorageCleaner extends TimerTask {
 
     /** The ClusterProcessManager. */
     ClusterProcessManager clusteredProcessManager;
-    
+
     /** The available storages. */
     private List<ProcessStorage> availableStorages;
 
     /** The cluster ID. */
     private String clusterId;
 
+    /** Is Enabled or not. */
+    private Boolean enabled;
+
     public WPSClusterStorageCleaner(ClusterProcessManager clusteredProcessManager,
             GeoServerDataDirectory dataDirectory) throws IOException, ConfigurationException {
-        
+
         this.clusteredProcessManager = clusteredProcessManager;
         this.clusterId = clusteredProcessManager.getClusterId();
-        
+
         // retrieve all the available process storages
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
 
@@ -90,16 +93,18 @@ public class WPSClusterStorageCleaner extends TimerTask {
      * @throws IOException
      */
     private void cleanupStorages(long now) throws IOException {
-        if (availableStorages != null && availableStorages.size() > 0) {
-            for (ProcessStorage storage : availableStorages) {
-                Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
+        if (enabled) {
+            if (availableStorages != null && availableStorages.size() > 0) {
+                for (ProcessStorage storage : availableStorages) {
+                    Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
 
-                for (ExecutionStatus executionStatus : processesExecutionStauts) {
-                    if (executionStatus.getPhase().equals(ProcessState.CANCELLED)
-                            || executionStatus.getPhase().equals(ProcessState.COMPLETED)
-                            || executionStatus.getPhase().equals(ProcessState.FAILED)
-                            || executionStatus.getProgress() == 100.0f) {
-                        storage.removeStatus(clusterId, executionStatus.getExecutionId(), true);
+                    for (ExecutionStatus executionStatus : processesExecutionStauts) {
+                        if (executionStatus.getPhase().equals(ProcessState.CANCELLED)
+                                || executionStatus.getPhase().equals(ProcessState.COMPLETED)
+                                || executionStatus.getPhase().equals(ProcessState.FAILED)
+                                || executionStatus.getProgress() == 100.0f) {
+                            storage.removeStatus(clusterId, executionStatus.getExecutionId(), true);
+                        }
                     }
                 }
             }
@@ -113,6 +118,20 @@ public class WPSClusterStorageCleaner extends TimerTask {
      */
     public File getStorage() {
         return storage;
+    }
+
+    /**
+     * @param enabled the enabled to set
+     */
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * @return the enabled
+     */
+    public Boolean getEnabled() {
+        return enabled;
     }
 
 }

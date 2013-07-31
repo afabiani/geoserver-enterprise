@@ -126,11 +126,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Instantiates a new abstract download process.
-<<<<<<< HEAD
      * 
-=======
-     *
->>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param geoServer the geo server
      */
     public AbstractDownloadProcess(GeoServer geoServer) {
@@ -140,11 +136,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Sets the feature source.
-<<<<<<< HEAD
      * 
-=======
-     *
->>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param featureSource the featureSource to set
      */
     public void setFeatureSource(SimpleFeatureSource featureSource) {
@@ -153,11 +145,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Gets the feature source.
-<<<<<<< HEAD
-     * 
-=======
      *
->>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @return the featureSource
      */
     public SimpleFeatureSource getFeatureSource() {
@@ -166,11 +154,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
     /**
      * Execute.
-<<<<<<< HEAD
-     * 
-=======
      *
->>>>>>> 7a4cd81a8ccb7ef6c9c3580cf136b626ce3b3bca
      * @param layerName the layer name
      * @param filter the filter
      * @param email the email
@@ -188,7 +172,8 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") String filter,
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
-            @DescribeParameter(name = "targetCRS", min = 1, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
+            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
             @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             final ProgressListener progressListener) throws ProcessException;
@@ -252,13 +237,15 @@ public abstract class AbstractDownloadProcess implements GSProcess {
      *
      * @param coverage the coverage
      * @param roi the roi
+     * @param roiCRS the roi crs
      * @param targetCRS the target crs
+     * @param cropToGeometry 
      * @param progressListener the progress listener
      * @return the coverage
      * @throws Exception the exception
      */
     protected void getCoverage(CoverageInfo coverage, Geometry roi,
-            CoordinateReferenceSystem targetCRS, ProgressListener progressListener)
+            CoordinateReferenceSystem roiCRS, CoordinateReferenceSystem targetCRS, boolean cropToGeometry, ProgressListener progressListener)
             throws Exception {
         // pixel scale
         final MathTransform tempTransform = coverage.getGrid().getGridToCRS();
@@ -291,32 +278,43 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
         // use ROI if present
         boolean needResample = false;
+        MathTransform targetTX = null;
         if (roi != null) {
-            final com.vividsolutions.jts.geom.Envelope envelope = roi.getEnvelopeInternal();
-
-            ReferencedEnvelope refEnvelope = new ReferencedEnvelope(envelope, targetCRS);
-
             // reproject the coverage envelope if needed
-            if (!CRS.equalsIgnoreMetadata(targetCRS, referenceCRS)) {
+            if (targetCRS != null)
+            {
+                if (!CRS.equalsIgnoreMetadata(targetCRS, referenceCRS)) {
 
-                // testing reprojection...
-                try {
-                    /* if (! ( */CRS.findMathTransform(targetCRS, referenceCRS) /*
-                                                                                 * instanceof AffineTransform) ) throw new ProcessException
-                                                                                 * ("Could not reproject to reference CRS")
-                                                                                 */;
-                } catch (Exception e) {
-                    if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not reproject to reference CRS", e));
+                    // testing reprojection...
+                    try {
+                        /* if (! ( */ targetTX = CRS.findMathTransform(targetCRS, referenceCRS) /*
+                         * instanceof AffineTransform) ) throw new ProcessException
+                         * ("Could not reproject to reference CRS")
+                         */;
+                    } catch (Exception e) {
+                        if (progressListener != null) {
+                            progressListener.exceptionOccurred(new ProcessException(
+                                    "Could not reproject to reference CRS", e));
+                        }
+                        throw new ProcessException("Could not reproject to reference CRS", e);
                     }
-                    throw new ProcessException("Could not reproject to reference CRS", e);
-                }
 
-                refEnvelope = refEnvelope.transform(referenceCRS, true);
-                needResample = true;
+                    needResample = true;
+                }
             }
 
+            com.vividsolutions.jts.geom.Envelope envelope = null;
+            ReferencedEnvelope refEnvelope = null;
+            if (needResample)
+            {
+                roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, targetCRS));
+            } else {
+                roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, referenceCRS));
+            }
+            
+            envelope = roi.getEnvelopeInternal();
+            refEnvelope = new ReferencedEnvelope(envelope, (targetCRS != null ? targetCRS : referenceCRS));
+            refEnvelope = refEnvelope.transform(referenceCRS, true);
             finalEnvelope = new ReferencedEnvelope(refEnvelope.intersection(finalEnvelope),
                     referenceCRS);
         }
@@ -348,7 +346,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         }
 
         Geometry cropShape = roi;
-        ReferencedEnvelope finalEnvelopeInTargetCRS = finalEnvelope.transform(targetCRS, true);
+        ReferencedEnvelope finalEnvelopeInTargetCRS = (needResample ? finalEnvelope.transform(targetCRS, true) : finalEnvelope);
         double x1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(0);
         double y1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(1);
         double x2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(0);
@@ -425,8 +423,10 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         }
 
         // ---- Cropping coverage to the Region of Interest
-        CropCoverage cropProcess = new CropCoverage();
-        finalCoverage = cropProcess.execute(finalCoverage, cropShape, progressListener);
+        if (cropToGeometry) {
+            CropCoverage cropProcess = new CropCoverage();
+            finalCoverage = cropProcess.execute(finalCoverage, cropShape, progressListener);
+        }
     }
 
     /**

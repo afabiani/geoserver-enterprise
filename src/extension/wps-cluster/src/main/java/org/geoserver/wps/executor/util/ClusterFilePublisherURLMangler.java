@@ -17,7 +17,7 @@ public interface ClusterFilePublisherURLMangler {
 
     /**
      * Gets the publishing url.
-     *
+     * 
      * @param file the file
      * @return the publishing url
      * @throws Exception the exception

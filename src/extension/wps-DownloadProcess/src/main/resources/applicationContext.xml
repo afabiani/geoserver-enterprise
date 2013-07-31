@@ -12,14 +12,25 @@
 		====================================================================
 	-->
 
-	<bean class="org.springframework.beans.factory.config.PropertyOverrideConfigurer">
+	<!-- bean class="org.springframework.beans.factory.config.PropertyOverrideConfigurer">
 		<property name="locations">
 			<list>
 				<value>classpath*:downloadProcess.properties</value>
 			</list>
 		</property>				
         <property name="ignoreResourceNotFound" value="false"/>        
-    </bean>
+    </bean -->
+
+	<bean id="downloadProcessPropertyConfigurer" class="org.geoserver.config.GeoServerPropertyConfigurer">
+		<constructor-arg ref="dataDirectory" />
+		<property name="location" value="file:wps-cluster/downloadProcess.properties" />
+		<property name="ignoreUnresolvablePlaceholders" value="true"/>
+		<!-- property name="properties">
+			<props>
+				<prop key="prop1">value1</prop> 
+				<prop key="prop2">value2</prop>
+		</props> </property -->
+	</bean>
     
 	<bean id="enterpriseDownloadProcess" class="org.geoserver.wps.gs.DownloadProcess">
 		<constructor-arg index="0" ref="geoServer"/>

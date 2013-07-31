@@ -28,12 +28,23 @@
         <property name="ignoreResourceNotFound" value="false"/>        
     </bean>
 
+	<bean id="wpsClusterDataStorePropertyConfigurer" class="org.geoserver.config.GeoServerPropertyConfigurer">
+		<constructor-arg ref="dataDirectory" />
+		<property name="location" value="file:wps-cluster/dbConfig.properties" />
+		<property name="ignoreUnresolvablePlaceholders" value="true"/>
+		<!-- property name="properties">
+			<props>
+				<prop key="prop1">value1</prop> 
+				<prop key="prop2">value2</prop>
+		</props> </property -->
+	</bean>
+
 	<!--
 		====================================================================
 	-->
 
 	<bean id="processStorageDataSource" class="org.apache.commons.dbcp.BasicDataSource">
-		<property name="driverClassName" value="${processStorageDataSource.driver}" />
+		<property name="driverClassName" value="${processStorageDataSource.driverClassName}" />
 		<property name="url" value="${processStorageDataSource.url}" />
 		<property name="username" value="${processStorageDataSource.username}" />
 		<property name="password" value="${processStorageDataSource.password}" />
@@ -61,7 +72,7 @@
 				<entry key="hibernate.cache.use_second_level_cache" value="true" />
 				<entry key="hibernate.connection.autocommit" value="false" />
 				<entry key="hibernate.generate_statistics" value="false" />
-				<entry key="hibernate.default_schema" value="${processStorageEntityManagerFactory.schema}" />
+				<entry key="hibernate.default_schema" value="${processStorageDataSource.schema}" />
 			</map>
 		</property>
 	</bean>

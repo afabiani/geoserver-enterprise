@@ -4,6 +4,17 @@
 
     <import resource="applicationContext-processStorageDatasource.xml"/>
 
+	<bean id="wpsClusterPropertyConfigurer" class="org.geoserver.config.GeoServerPropertyConfigurer">
+		<constructor-arg ref="dataDirectory" />
+		<property name="location" value="file:wps-cluster/wpsCluster.properties" />
+		<property name="ignoreUnresolvablePlaceholders" value="true"/>
+		<!-- property name="properties">
+			<props>
+				<prop key="prop1">value1</prop> 
+				<prop key="prop2">value2</prop>
+		</props> </property -->
+	</bean>
+
     <!--=====================================================================-->
 	<!--
 		Need one search processor and one metadata util per persistence unit
@@ -67,15 +78,14 @@
     <bean id="wpsClusterStorageCleaner" class="org.geoserver.wps.WPSClusterStorageCleaner">
       <constructor-arg index="0" ref="clusteredProcessManager" />
       <constructor-arg index="1" ref="dataDirectory" />
+      <property name="enabled" value="${wpsClusterStorageCleaner.enabled}" />
     </bean>
   
     <!-- Definition of how often the scheduled task runs -->
     <bean id="wpsClusterStorageCleanerTask"
       class="org.springframework.scheduling.timer.ScheduledTimerTask">
-      <!-- wait 60 seconds before starting repeated execution -->
-      <property name="delay" value="60000" />
-      <!-- run every 30 minutes -->
-      <property name="period" value="108000000" />
+      <property name="delay" value="${wpsClusterStorageCleaner.delay}" />
+      <property name="period" value="${wpsClusterStorageCleaner.period}" />
       <property name="timerTask" ref="wpsClusterStorageCleaner" />
     </bean>
   
@@ -83,7 +93,7 @@
       And finally the class that instantiates the scheduled tasks and
       makes them run
     -->
-    <!-- bean id="wpsClusterTimerFactory" class="org.springframework.scheduling.timer.TimerFactoryBean"
+    <bean id="wpsClusterTimerFactory" class="org.springframework.scheduling.timer.TimerFactoryBean"
       lazy-init="false">
       <property name="scheduledTimerTasks">
         <list>
@@ -91,6 +101,6 @@
         </list>
       </property>
       <property name="daemon" value="true" />
-    </bean -->
+    </bean>
 
 </beans>
