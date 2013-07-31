@@ -173,8 +173,8 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
             @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
-            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
-            @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
+            @DescribeParameter(name = "RoiCRS", min = 0, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
+            @DescribeParameter(name = "ROI", min = 0, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             final ProgressListener progressListener) throws ProcessException;
 
@@ -318,6 +318,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             finalEnvelope = new ReferencedEnvelope(refEnvelope.intersection(finalEnvelope),
                     referenceCRS);
         }
+        
         final GeneralEnvelope envelope = new GeneralEnvelope(finalEnvelope);
         envelope.setCoordinateReferenceSystem(referenceCRS);
 
@@ -343,24 +344,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             }
             throw new ProcessException(
                     "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
-        }
-
-        Geometry cropShape = roi;
-        ReferencedEnvelope finalEnvelopeInTargetCRS = (needResample ? finalEnvelope.transform(targetCRS, true) : finalEnvelope);
-        double x1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(0);
-        double y1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(1);
-        double x2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(0);
-        double y2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(1);
-        com.vividsolutions.jts.geom.Envelope coverageEnvelope = new com.vividsolutions.jts.geom.Envelope(
-                x1, x2, y1, y2);
-        cropShape = cropShape.intersection(JTS.toGeometry(coverageEnvelope));
-
-        if ((x1 == x2) || (y1 == y2)) {
-            throw new ProcessException(
-                    "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
-        }
-        if (cropShape instanceof Point || cropShape instanceof MultiPoint) {
-            throw new ProcessException("The Region of Interest is not a valid geometry!");
         }
         // ---- END - Envelope and geometry sanity checks
 
@@ -423,7 +406,26 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         }
 
         // ---- Cropping coverage to the Region of Interest
-        if (cropToGeometry) {
+        if (roi != null && cropToGeometry) {
+            
+            Geometry cropShape = roi;
+            ReferencedEnvelope finalEnvelopeInTargetCRS = (needResample ? finalEnvelope.transform(targetCRS, true) : finalEnvelope);
+            double x1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(0);
+            double y1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(1);
+            double x2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(0);
+            double y2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(1);
+            com.vividsolutions.jts.geom.Envelope coverageEnvelope = new com.vividsolutions.jts.geom.Envelope(
+                    x1, x2, y1, y2);
+            cropShape = cropShape.intersection(JTS.toGeometry(coverageEnvelope));
+
+            if ((x1 == x2) || (y1 == y2)) {
+                throw new ProcessException(
+                        "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
+            }
+            if (cropShape instanceof Point || cropShape instanceof MultiPoint) {
+                throw new ProcessException("The Region of Interest is not a valid geometry!");
+            }
+            
             CropCoverage cropProcess = new CropCoverage();
             finalCoverage = cropProcess.execute(finalCoverage, cropShape, progressListener);
         }

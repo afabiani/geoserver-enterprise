@@ -89,8 +89,8 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
             @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
-            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
-            @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
+            @DescribeParameter(name = "RoiCRS", min = 0, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
+            @DescribeParameter(name = "ROI", min = 0, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             ProgressListener progressListener) throws ProcessException {
 

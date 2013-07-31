@@ -113,8 +113,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
             @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
-            @DescribeParameter(name = "RoiCRS", min = 1, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
-            @DescribeParameter(name = "ROI", min = 1, description = "Region Of Interest") Geometry roi,
+            @DescribeParameter(name = "RoiCRS", min = 0, description = "Region Of Interest CRS") CoordinateReferenceSystem roiCRS,
+            @DescribeParameter(name = "ROI", min = 0, description = "Region Of Interest") Geometry roi,
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean cropToGeometry,
             final ProgressListener progressListener) throws ProcessException {
 
@@ -341,18 +341,23 @@ public class DownloadProcess extends AbstractDownloadProcess {
             boolean needResample = false;
             String srs = null;
             CoordinateReferenceSystem referenceCRS;
-            if (features.getSchema().getCoordinateReferenceSystem() != null) {
+            if (roiCRS == null || features.getSchema().getCoordinateReferenceSystem() != null) {
                 referenceCRS = features.getSchema().getCoordinateReferenceSystem();
             } else {
                 referenceCRS = roiCRS;
             }
             srs = CRS.toSRS(referenceCRS);
+            ReferencedEnvelope refEnvelope = null;
 
-            roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, referenceCRS));
+            if (roi != null) {
+                roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, referenceCRS));
 
-            final com.vividsolutions.jts.geom.Envelope envelope = roi.getEnvelopeInternal();
+                final com.vividsolutions.jts.geom.Envelope envelope = roi.getEnvelopeInternal();
 
-            ReferencedEnvelope refEnvelope = new ReferencedEnvelope(envelope, referenceCRS);
+                refEnvelope = new ReferencedEnvelope(envelope, referenceCRS);
+            } else {
+                refEnvelope = features.getBounds();
+            }
 
             // reproject the feature envelope if needed
             MathTransform targetTX = null;
@@ -392,33 +397,35 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 throw new ProcessException(
                         "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
             }
-            Geometry clipGeometry = (needResample ? JTS.transform(roi, targetTX) : roi);
-            // clipGeometry = clipGeometry.intersection(other);
 
-            if (clipGeometry instanceof Point || clipGeometry instanceof MultiPoint) {
-                if (progressListener != null) {
-                    progressListener.exceptionOccurred(new ProcessException(
-                            "The Region of Interest is not a valid geometry!"));
+            Geometry clipGeometry = (roi != null ? (needResample ? JTS.transform(roi, targetTX)
+                    : roi) : null);
+
+            if (clipGeometry != null) {
+                if (clipGeometry instanceof Point || clipGeometry instanceof MultiPoint) {
+                    if (progressListener != null) {
+                        progressListener.exceptionOccurred(new ProcessException(
+                                "The Region of Interest is not a valid geometry!"));
+                    }
+                    throw new ProcessException("The Region of Interest is not a valid geometry!");
                 }
-                throw new ProcessException("The Region of Interest is not a valid geometry!");
             }
             // ---- END - Envelope and geometry sanity checks
 
-            if (cropToGeometry == null || cropToGeometry) {
+            if (clipGeometry != null && (cropToGeometry == null || cropToGeometry)) {
                 ClipProcess clip = new ClipProcess();
                 features = clip.execute(features, clipGeometry);
             } else {
                 // only get the geometries in the bbox of the clip
                 FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2(null);
 
-                // BBOX bboxFilter = ff.bbox("", refEnvelope.getMinX(), refEnvelope.getMinY(), refEnvelope.getMaxX(), refEnvelope.getMaxY(),
-                // srs);
-                // features = features.subCollection(bboxFilter);
-
-                String dataGeomName = features.getSchema().getGeometryDescriptor().getLocalName();
-                Intersects intersectionFilter = ff.intersects(ff.property(dataGeomName),
-                        ff.literal(clipGeometry));
-                features = features.subCollection(intersectionFilter);
+                if (clipGeometry != null) {
+                    String dataGeomName = features.getSchema().getGeometryDescriptor()
+                            .getLocalName();
+                    Intersects intersectionFilter = ff.intersects(ff.property(dataGeomName),
+                            ff.literal(clipGeometry));
+                    features = features.subCollection(intersectionFilter);
+                }
             }
 
             if (features == null || features.isEmpty()) {
