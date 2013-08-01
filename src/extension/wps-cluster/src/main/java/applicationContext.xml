@@ -54,7 +54,7 @@
     <bean id="clusteredWpsInitializer" class="org.geoserver.wps.WPSInitializer">
       <constructor-arg index="0" ref="executionManager"/>
       <constructor-arg index="1" ref="clusteredProcessManager"/>
-      <constructor-arg index="2" ref="wpsStorageCleaner"/>
+      <constructor-arg index="2" ref="wpsClusterStorageCleaner"/>
     </bean>
     
     <!--=====================================================================-->

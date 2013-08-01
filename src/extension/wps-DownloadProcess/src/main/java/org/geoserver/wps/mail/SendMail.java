@@ -120,16 +120,18 @@ public class SendMail {
      * 
      * @param toAddress the to address
      * @param executiondId the executiond id
+     * @param expirationDelay
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendFinishedNotification(String toAddress, String executiondId, Object result)
-            throws IOException, MessagingException {
+    public void sendFinishedNotification(String toAddress, String executiondId, Object result,
+            int expirationDelay) throws IOException, MessagingException {
 
         // load template for the password reset email
         Template mailTemplate = templates.getTemplate("FinishedNotificationMail.ftl");
 
-        StringWriter body = fillMailBody(toAddress, executiondId, result, mailTemplate);
+        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
+                mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
     }
@@ -140,12 +142,13 @@ public class SendMail {
      * @param toAddress the to address
      * @param executiondId the executiond id
      * @param result
+     * @param expirationDelay
      * @param mailTemplate the mail template
      * @return the string writer
      * @throws IOException Signals that an I/O exception has occurred.
      */
     private StringWriter fillMailBody(String toAddress, String executiondId, Object result,
-            Template mailTemplate) throws IOException {
+            int expirationDelay, Template mailTemplate) throws IOException {
         StringWriter body = new StringWriter();
 
         if (mailTemplate != null) {
@@ -153,6 +156,10 @@ public class SendMail {
             Map<String, Object> templateContext = new HashMap<String, Object>();
             templateContext.put("toAddress", toAddress);
             templateContext.put("executiondId", executiondId);
+
+            if (expirationDelay > 0) {
+                templateContext.put("expirationDelay", expirationDelay);
+            }
 
             if (result != null) {
                 if (result instanceof File) {
@@ -200,7 +207,7 @@ public class SendMail {
         // load template for the password reset email
         Template mailTemplate = templates.getTemplate("StartedNotificationMail.ftl");
 
-        StringWriter body = fillMailBody(toAddress, executiondId, null, mailTemplate);
+        StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
     }

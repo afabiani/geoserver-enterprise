@@ -7,8 +7,9 @@ package org.geoserver.wps;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
-import java.util.TimerTask;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,7 +19,6 @@ import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wps.executor.ClusterProcessManager;
 import org.geoserver.wps.executor.ExecutionStatus;
-import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.executor.ProcessStorage;
 import org.geotools.util.logging.Logging;
 
@@ -27,17 +27,17 @@ import org.geotools.util.logging.Logging;
  * 
  * @author Andrea Aime - GeoSolutions
  */
-public class WPSClusterStorageCleaner extends TimerTask {
+public class WPSClusterStorageCleaner extends WPSStorageCleaner {
     Logger LOGGER = Logging.getLogger(WPSClusterStorageCleaner.class);
-
-    /** the local/shared WPS storage. */
-    private File storage;
 
     /** The ClusterProcessManager. */
     ClusterProcessManager clusteredProcessManager;
 
     /** The available storages. */
     private List<ProcessStorage> availableStorages;
+
+    /** The list of the executions ID to remove */
+    private Map<String, Long> executionDelays;
 
     /** The cluster ID. */
     private String clusterId;
@@ -47,41 +47,60 @@ public class WPSClusterStorageCleaner extends TimerTask {
 
     public WPSClusterStorageCleaner(ClusterProcessManager clusteredProcessManager,
             GeoServerDataDirectory dataDirectory) throws IOException, ConfigurationException {
-
+        super(dataDirectory);
+        this.executionDelays = new HashMap<String, Long>();
         this.clusteredProcessManager = clusteredProcessManager;
         this.clusterId = clusteredProcessManager.getClusterId();
 
         // retrieve all the available process storages
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
-
-        // get the temporary storage for WPS
-        try {
-            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
-            File temp = null;
-            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
-                temp = dataDirectory.findOrCreateDataDir("temp/wps");
-            else {
-                temp = new File(wpsOutputStorage, "wps");
-            }
-            storage = temp;
-        } catch (Exception e) {
-            throw new IOException("Could not find the temporary storage directory for WPS");
-        }
     }
 
     @Override
     public void run() {
         try {
-            if (!storage.exists())
+            if (!getStorage().exists())
                 return;
 
             // ok, now scan for existing files there and clean up those
             // that are too old
             long now = System.currentTimeMillis();
+            cleanupDirectory(getStorage(), now);
             cleanupStorages(now);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error occurred while trying to clean up "
                     + "old coverages from temp storage", e);
+        }
+    }
+
+    /**
+     * Recursively cleans up files that are too old
+     * 
+     * @param directory
+     * @param now
+     * @throws IOException
+     */
+    private void cleanupDirectory(File directory, long now) throws IOException {
+        for (File f : directory.listFiles()) {
+            // skip locked files, someone is downloading them
+            if (lockedFiles.contains(f)) {
+                continue;
+            }
+            // cleanup directories recursively
+            if (f.isDirectory()) {
+                cleanupDirectory(f, now);
+                // make sure we delete the directory only if enough time elapsed, since
+                // it might have been just created to store some wps outputs
+                if (f.list().length == 0 && f.lastModified() > expirationDelay) {
+                    f.delete();
+                }
+            } else {
+                if (expirationDelay > 0 && now - f.lastModified() > expirationDelay) {
+                    if (f.isFile()) {
+                        f.delete();
+                    }
+                }
+            }
         }
     }
 
@@ -99,25 +118,17 @@ public class WPSClusterStorageCleaner extends TimerTask {
                     Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
 
                     for (ExecutionStatus executionStatus : processesExecutionStauts) {
-                        if (executionStatus.getPhase().equals(ProcessState.CANCELLED)
-                                || executionStatus.getPhase().equals(ProcessState.COMPLETED)
-                                || executionStatus.getPhase().equals(ProcessState.FAILED)
-                                || executionStatus.getProgress() == 100.0f) {
-                            storage.removeStatus(clusterId, executionStatus.getExecutionId(), true);
+                        if (executionDelays.get(executionStatus.getExecutionId()) != null) {
+                            if (expirationDelay > 0
+                                    && now - executionDelays.get(executionStatus.getExecutionId()) > expirationDelay) {
+                                storage.removeStatus(clusterId, executionStatus.getExecutionId(),
+                                        true);
+                            }
                         }
                     }
                 }
             }
         }
-    }
-
-    /**
-     * Returns the storage directory for WPS
-     * 
-     * @return
-     */
-    public File getStorage() {
-        return storage;
     }
 
     /**
@@ -134,4 +145,14 @@ public class WPSClusterStorageCleaner extends TimerTask {
         return enabled;
     }
 
+    /**
+     * 
+     * @param executionId
+     * @param time
+     */
+    public void scheduleForCleaning(String executionId, long time) {
+        if (!executionDelays.containsKey(executionId)) {
+            executionDelays.put(executionId, time);
+        }
+    }
 }

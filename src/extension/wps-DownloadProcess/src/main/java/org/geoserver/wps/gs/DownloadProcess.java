@@ -16,19 +16,24 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
 
+import org.apache.commons.io.FilenameUtils;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wfs.response.ShapeZipOutputFormat;
+import org.geoserver.wps.WPSClusterStorageCleaner;
 import org.geoserver.wps.WPSException;
+import org.geoserver.wps.WPSInfo;
 import org.geoserver.wps.executor.ClusterProcessManager.ClusterProcessListener;
 import org.geoserver.wps.gs.utils.LimitedFileOutputStream;
 import org.geoserver.wps.mail.SendMail;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geoserver.wps.ppio.WFSPPIO;
+import org.geoserver.wps.ppio.ZipArchivePPIO;
+import org.geoserver.wps.ppio.ZipArchivePPIO.ZipArchive;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -78,6 +83,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
     /** The send mail. */
     private SendMail sendMail;
 
+    /** The storage cleaner */
+    private WPSClusterStorageCleaner cleaner;
+
     /**
      * Instantiates a new download process.
      * 
@@ -86,10 +94,11 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * @param estimator the estimator
      */
     public DownloadProcess(GeoServer geoServer, SendMail sendMail,
-            DownloadEstimatorProcess estimator) {
+            DownloadEstimatorProcess estimator, WPSClusterStorageCleaner cleaner) {
         super(geoServer);
         this.sendMail = sendMail;
         this.estimator = estimator;
+        this.cleaner = cleaner;
     }
 
     /**
@@ -203,13 +212,29 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         writeRasterOutput(outputFormat, progressListener, extension, os);
 
-                        sendMail(email, progressListener, output, false);
+                        ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+
+                        File tempZipFile = new File(FilenameUtils.getFullPath(output
+                                .getAbsolutePath()), FilenameUtils.getBaseName(output.getName()
+                                + ".zip"));
+                        ppio.encode(output, new FileOutputStream(tempZipFile));
+
+                        if (this.cleaner != null) {
+                            long now = System.currentTimeMillis();
+                            this.cleaner.lock(output);
+                            this.cleaner.lock(tempZipFile);
+                            this.cleaner.scheduleForCleaning(
+                                    ((ClusterProcessListener) progressListener).getStatus()
+                                            .getExecutionId(), now);
+                        }
+
+                        sendMail(email, progressListener, tempZipFile, false);
 
                         if (progressListener != null) {
                             progressListener.complete();
                         }
 
-                        return output;
+                        return tempZipFile;
                     } catch (Exception e) {
                         cause = e;
                         if (progressListener != null) {
@@ -398,9 +423,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
                         "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
             }
 
-            //Geometry clipGeometry = roi.intersection(JTS.toGeometry(features.getBounds()));
+            // Geometry clipGeometry = roi.intersection(JTS.toGeometry(features.getBounds()));
             Geometry clipGeometry = roi;
-            
+
             if (clipGeometry != null) {
                 if (clipGeometry instanceof Point || clipGeometry instanceof MultiPoint) {
                     if (progressListener != null) {
@@ -475,13 +500,28 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
             writeVectorialOutput(outputFormat, progressListener, features, extension, os);
 
-            sendMail(email, progressListener, output, false);
+            ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+
+            File tempZipFile = new File(FilenameUtils.getFullPath(output.getAbsolutePath()),
+                    FilenameUtils.getBaseName(output.getName() + ".zip"));
+            ppio.encode(output, new FileOutputStream(tempZipFile));
+
+            if (this.cleaner != null) {
+                long now = System.currentTimeMillis();
+                this.cleaner.lock(output);
+                this.cleaner.lock(tempZipFile);
+                this.cleaner.scheduleForCleaning(
+                        ((ClusterProcessListener) progressListener).getStatus()
+                                .getExecutionId(), now);
+            }
+
+            sendMail(email, progressListener, tempZipFile, false);
 
             if (progressListener != null) {
                 progressListener.complete();
             }
 
-            return output;
+            return tempZipFile;
         } catch (Exception e) {
             cause = e;
             if (progressListener != null) {
@@ -569,9 +609,21 @@ public class DownloadProcess extends AbstractDownloadProcess {
                                         .getExecutionId());
 
                     } else {
+                        
+                        // handle the resource expiration timeout
+                        WPSInfo info = geoServer.getService(WPSInfo.class);
+                        double timeout = info.getResourceExpirationTimeout();
+                        int expirationDelay = -1;
+                        if (timeout > 0) {
+                            expirationDelay = ((int) timeout * 1000);
+                        } else {
+                            // specified timeout == -1, so we use the default of five minutes
+                            expirationDelay = (5 * 60 * 1000);
+                        }
+                        
                         sendMail.sendFinishedNotification(email,
                                 ((ClusterProcessListener) progressListener).getStatus()
-                                        .getExecutionId(), output);
+                                        .getExecutionId(), output, expirationDelay);
                     }
                 } catch (Exception e) {
                     LOGGER.warning("Could not send the notification email : "
