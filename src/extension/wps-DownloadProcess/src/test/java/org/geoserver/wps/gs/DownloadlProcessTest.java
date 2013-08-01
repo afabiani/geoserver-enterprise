@@ -130,6 +130,40 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         assertEquals(rawSource.size(), rawTarget.size());
     }
 
+    
+    /**
+     * Test get features as shapefile with a different outputCRS from the native one.
+     * 
+     * @throws Exception the exception
+     */
+    public void testGetProjectedFeaturesAsShapefile() throws Exception {
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+
+        FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
+        SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
+                null).getFeatures();
+
+        File shpeZip = downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
+                null, // filter
+                null, // mail
+                "shape-zip", // outputFormat
+                null, //CRS.decode("EPSG:4326"), // targetCRS
+                CRS.decode("EPSG:32615"), // roiCRS
+                roi, // roi
+                true, // cropToGeometry
+                new NullProgressListener() // progressListener
+                );
+
+        assertNotNull(shpeZip);
+
+        SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) decodeShape(new FileInputStream(
+                shpeZip));
+
+        assertNotNull(rawTarget);
+
+        assertEquals(rawSource.size(), rawTarget.size());
+    }
+    
     /**
      * Test filtered clipped features.
      * 

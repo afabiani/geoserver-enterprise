@@ -427,13 +427,12 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     private boolean chekTargetCRSValidity(CoordinateReferenceSystem targetCRS,
             ProgressListener progressListener, CoordinateReferenceSystem referenceCRS,
             boolean needResample) {
-        MathTransform targetTX;
         if (targetCRS != null) {
-            if (!CRS.equalsIgnoreMetadata(targetCRS, referenceCRS)) {
+            if (!CRS.equalsIgnoreMetadata(referenceCRS, targetCRS)) {
 
                 // testing reprojection...
                 try {
-                    /* if (! ( */targetTX = CRS.findMathTransform(referenceCRS, targetCRS) /*
+                    /* if (! ( */CRS.findMathTransform(referenceCRS, targetCRS) /*
                                                                                             * instanceof AffineTransform) ) throw new ProcessException
                                                                                             * ("Could not reproject to reference CRS")
                                                                                             */;
