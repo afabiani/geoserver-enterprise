@@ -433,7 +433,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
 
                 // testing reprojection...
                 try {
-                    /* if (! ( */targetTX = CRS.findMathTransform(targetCRS, referenceCRS) /*
+                    /* if (! ( */targetTX = CRS.findMathTransform(referenceCRS, targetCRS) /*
                                                                                             * instanceof AffineTransform) ) throw new ProcessException
                                                                                             * ("Could not reproject to reference CRS")
                                                                                             */;
