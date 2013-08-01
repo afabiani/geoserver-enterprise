@@ -398,11 +398,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                         "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
             }
 
-            Geometry clipGeometry = (roiCRS == null
-                    || CRS.equalsIgnoreMetadata(roiCRS, referenceCRS) ? roi : (roiCRS != null ? JTS
-                    .transform(roi, CRS.findMathTransform(roiCRS, referenceCRS)) : roi));
-
-            clipGeometry = clipGeometry.intersection(JTS.toGeometry(features.getBounds()));
+            Geometry clipGeometry = roi.intersection(JTS.toGeometry(features.getBounds()));
             
             if (clipGeometry != null) {
                 if (clipGeometry instanceof Point || clipGeometry instanceof MultiPoint) {
