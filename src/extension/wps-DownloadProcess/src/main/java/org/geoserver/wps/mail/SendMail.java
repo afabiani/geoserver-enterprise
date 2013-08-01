@@ -154,22 +154,24 @@ public class SendMail {
             templateContext.put("toAddress", toAddress);
             templateContext.put("executiondId", executiondId);
 
-            if (result != null && result instanceof File) {
-                List<ClusterFilePublisherURLMangler> filePublishers = GeoServerExtensions
-                        .extensions(ClusterFilePublisherURLMangler.class);
-                if (filePublishers != null && filePublishers.size() > 0)
-                    try {
-                        templateContext.put("result",
-                                filePublishers.get(0).getPublishingURL(((File) result)));
-                    } catch (Exception e) {
-                        throw new ProcessException(
-                                "Could not publish the output file for process [" + executiondId
-                                        + "]");
-                    }
-                else
-                    templateContext.put("result", ((File) result).getAbsolutePath());
-            } else {
-                templateContext.put("result", result.toString());
+            if (result != null) {
+                if (result instanceof File) {
+                    List<ClusterFilePublisherURLMangler> filePublishers = GeoServerExtensions
+                            .extensions(ClusterFilePublisherURLMangler.class);
+                    if (filePublishers != null && filePublishers.size() > 0)
+                        try {
+                            templateContext.put("result",
+                                    filePublishers.get(0).getPublishingURL(((File) result)));
+                        } catch (Exception e) {
+                            throw new ProcessException(
+                                    "Could not publish the output file for process ["
+                                            + executiondId + "]");
+                        }
+                    else
+                        templateContext.put("result", ((File) result).getAbsolutePath());
+                } else {
+                    templateContext.put("result", result.toString());
+                }
             }
 
             // create message string
