@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -157,8 +158,14 @@ public class SendMail {
             templateContext.put("toAddress", toAddress);
             templateContext.put("executiondId", executiondId);
 
+            String millis = String.format("%d min, %d sec", 
+                    TimeUnit.MILLISECONDS.toMinutes(expirationDelay),
+                    TimeUnit.MILLISECONDS.toSeconds(expirationDelay) - 
+                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(expirationDelay))
+                );
+            
             if (expirationDelay > 0) {
-                templateContext.put("expirationDelay", expirationDelay);
+                templateContext.put("expirationDelay", millis);
             }
 
             if (result != null) {

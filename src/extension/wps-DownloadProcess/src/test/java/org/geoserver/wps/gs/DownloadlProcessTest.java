@@ -7,6 +7,7 @@ package org.geoserver.wps.gs;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
@@ -15,6 +16,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.data.test.MockData;
 import org.geoserver.data.util.IOUtils;
@@ -238,8 +240,10 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         assertNotNull(gml2Zip);
 
+        File[] files = exctractGMLFile(gml2Zip);
+
         SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) new WFSPPIO.WFS10()
-                .decode(new FileInputStream(gml2Zip));
+                .decode(new FileInputStream(files[0]));
 
         assertNotNull(rawTarget);
 
@@ -259,12 +263,71 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         assertNotNull(gml3Zip);
 
+        files = exctractGMLFile(gml2Zip);
+
         rawTarget = (SimpleFeatureCollection) new WFSPPIO.WFS11().decode(new FileInputStream(
-                gml3Zip));
+                files[0]));
 
         assertNotNull(rawTarget);
 
         assertEquals(rawSource.size(), rawTarget.size());
+    }
+
+    /**
+     * @param gml2Zip
+     * @return
+     * @throws IOException
+     */
+    private File[] exctractGMLFile(File gml2Zip) throws IOException {
+        IOUtils.decompress(gml2Zip, gml2Zip.getParentFile());
+
+        File[] files = gml2Zip.getParentFile().listFiles(new FilenameFilter() {
+
+            public boolean accept(File dir, String name) {
+                return FilenameUtils.getExtension(name).equalsIgnoreCase("xml");
+            }
+        });
+        return files;
+    }
+
+    /**
+     * @param jsonZip
+     * @return
+     * @throws IOException
+     */
+    private File[] exctractJSONFile(File jsonZip) throws IOException {
+        IOUtils.decompress(jsonZip, jsonZip.getParentFile());
+
+        File[] files = jsonZip.getParentFile().listFiles(new FilenameFilter() {
+
+            public boolean accept(File dir, String name) {
+                return FilenameUtils.getExtension(name).equalsIgnoreCase("json");
+            }
+        });
+        return files;
+    }
+
+    /**
+     * @param gtiffZip
+     * @return
+     * @throws IOException
+     */
+    private File[] exctractTIFFFile(final File gtiffZip) throws IOException {
+        IOUtils.decompress(gtiffZip, gtiffZip.getParentFile());
+
+        File[] files = gtiffZip.getParentFile().listFiles(new FilenameFilter() {
+
+            public boolean accept(File dir, String name) {
+                return
+
+                (FilenameUtils.getBaseName(gtiffZip.getName()).equals(
+                        FilenameUtils.getBaseName(name)) && (FilenameUtils.getExtension(name)
+                        .equalsIgnoreCase("tif")
+                        || FilenameUtils.getExtension(name).equalsIgnoreCase("tiff") || FilenameUtils
+                        .getExtension(name).equalsIgnoreCase("geotiff")));
+            }
+        });
+        return files;
     }
 
     /**
@@ -292,8 +355,10 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         assertNotNull(jsonZip);
 
+        File[] files = exctractJSONFile(jsonZip);
+
         SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) new FeatureJSON()
-                .readFeatureCollection(new FileInputStream(jsonZip));
+                .readFeatureCollection(new FileInputStream(files[0]));
 
         assertNotNull(rawTarget);
 
@@ -349,7 +414,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         GeoTiffReader reader = null;
         GridCoverage2D gc = null, gcResampled = null;
         try {
-            reader = new GeoTiffReader(rasterZip);
+            reader = new GeoTiffReader(exctractTIFFFile(rasterZip)[0]);
             gc = reader.read(null);
 
             assertNotNull(gc);
@@ -367,7 +432,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         }
 
         try {
-            reader = new GeoTiffReader(resampledZip);
+            reader = new GeoTiffReader(exctractTIFFFile(resampledZip)[0]);
             gcResampled = reader.read(null);
 
             assertNotNull(gcResampled);
