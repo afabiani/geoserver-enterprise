@@ -212,11 +212,16 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         writeRasterOutput(outputFormat, progressListener, extension, os);
 
-                        ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+                        File tempZipFile = output;
 
-                        File tempZipFile = new File(FilenameUtils.getFullPath(output
-                                .getAbsolutePath()), FilenameUtils.getBaseName(output.getName())+ ".zip");
-                        ppio.encode(output, new FileOutputStream(tempZipFile));
+                        if (!FilenameUtils.getExtension(tempZipFile.getName()).equalsIgnoreCase(
+                                "zip")) {
+                            ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+                            tempZipFile = new File(FilenameUtils.getFullPath(output
+                                    .getAbsolutePath()),
+                                    FilenameUtils.getBaseName(output.getName()) + ".zip");
+                            ppio.encode(output, new FileOutputStream(tempZipFile));
+                        }
 
                         if (this.cleaner != null) {
                             long now = System.currentTimeMillis();
@@ -499,19 +504,21 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
             writeVectorialOutput(outputFormat, progressListener, features, extension, os);
 
-            ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+            File tempZipFile = output;
 
-            File tempZipFile = new File(FilenameUtils.getFullPath(output.getAbsolutePath()),
-                    FilenameUtils.getBaseName(output.getName()) + ".zip");
-            ppio.encode(output, new FileOutputStream(tempZipFile));
+            if (!FilenameUtils.getExtension(tempZipFile.getName()).equalsIgnoreCase("zip")) {
+                ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
+                tempZipFile = new File(FilenameUtils.getFullPath(output.getAbsolutePath()),
+                        FilenameUtils.getBaseName(output.getName()) + ".zip");
+                ppio.encode(output, new FileOutputStream(tempZipFile));
+            }
 
             if (this.cleaner != null) {
                 long now = System.currentTimeMillis();
                 this.cleaner.lock(output);
                 this.cleaner.lock(tempZipFile);
-                this.cleaner.scheduleForCleaning(
-                        ((ClusterProcessListener) progressListener).getStatus()
-                                .getExecutionId(), now);
+                this.cleaner.scheduleForCleaning(((ClusterProcessListener) progressListener)
+                        .getStatus().getExecutionId(), now);
             }
 
             sendMail(email, progressListener, tempZipFile, false);
@@ -608,7 +615,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                                         .getExecutionId());
 
                     } else {
-                        
+
                         // handle the resource expiration timeout
                         WPSInfo info = geoServer.getService(WPSInfo.class);
                         double timeout = info.getResourceExpirationTimeout();
@@ -619,7 +626,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                             // specified timeout == -1, so we use the default of five minutes
                             expirationDelay = (5 * 60 * 1000);
                         }
-                        
+
                         sendMail.sendFinishedNotification(email,
                                 ((ClusterProcessListener) progressListener).getStatus()
                                         .getExecutionId(), output, expirationDelay);
