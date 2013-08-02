@@ -18,6 +18,7 @@ import java.util.concurrent.Future;
 import org.geoserver.ows.Ows11Util;
 import org.geoserver.platform.ExtensionPriority;
 import org.geoserver.platform.GeoServerExtensions;
+import org.geoserver.wps.WPSClusterStorageCleaner;
 import org.geoserver.wps.WPSException;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.resource.WPSResourceManager;
@@ -44,6 +45,9 @@ public class ClusterProcessManager extends DefaultProcessManager {
     /** The available storages. */
     private List<ProcessStorage> availableStorages;
 
+    /** The WPS Storage Cleaner. */
+    private WPSClusterStorageCleaner cleaner;
+
     /** The list of excluded proces names. */
     private List<String> processNamesEsclusionList;
 
@@ -65,6 +69,11 @@ public class ClusterProcessManager extends DefaultProcessManager {
         ProcessFactory pf = Processors.createProcessFactory(processName);
         if (pf == null) {
             throw new WPSException("No such process: " + processName);
+        }
+
+        if (this.cleaner != null) {
+            long now = System.currentTimeMillis();
+            this.cleaner.scheduleForCleaning(executionId, now);
         }
 
         // execute the process in the same thread as the caller
@@ -175,10 +184,17 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
                 result = p.execute(inputs, listener);
                 String executionId = status.executionId;
+
+                if (cleaner != null) {
+                    long now = System.currentTimeMillis();
+                    cleaner.scheduleForCleaning(executionId, now);
+                }
+
                 if (listener.exception != null) {
                     status.setPhase(ProcessState.FAILED);
 
-                    if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                    if (p != null
+                            && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
                         if (availableStorages != null && availableStorages.size() > 0) {
                             for (ProcessStorage storage : availableStorages) {
                                 String clusterId = storage.getInstance(executionId, false);
@@ -196,7 +212,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
                     }
                     throw new WPSException("Process failed: " + listener.exception.getMessage(),
                             listener.exception);
-                } else if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                } else if (p != null
+                        && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
                     if (availableStorages != null && availableStorages.size() > 0) {
                         for (ProcessStorage storage : availableStorages) {
                             String clusterId = storage.getInstance(executionId, false);
@@ -218,7 +235,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
                     String executionId = status.executionId;
                     status.setPhase(ProcessState.FAILED);
 
-                    if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
+                    if (p != null
+                            && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
                         if (availableStorages != null && availableStorages.size() > 0) {
                             for (ProcessStorage storage : availableStorages) {
                                 String clusterId = storage.getInstance(executionId, false);
@@ -529,8 +547,10 @@ public class ClusterProcessManager extends DefaultProcessManager {
      * @param localProcesses
      * @param availableStorages
      */
-    public ClusterProcessManager(WPSResourceManager resourceManager, List<String> processNamesEsclusionList) {
+    public ClusterProcessManager(WPSResourceManager resourceManager,
+            WPSClusterStorageCleaner cleaner, List<String> processNamesEsclusionList) {
         this(resourceManager);
+        this.cleaner = cleaner;
         this.processNamesEsclusionList = processNamesEsclusionList;
     }
 
@@ -601,5 +621,5 @@ public class ClusterProcessManager extends DefaultProcessManager {
         }
 
     }
-    
+
 }

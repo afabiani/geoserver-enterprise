@@ -43,6 +43,7 @@
     <!-- The clustered process runner -->
     <bean id="clusteredProcessManager" class="org.geoserver.wps.executor.ClusterProcessManager">
       <constructor-arg ref="wpsResourceManager"/>
+      <constructor-arg ref="wpsClusterStorageCleaner"/>
       <constructor-arg>
         <list>
             <value>ClusterManager</value>
@@ -76,8 +77,7 @@
     <!--=====================================================================-->
     <!-- Temp storage cleanup -->
     <bean id="wpsClusterStorageCleaner" class="org.geoserver.wps.WPSClusterStorageCleaner">
-      <constructor-arg index="0" ref="clusteredProcessManager" />
-      <constructor-arg index="1" ref="dataDirectory" />
+      <constructor-arg ref="dataDirectory" />
       <property name="enabled" value="${wpsClusterStorageCleaner.enabled}" />
     </bean>
   

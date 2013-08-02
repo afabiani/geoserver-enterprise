@@ -83,9 +83,6 @@ public class DownloadProcess extends AbstractDownloadProcess {
     /** The send mail. */
     private SendMail sendMail;
 
-    /** The storage cleaner */
-    private WPSClusterStorageCleaner cleaner;
-
     /**
      * Instantiates a new download process.
      * 
@@ -94,11 +91,10 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * @param estimator the estimator
      */
     public DownloadProcess(GeoServer geoServer, SendMail sendMail,
-            DownloadEstimatorProcess estimator, WPSClusterStorageCleaner cleaner) {
+            DownloadEstimatorProcess estimator) {
         super(geoServer);
         this.sendMail = sendMail;
         this.estimator = estimator;
-        this.cleaner = cleaner;
     }
 
     /**
@@ -188,7 +184,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         // writing the output
                         final File output = File.createTempFile(resourceInfo.getName(), "."
-                                + extension, getWpsOutputStorage());
+                                + extension, WPSClusterStorageCleaner.getWpsOutputStorage());
                         long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
                                 .getHardOutputLimit() * 1024
                                 : (estimator != null && estimator.getWriteLimits() > 0 ? estimator
@@ -221,15 +217,6 @@ public class DownloadProcess extends AbstractDownloadProcess {
                                     .getAbsolutePath()),
                                     FilenameUtils.getBaseName(output.getName()) + ".zip");
                             ppio.encode(output, new FileOutputStream(tempZipFile));
-                        }
-
-                        if (this.cleaner != null) {
-                            long now = System.currentTimeMillis();
-                            this.cleaner.lock(output);
-                            this.cleaner.lock(tempZipFile);
-                            this.cleaner.scheduleForCleaning(
-                                    ((ClusterProcessListener) progressListener).getStatus()
-                                            .getExecutionId(), now);
                         }
 
                         sendMail(email, progressListener, tempZipFile, false);
@@ -483,7 +470,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
             // writing the output
             final File output = File.createTempFile(resourceInfo.getName(), "." + extension,
-                    getWpsOutputStorage());
+                    WPSClusterStorageCleaner.getWpsOutputStorage());
             long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
                     .getHardOutputLimit() * 1024 : (estimator != null
                     && estimator.getWriteLimits() > 0 ? estimator.getWriteLimits() * 1024
@@ -511,14 +498,6 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 tempZipFile = new File(FilenameUtils.getFullPath(output.getAbsolutePath()),
                         FilenameUtils.getBaseName(output.getName()) + ".zip");
                 ppio.encode(output, new FileOutputStream(tempZipFile));
-            }
-
-            if (this.cleaner != null) {
-                long now = System.currentTimeMillis();
-                this.cleaner.lock(output);
-                this.cleaner.lock(tempZipFile);
-                this.cleaner.scheduleForCleaning(((ClusterProcessListener) progressListener)
-                        .getStatus().getExecutionId(), now);
             }
 
             sendMail(email, progressListener, tempZipFile, false);

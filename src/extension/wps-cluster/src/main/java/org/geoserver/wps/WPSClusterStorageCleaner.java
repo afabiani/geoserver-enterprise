@@ -17,7 +17,6 @@ import javax.naming.ConfigurationException;
 
 import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.platform.GeoServerExtensions;
-import org.geoserver.wps.executor.ClusterProcessManager;
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ProcessStorage;
 import org.geotools.util.logging.Logging;
@@ -29,9 +28,6 @@ import org.geotools.util.logging.Logging;
  */
 public class WPSClusterStorageCleaner extends WPSStorageCleaner {
     Logger LOGGER = Logging.getLogger(WPSClusterStorageCleaner.class);
-
-    /** The ClusterProcessManager. */
-    ClusterProcessManager clusteredProcessManager;
 
     /** The available storages. */
     private List<ProcessStorage> availableStorages;
@@ -45,12 +41,10 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner {
     /** Is Enabled or not. */
     private Boolean enabled;
 
-    public WPSClusterStorageCleaner(ClusterProcessManager clusteredProcessManager,
-            GeoServerDataDirectory dataDirectory) throws IOException, ConfigurationException {
+    public WPSClusterStorageCleaner(GeoServerDataDirectory dataDirectory) throws IOException,
+            ConfigurationException {
         super(dataDirectory);
         this.executionDelays = new HashMap<String, Long>();
-        this.clusteredProcessManager = clusteredProcessManager;
-        this.clusterId = clusteredProcessManager.getClusterId();
 
         // retrieve all the available process storages
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
@@ -66,6 +60,7 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner {
             // that are too old
             long now = System.currentTimeMillis();
             cleanupDirectory(getStorage(), now);
+            cleanupDirectory(getWpsOutputStorage(), now);
             cleanupStorages(now);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error occurred while trying to clean up "
@@ -117,13 +112,15 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner {
                 for (ProcessStorage storage : availableStorages) {
                     Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
 
-                    for (ExecutionStatus executionStatus : processesExecutionStauts) {
-                        if (executionDelays.get(executionStatus.getExecutionId()) != null) {
-                            if (expirationDelay > 0
-                                    && now - executionDelays.get(executionStatus.getExecutionId()) > expirationDelay) {
-                                storage.removeStatus(clusterId, executionStatus.getExecutionId(),
-                                        true);
-                            }
+                    if (processesExecutionStauts != null) {
+                        for (ExecutionStatus executionStatus : processesExecutionStauts) {
+                            if (executionDelays.get(executionStatus.getExecutionId()) == null || executionDelays.get(executionStatus.getExecutionId()) != null && (expirationDelay > 0
+                                        && now
+                                                - executionDelays.get(executionStatus
+                                                        .getExecutionId()) > expirationDelay)) {
+                                    storage.removeStatus(clusterId,
+                                            executionStatus.getExecutionId(), true);
+                                }
                         }
                     }
                 }

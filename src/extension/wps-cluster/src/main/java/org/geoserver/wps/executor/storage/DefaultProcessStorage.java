@@ -198,6 +198,18 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      */
     @Override
     public Collection<ExecutionStatus> getAll() {
+        Search search = new Search(ProcessDescriptor.class);
+        search.addSortDesc("id");
+        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
+
+        if (processes != null && processes.size() > 0) {
+            List<ExecutionStatus> theProcesses = new ArrayList<ExecutionStatus>();
+            for (ProcessDescriptor process : processes) {
+                theProcesses.add((ExecutionStatus) marshaller.fromXML(process.getStatus()));
+            }
+            return theProcesses;
+        }
+
         return Collections.EMPTY_LIST;
     }
 

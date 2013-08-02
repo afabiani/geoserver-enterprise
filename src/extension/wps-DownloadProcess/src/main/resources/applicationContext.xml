@@ -36,7 +36,6 @@
 		<constructor-arg index="0" ref="geoServer"/>
 		<constructor-arg index="1" ref="wpsSendMail"/>
 		<constructor-arg index="2" ref="enterpriseDownloadEstimatorProcess"/>
-		<constructor-arg index="3" ref="wpsClusterStorageCleaner"/>
 	</bean>
 
 	<bean id="enterpriseDownloadEstimatorProcess" class="org.geoserver.wps.gs.DownloadEstimatorProcess">

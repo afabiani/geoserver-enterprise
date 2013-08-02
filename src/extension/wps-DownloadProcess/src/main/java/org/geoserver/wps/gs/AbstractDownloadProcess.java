@@ -467,42 +467,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     }
 
     /**
-     * Gets the wps output storage.
-     * 
-     * @return the wps output storage
-     */
-    public static File getWpsOutputStorage() {
-        File wpsStore = null;
-        try {
-            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
-            File temp = null;
-            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
-                temp = GeoserverDataDirectory.findCreateConfigDir("temp");
-            else {
-                temp = new File(wpsOutputStorage);
-            }
-            wpsStore = new File(temp, "wps");
-            if (!wpsStore.exists()) {
-                mkdir(wpsStore);
-            }
-        } catch (Exception e) {
-            throw new WcsException("Could not create the temporary storage directory for WPS");
-        }
-        return wpsStore;
-    }
-
-    /**
-     * Mkdir.
-     * 
-     * @param file the file
-     */
-    public static void mkdir(File file) {
-        if (!file.mkdir()) {
-            throw new WPSException("Failed to create the specified directory " + file);
-        }
-    }
-
-    /**
      * Creates the coverage.
      * 
      * @param name the name
