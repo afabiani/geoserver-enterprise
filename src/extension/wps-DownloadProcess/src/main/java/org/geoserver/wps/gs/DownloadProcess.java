@@ -215,8 +215,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                         ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
 
                         File tempZipFile = new File(FilenameUtils.getFullPath(output
-                                .getAbsolutePath()), FilenameUtils.getBaseName(output.getName()
-                                + ".zip"));
+                                .getAbsolutePath()), FilenameUtils.getBaseName(output.getName())+ ".zip");
                         ppio.encode(output, new FileOutputStream(tempZipFile));
 
                         if (this.cleaner != null) {
@@ -503,7 +502,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
             ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
 
             File tempZipFile = new File(FilenameUtils.getFullPath(output.getAbsolutePath()),
-                    FilenameUtils.getBaseName(output.getName() + ".zip"));
+                    FilenameUtils.getBaseName(output.getName()) + ".zip");
             ppio.encode(output, new FileOutputStream(tempZipFile));
 
             if (this.cleaner != null) {

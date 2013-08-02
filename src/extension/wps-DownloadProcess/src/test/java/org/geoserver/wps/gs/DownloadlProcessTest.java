@@ -118,10 +118,8 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         assertNotNull(shpeZip);
 
-        File file = (File) decodeShape(new FileInputStream(shpeZip));
-
         SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) decodeShape(new FileInputStream(
-                file));
+                shpeZip));
 
         assertNotNull(rawTarget);
 
@@ -831,7 +829,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         if (shapeFile == null) {
             if (zipFile != null)
-                return zipFile;
+                return decodeShape(new FileInputStream(zipFile));
             else {
                 FileUtils.deleteDirectory(tempDir);
                 throw new IOException("Could not find any file with .shp extension in the zip file");

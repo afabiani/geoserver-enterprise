@@ -48,10 +48,10 @@
 	</bean>
 
 	<!-- The PPIO that need to be registered into SPI because of their dependencies -->
-	<!-- bean id="archiveZipPPIO" class="org.geoserver.wps.ppio.ZipArchivePPIO">
+	<bean id="archiveZipPPIO" class="org.geoserver.wps.ppio.ZipArchivePPIO">
 	  <constructor-arg index="0" ref="geoServer"/>
       <constructor-arg index="1" ref="wpsResourceManager"/>
-    </bean -->
+    </bean>
 
 	<!-- WPS SendMail bean -->
 	<bean id="wpsSendMail" class="org.geoserver.wps.mail.SendMail">
