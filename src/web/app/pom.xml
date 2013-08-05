@@ -677,6 +677,41 @@
       </dependencies>
     </profile>
     <profile>
+      <id>wps-ida</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-cmre-CmdLine</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-cmre-ToFeature</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-cmre-WFSLog</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-ida-IDADeleteTransactionListener</artifactId>
+          <version>${project.version}</version>
+        </dependency>		
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-ida-IDARasterAlgebraProcess</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.extension</groupId>
+          <artifactId>wps-ida-IDASoundPropagationModel</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>css</id>
       <dependencies>
         <dependency>
