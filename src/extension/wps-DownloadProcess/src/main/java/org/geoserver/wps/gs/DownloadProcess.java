@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -53,6 +55,7 @@ import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.feature.gs.ClipProcess;
 import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
+import org.geotools.xml.Parser;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.spatial.Intersects;
@@ -61,6 +64,7 @@ import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.util.ProgressListener;
+import org.xml.sax.InputSource;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.MultiPoint;
@@ -338,11 +342,24 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 try {
                     ra = ECQL.toFilter(filter);
                 } catch (Exception e) {
-                    cause = new WPSException("Unable to parse input expression", e);
-                    if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(cause));
+                    try {
+                        Parser parser = new Parser(
+                                new org.geotools.filter.v1_0.OGCConfiguration());
+                        Reader reader = new StringReader(filter);
+                        // set the input source with the correct encoding
+                        InputSource source = new InputSource(reader);
+                        source.setEncoding(getCharset().name());
+                        ra = (Filter) parser.parse(source);
+
+                    } catch (Exception e_ogc) {
+                        cause = new WPSException("Unable to parse input expression", e_ogc);
+                        if (progressListener != null) {
+                            progressListener.exceptionOccurred(new ProcessException(
+                                    "Could not complete the Download Process", cause));
+                        }
+                        throw new ProcessException(
+                                "Could not complete the Download Process", cause);
                     }
-                    throw new ProcessException(cause);
                 }
             } else {
                 ra = Filter.INCLUDE;
