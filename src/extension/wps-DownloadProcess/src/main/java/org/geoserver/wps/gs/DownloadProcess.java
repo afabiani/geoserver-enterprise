@@ -344,7 +344,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 } catch (Exception e) {
                     try {
                         Parser parser = new Parser(
-                                new org.geotools.filter.v1_0.OGCConfiguration());
+                                new org.geotools.filter.v1_1.OGCConfiguration());
                         Reader reader = new StringReader(filter);
                         // set the input source with the correct encoding
                         InputSource source = new InputSource(reader);

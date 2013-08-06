@@ -10,7 +10,6 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
-import java.io.File;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.util.logging.Level;
@@ -70,8 +69,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.util.ProgressListener;
-import org.vfny.geoserver.global.GeoserverDataDirectory;
-import org.vfny.geoserver.wcs.WcsException;
 
 import com.sun.media.jai.opimage.RIFUtil;
 import com.vividsolutions.jts.geom.Geometry;
