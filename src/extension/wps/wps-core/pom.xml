@@ -113,9 +113,6 @@
 	        <version>1.7.1</version>
 	    </dependency>
         
-        
-        
-        
         <!-- test dependencies -->
         <dependency>
           <groupId>xmlunit</groupId>

@@ -197,7 +197,11 @@
     <bean id="getFullCoverage" class="org.geoserver.wps.gs.GetFullCoverage">
       <constructor-arg index="0" ref="catalog"/>
     </bean>
-    
+
+    <bean id="rasterAlgebra" class="org.geoserver.wps.raster.algebra.RasterAlgebraProcess">
+      <constructor-arg index="0" ref="catalog"/>
+    </bean>
+        
     <!-- 
        ==================================================================
        Deal with temporary files

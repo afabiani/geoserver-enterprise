@@ -1,0 +1,50 @@
+FreeMarker Template available variables:
+
+=======================
+===  outputPath   
+=======================
+${outputPath}
+
+=======================
+===  soundSourceUnit   
+=======================
+${soundSourceUnit}
+${soundSourceUnit.x}
+${soundSourceUnit.y}
+
+=======================
+===  season   
+=======================
+${season}
+
+=======================
+===  soundVelocityProfile   
+=======================
+${soundVelocityProfile}
+
+=======================
+===  sourceDepth   
+=======================
+${sourceDepth}
+
+=======================
+===  sourceFrequency   
+=======================
+${sourceFrequency}
+
+=======================
+===  sourcePressureLevel   
+=======================
+${sourcePressureLevel}
+
+=======================
+===  modelName   
+=======================
+${modelName}
+			
+=======================
+===  advancedParams
+=======================
+<#list advancedParams as advParam>
+    ${advParam_index + 1}. ${advParam}
+</#list>

@@ -20,7 +20,7 @@ public class StoreCoverageTest extends WPSTestSupport {
         dataDirectory.addWcs11Coverages();
     }
 
-    public void testStore() throws Exception {
+    public void disabled_testStore() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 + "<wps:Execute version=\"1.0.0\" service=\"WPS\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.opengis.net/wps/1.0.0\" xmlns:wfs=\"http://www.opengis.net/wfs\" xmlns:wps=\"http://www.opengis.net/wps/1.0.0\" xmlns:ows=\"http://www.opengis.net/ows/1.1\" xmlns:gml=\"http://www.opengis.net/gml\" xmlns:ogc=\"http://www.opengis.net/ogc\" xmlns:wcs=\"http://www.opengis.net/wcs/1.1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xsi:schemaLocation=\"http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd\">\n"
                 + "  <ows:Identifier>gs:StoreCoverage</ows:Identifier>\n"

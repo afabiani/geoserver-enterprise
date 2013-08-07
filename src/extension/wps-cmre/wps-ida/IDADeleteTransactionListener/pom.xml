@@ -1,0 +1,164 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+    http://maven.apache.org/maven-v4_0_0.xsd ">
+   <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.geoserver.extension</groupId>
+        <artifactId>wps-ida</artifactId>
+        <version>2.2-ENTERPRISE-SNAPSHOT</version>
+    </parent>
+
+	<groupId>org.geoserver.extension</groupId>
+	<artifactId>wps-ida-IDADeleteTransactionListener</artifactId>
+	<packaging>jar</packaging>
+	<!-- version>2.3-SNAPSHOT</version -->
+	<name>Web Processing Service CMRE-IDA WPS extension - IDADeleteTransactionListener</name>
+
+	<!-- properties>
+		<gt.version>9-SNAPSHOT</gt.version>
+		<gs.version>2.3-SNAPSHOT</gs.version>
+	</properties -->
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.geoserver</groupId>
+			<artifactId>wfs</artifactId>
+			<version>${gs.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.geoserver.extension</groupId>
+			<artifactId>wps-ida-IDASoundPropagationModel</artifactId>
+			<version>${gs.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.geoserver.extension</groupId>
+			<artifactId>wps-ida-IDARasterAlgebraProcess</artifactId>
+			<version>${gs.version}</version>
+		</dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+          <groupId>xmlunit</groupId>
+          <artifactId>xmlunit</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>com.mockrunner</groupId>
+          <artifactId>mockrunner</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+           <groupId>org.geoserver</groupId>
+           <artifactId>main</artifactId>
+           <version>${gs.version}</version>
+           <classifier>tests</classifier>
+           <scope>test</scope>
+        </dependency>
+        <dependency>
+           <groupId>org.geoserver.extension</groupId>
+			<artifactId>wps-core</artifactId>
+           <version>${gs.version}</version>
+           <classifier>tests</classifier>
+           <scope>test</scope>
+        </dependency>
+	</dependencies>
+
+	<build>
+	  <!-- TODO: the resources stuff hardcodes paths to source + test directories,
+	      we should be able to use some properties here -->
+	  <resources>
+	   <resource>
+	    <directory>${basedir}/src/main/java</directory>
+	    <includes>
+	     <include>**/*.txt</include>
+	     <include>**/*.sql</include>
+	     <include>**/*.html</include>
+	     <include>**/*.xml</include>
+	     <include>**/*.utf</include>
+	     <include>**/*.properties</include>
+	     <include>**/*.template</include>
+	     <include>**/*.serialized</include>
+	     <include>**/*.xsd</include>
+	     <include>META-INF/*.jai</include>
+	     <include>META-INF/mailcap</include>
+	     <include>META-INF/services/**</include>
+	     <include>applicationContext.xml</include>
+	     <include>**/*.ftl</include>
+	     <include>**/*.css</include>
+	     <include>**/*.js</include>
+	     <include>**/*.png</include>
+	     <include>**/*.gif</include>
+	     <include>**/*.sld</include>
+	     <include>**/*.ico</include>
+	     <include>**/*.json</include>
+	    </includes>
+	    <excludes>
+	     <exclude>**/doc-files/**</exclude>
+	     <exclude>
+	       org/geotools/resources/i18n/**/*.properties
+	     </exclude>
+	    </excludes>
+	   </resource>
+	   <resource>
+	     <directory>${basedir}/src/main/resources</directory>
+	     <includes>
+	       <include>**/*</include>
+	     </includes>
+	   </resource>
+	  </resources>
+	  <testResources>
+	   <testResource>
+	    <directory>${basedir}/src/test/java</directory>
+	    <includes>
+	     <include>META-INF/services/**</include>
+	     <include>**/test-data/**</include>
+	     <include>**/*.html</include>
+	     <include>**/*.xml</include>
+	     <include>**/*.xsd</include>
+	     <include>**/*.csv</include>
+	     <include>**/*.sld</include>
+	     <include>**/*.svg</include>
+	     <include>**/*.gml</include>
+	     <include>**/*.wkt</include>
+	     <include>**/*.txt</include>
+	     <include>**/*.sql</include>
+	     <include>**/*.png</include>
+	     <include>**/*.gif</include>
+	     <include>**/*.js</include>
+	     <include>**/*.properties</include>
+	     <include>**/*.serialized</include>
+	     <include>**/*.ftl</include>
+	     <include>**/*.ftl.disabled</include>
+	     <include>**/*.tiff</include>
+	     <include>**/*.zip</include>
+	     <include>**/*.json</include>
+	    </includes>
+	    <excludes>
+	     <exclude>**/doc-files/**</exclude>
+	    </excludes>
+	   </testResource>
+	   <testResource>
+	     <directory>${basedir}/src/test/resources</directory>
+	     <includes>
+	       <include>**/*</include>
+	     </includes>
+	   </testResource>
+	  </testResources>
+	  
+  		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

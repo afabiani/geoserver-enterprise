@@ -168,6 +168,13 @@
         <module>wps-DownloadProcess</module>
       </modules>
     </profile>
+
+    <profile>
+      <id>wps-cmre</id>
+      <modules>
+        <module>wps-cmre</module>
+      </modules>
+    </profile>
 	
     <profile>
       <id>querylayer</id>

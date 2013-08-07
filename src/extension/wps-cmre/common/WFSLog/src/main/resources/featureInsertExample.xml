@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wps:Execute xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengis.net/wps/1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" xmlns:wcs="http://www.opengis.net/wcs/1.1.1" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0.0" service="WPS" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd">
+  <ows:Identifier>gs:WFSLog</ows:Identifier>
+  <wps:DataInputs>
+    <wps:Input>
+      <ows:Identifier>input feature collection</ows:Identifier>
+      <wps:Reference mimeType="text/xml; subtype=wfs-collection/1.0" xlink:href="http://geoserver/wps" method="POST">
+        <wps:Body>
+          <wps:Execute version="1.0.0" service="WPS">
+            <ows:Identifier>gs:ToFeature</ows:Identifier>
+            <wps:DataInputs>
+              <wps:Input>
+                <ows:Identifier>geometry</ows:Identifier>
+                <wps:Data>
+                  <wps:ComplexData mimeType="application/wkt"><![CDATA[POINT(12 24)]]></wps:ComplexData>
+                </wps:Data>
+              </wps:Input>
+              <wps:Input>
+                <ows:Identifier>crs</ows:Identifier>
+                <wps:Data>
+                  <wps:LiteralData>EPSG:4326</wps:LiteralData>
+                </wps:Data>
+              </wps:Input>
+              <wps:Input>
+                <ows:Identifier>typeName</ows:Identifier>
+                <wps:Data>
+                  <wps:LiteralData>alfa</wps:LiteralData>
+                </wps:Data>
+              </wps:Input>
+              <wps:Input>
+                <ows:Identifier>attribute</ows:Identifier>
+                <wps:Data>
+                  <wps:ComplexData mimeType="text/xml">
+                    <att>
+                      <name>theKey</name>
+                      <value>theKeyValue</value>
+                    </att>
+                  </wps:ComplexData>
+                </wps:Data>
+              </wps:Input>
+              <wps:Input>
+                <ows:Identifier>attribute</ows:Identifier>
+                <wps:Data>
+                  <wps:ComplexData mimeType="text/xml">
+                    <att>
+                      <name>theName</name>
+                      <value>theValue</value>
+                    </att>
+                  </wps:ComplexData>
+                </wps:Data>
+              </wps:Input>
+            </wps:DataInputs>
+            <wps:ResponseForm>
+              <wps:RawDataOutput mimeType="text/xml; subtype=wfs-collection/1.0">
+                <ows:Identifier>result</ows:Identifier>
+              </wps:RawDataOutput>
+            </wps:ResponseForm>
+          </wps:Execute>
+        </wps:Body>
+      </wps:Reference>
+    </wps:Input>
+    <wps:Input>
+      <ows:Identifier>typeName</ows:Identifier>
+      <wps:Data>
+        <wps:LiteralData>alfa</wps:LiteralData>
+      </wps:Data>
+    </wps:Input>
+    <wps:Input>
+      <ows:Identifier>workspace</ows:Identifier>
+      <wps:Data>
+        <wps:LiteralData>it.geosolutions</wps:LiteralData>
+      </wps:Data>
+    </wps:Input>
+    <wps:Input>
+      <ows:Identifier>store</ows:Identifier>
+      <wps:Data>
+        <wps:LiteralData>aa</wps:LiteralData>
+      </wps:Data>
+    </wps:Input>
+  </wps:DataInputs>
+  <wps:ResponseForm>
+    <wps:RawDataOutput mimeType="text/xml; subtype=wfs-collection/1.0">
+      <ows:Identifier>result</ows:Identifier>
+    </wps:RawDataOutput>
+  </wps:ResponseForm>
+</wps:Execute>
