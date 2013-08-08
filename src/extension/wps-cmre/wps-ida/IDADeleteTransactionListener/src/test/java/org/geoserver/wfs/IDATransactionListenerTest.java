@@ -4,6 +4,9 @@
  */
 package org.geoserver.wfs;
 
+import javax.xml.namespace.QName;
+
+import org.geoserver.wps.gs.IDARasterAlgebraProcess;
 
 /**
  * This test must be run with the server configured with the wfs 1.0 cite
@@ -12,7 +15,7 @@ package org.geoserver.wfs;
  * @author Justin Deoliveira, The Open Planning Project
  * 
  */
-public class IDATransactionListenerTest /*extends WFSTestSupport*/ {
+public class IDATransactionListenerTest extends WFSTestSupport {
     
 //	public static QName IDA_RASTER_GEOMETRIES = new QName(SystemTestData.CITE_URI, IDARasterAlgebraProcess.DEFAULT_TYPE_NAME, SystemTestData.CITE_PREFIX);
 	
