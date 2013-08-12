@@ -1,6 +1,7 @@
 package org.geoserver.wps.gs;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -48,6 +49,7 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.util.ProgressListener;
+import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import com.vividsolutions.jts.geom.Point;
 
@@ -158,7 +160,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("userId", userId));
 		attributes.add(new FeatureAttribute("modelName", name));
 		attributes.add(new FeatureAttribute("outputUrl", outputUrl.toExternalForm()));
-		attributes.add(new FeatureAttribute("runBegin", runBegin));
+		attributes.add(new FeatureAttribute("runBegin", new Date()));
 		attributes.add(new FeatureAttribute("runEnd", (runEnd!=null?runEnd:new Date())));
 		attributes.add(new FeatureAttribute("itemStatus", (itemStatus != null ? itemStatus : "RUNNING")));
 		attributes.add(new FeatureAttribute("itemStatusMessage", (itemStatusMessage != null ? itemStatusMessage : "Instrumented by Server")));
@@ -223,7 +225,8 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 		try
 		{
 			Properties idaExecProperties = new Properties();
-			idaExecProperties.load(IDASoundPropagationModelProcess.class.getClassLoader().getResourceAsStream("ida-exec.properties"));
+			//idaExecProperties.load(IDASoundPropagationModelProcess.class.getClassLoader().getResourceAsStream("ida-exec.properties"));
+			idaExecProperties.load(new FileInputStream(GeoserverDataDirectory.findConfigFile("ida-exec.properties").getAbsolutePath()));
 			
 			List<String> cmdOptionPath = new LinkedList<String>();
 			

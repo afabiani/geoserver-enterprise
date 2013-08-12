@@ -1,12 +1,18 @@
 package org.geoserver.wps.gs;
 
+import java.awt.RenderingHints;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.logging.Logger;
+
+import javax.media.jai.JAI;
 
 import org.apache.commons.io.FilenameUtils;
 import org.geoserver.catalog.AttributionInfo;
@@ -14,44 +20,59 @@ import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.config.GeoServer;
+import org.geoserver.wps.WPSException;
 import org.geoserver.wps.ppio.FeatureAttribute;
+import org.geoserver.wps.raster.algebra.CoverageCollector;
 import org.geoserver.wps.raster.algebra.RasterAlgebraProcess;
+import org.geoserver.wps.raster.algebra.ResolutionChoice;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.factory.GeoTools;
+import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.gce.geotiff.GeoTiffReader;
 import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.jts.GeometryBuilder;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.process.ProcessException;
 import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.gs.GSProcess;
+import org.geotools.process.raster.gs.RasterZonalStatistics;
 import org.geotools.referencing.CRS;
 import org.geotools.util.NullProgressListener;
 import org.geotools.util.logging.Logging;
+import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
+import org.opengis.filter.expression.Expression;
+import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.ProgressListener;
+import org.springframework.util.StringUtils;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Polygon;
 
 /**
- * EXAMPLE REQUEST:
- </BR></BR>
-<CODE>
+ * EXAMPLE REQUEST: </BR></BR> <CODE>
 &lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;wps:Execute version="1.0.0" service="WPS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengis.net/wps/1.0.0" xmlns:wfs="http://www.opengis.net/wfs" xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:gml="http://www.opengis.net/gml" xmlns:ogc="http://www.opengis.net/ogc" xmlns:wcs="http://www.opengis.net/wcs/1.1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd"&gt;
   &lt;ows:Identifier&gt;gs:IDARasterAlgebra&lt;/ows:Identifier&gt;
@@ -105,14 +126,15 @@ import com.vividsolutions.jts.geom.Geometry;
 @DescribeProcess(title = "IDA Raster Algebra Process", description = "Raster Algebra using OGC filters.")
 public class IDARasterAlgebraProcess implements GSProcess {
 
-	protected static final Logger LOGGER = Logging.getLogger(IDARasterAlgebraProcess.class);
-	
+	protected static final Logger LOGGER = Logging
+			.getLogger(IDARasterAlgebraProcess.class);
+
 	protected GeoServer geoServer;
-	
+
 	protected Catalog catalog;
-	
+
 	protected FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
-	
+
 	protected GeometryBuilder geomBuilder = new GeometryBuilder();
 
 	public static final String DEFAULT_TYPE_NAME = "IDARasterAlgebraProcess";
@@ -121,7 +143,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		this.geoServer = geoServer;
 		this.catalog = geoServer.getCatalog();
 	}
-	
+
 	@DescribeResult(name = "result", description = "List of attributes to be converted to a FeatureType")
 	public SimpleFeatureCollection execute(
 			@DescribeParameter(name = "attributeName", min = 1, description = "RasterAlgebra attribute attributeName") String name,
@@ -145,8 +167,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		if (wsName != null) {
 			ws = catalog.getWorkspaceByName(wsName);
 			if (ws == null) {
-				throw new ProcessException("Could not find workspace "
-						+ wsName);
+				throw new ProcessException("Could not find workspace " + wsName);
 			}
 		} else {
 			ws = catalog.getDefaultWorkspace();
@@ -155,7 +176,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 						"The catalog is empty, could not find a default workspace");
 			}
 		}
-		
+
 		/**
 		 * Convert the spread attributes into a FeatureType
 		 */
@@ -167,25 +188,27 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		try {
 			crs = CRS.decode("EPSG:4326");
 		} catch (NoSuchAuthorityCodeException e) {
-			if (progressListener != null)
-			{
+			if (progressListener != null) {
 				progressListener.exceptionOccurred(e);
 			}
-			throw new ProcessException("Could not DECODE the footprint CRS due to an Exception.", e);
+			throw new ProcessException(
+					"Could not DECODE the footprint CRS due to an Exception.",
+					e);
 		} catch (FactoryException e) {
-			if (progressListener != null)
-			{
+			if (progressListener != null) {
 				progressListener.exceptionOccurred(e);
 			}
-			throw new ProcessException("Could not DECODE the footprint CRS due to an Exception.", e);
+			throw new ProcessException(
+					"Could not DECODE the footprint CRS due to an Exception.",
+					e);
 		}
 
 		UUID uuid = UUID.randomUUID();
 		attributes.add(new FeatureAttribute("ftUUID", uuid.toString()));
 		attributes.add(new FeatureAttribute("attributeName", name));
 		attributes.add(new FeatureAttribute("outputUrl", outputUrl.toExternalForm()));
-		attributes.add(new FeatureAttribute("runBegin", runBegin));
-		attributes.add(new FeatureAttribute("runEnd", (runEnd!=null?runEnd:new Date())));
+		attributes.add(new FeatureAttribute("runBegin", new Date()));
+		attributes.add(new FeatureAttribute("runEnd", (runEnd != null ? runEnd : new Date())));
 		attributes.add(new FeatureAttribute("itemStatus", (itemStatus != null ? itemStatus : "RUNNING")));
 		attributes.add(new FeatureAttribute("itemStatusMessage", (itemStatusMessage != null ? itemStatusMessage : "Instrumented by Server")));
 		attributes.add(new FeatureAttribute("wsName", wsName));
@@ -195,41 +218,56 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("srcPath", (srcPath != null ? srcPath : "")));
 		attributes.add(new FeatureAttribute("classification", (classification != null ? classification : "")));
 		attributes.add(new FeatureAttribute("attributeFilter", (attributeFilter != null ? attributeFilter.toString() : "")));
+		
+		String aoi = "";
+		aoi = "[" + areaOfInterest.getEnvelopeInternal().getMinX() + " " + areaOfInterest.getEnvelopeInternal().getMinY() + "; ";
+		aoi+= areaOfInterest.getEnvelopeInternal().getMaxX() + " " + areaOfInterest.getEnvelopeInternal().getMaxY() + "]";
+		attributes.add(new FeatureAttribute("areaOfInterest", aoi));
+
+		// stats attributes
+		attributes.add(new FeatureAttribute("coverages", ""));
+		attributes.add(new FeatureAttribute("count", ""));
+		attributes.add(new FeatureAttribute("min", ""));
+		attributes.add(new FeatureAttribute("max", ""));
+		attributes.add(new FeatureAttribute("sum", ""));
+		attributes.add(new FeatureAttribute("avg", ""));
+		attributes.add(new FeatureAttribute("stddev", ""));
 
 		Geometry geometry = geomBuilder.point(0, 0);
 		SimpleFeatureCollection features = toFeatureProcess.execute(geometry, crs, DEFAULT_TYPE_NAME, attributes, null);
-		
-		if (progressListener != null)
-		{
+
+		if (progressListener != null) {
 			progressListener.progress(20);
 		}
-		
-		if (features == null || features.isEmpty())
-		{
-			throw new ProcessException("There was an error while converting attributes into FeatureType.");
+
+		if (features == null || features.isEmpty()) {
+			throw new ProcessException(
+					"There was an error while converting attributes into FeatureType.");
 		}
 
 		/**
 		 * LOG into the DB
 		 */
-        Filter filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
-		//Filter filter = ff.equals(ff.property("name"), ff.literal(name));
-		
-        WFSLog wfsLogProcess = new WFSLog(geoServer);
-         
-        features = wfsLogProcess.execute(features, DEFAULT_TYPE_NAME, wsName, storeName, filter, true, new NullProgressListener());
-        
-        if (features == null || features.isEmpty())
-		{
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(new Exception("There was an error while logging FeatureType into the storage."));
-    		}
-			throw new ProcessException("There was an error while logging FeatureType into the storage.");
+		Filter filter = ff.equals(ff.property("ftUUID"),
+				ff.literal(uuid.toString()));
+		// Filter filter = ff.equals(ff.property("name"), ff.literal(name));
+
+		WFSLog wfsLogProcess = new WFSLog(geoServer);
+
+		features = wfsLogProcess.execute(features, DEFAULT_TYPE_NAME, wsName,
+				storeName, filter, true, new NullProgressListener());
+
+		if (features == null || features.isEmpty()) {
+			if (progressListener != null) {
+				progressListener
+						.exceptionOccurred(new Exception(
+								"There was an error while logging FeatureType into the storage."));
+			}
+			throw new ProcessException(
+					"There was an error while logging FeatureType into the storage.");
 		}
-        
-		if (progressListener != null)
-		{
+
+		if (progressListener != null) {
 			progressListener.progress(30);
 		}
 
@@ -239,73 +277,88 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		GridCoverage2D coverage = null;
 		File f = null;
 		GeoTiffWriter gtiffWriter = null;
-		
-		try
-		{
+
+		HashMap<String, GridCoverage2D> coverages = null;
+		try {
+			// === filter or expression
+	        Object ra=null;
+	        try{
+	            ra=ECQL.toFilter(attributeFilter);
+	        } catch (Exception e) {
+	            try{
+	                ra=ECQL.toExpression(attributeFilter);
+	            } catch (Exception e1) {
+	                throw new WPSException("Unable to parse input expression", e1);
+	            }
+	        }
+
+			// hints for tiling
+			final Hints hints = GeoTools.getDefaultHints().clone();
+			final ImageLayout2 layout = new ImageLayout2();
+			layout.setTileWidth(JAI.getDefaultTileSize().width);
+			layout.setTileHeight(JAI.getDefaultTileSize().height);
+			hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
+	        // collect input coverages
+			final CoverageCollector collector = new CoverageCollector(catalog, ResolutionChoice.getDefault(), areaOfInterest, hints);
+			if(ra instanceof Expression){
+	            ((Expression)ra).accept(collector, null);
+	        } else if(ra instanceof Filter){
+	            ((Filter)ra).accept(collector, null);
+	        }
+			coverages = collector.getCoverages();
+			
 			RasterAlgebraProcess rstAlgebraProcess = new RasterAlgebraProcess(catalog);
 			coverage = rstAlgebraProcess.execute(attributeFilter, areaOfInterest, null);
-			
-			if (coverage == null)
-			{
+
+			if (coverage == null) {
 				throw new Exception("WPS RasterAlgebraProcess failed.");
 			}
-			
+
 			final File directory = catalog.getResourceLoader().findOrCreateDirectory("data", wsName, storeName);
 			f = new File(directory, name + ".tiff");
 			gtiffWriter = new GeoTiffWriter(f);
-			
+
 			final ParameterValue<GeoToolsWriteParams> gtWparam = AbstractGridFormat.GEOTOOLS_WRITE_PARAMS.createValue();
 			GeoTiffWriteParams param = new GeoTiffWriteParams();
 			gtWparam.setValue(param);
 			GeneralParameterValue[] params = new GeneralParameterValue[] { gtWparam };
-			
+
 			gtiffWriter.write(coverage, params);
-		} 
-		catch (Exception e)
-		{
-        	/**
-    		 * Update Feature Attributes and LOG into the DB
-    		 */
-            filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+		} catch (Exception e) {
+			/**
+			 * Update Feature Attributes and LOG into the DB
+			 */
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
 
-            SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-            
-            // build the feature
-            feature.setAttribute("runEnd", new Date());
-            feature.setAttribute("itemStatus", "FAILED");
-            feature.setAttribute("itemStatusMessage", "There was an error while while processing Input parameters: "+e.getMessage());
-            
-            ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-            output.add(feature);
-    		
-    		features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
 
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(e);
-    		}
+			// build the feature
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "FAILED");
+			feature.setAttribute("itemStatusMessage", "There was an error while while processing Input parameters: " + e.getMessage());
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
+			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
+			if (progressListener != null) {
+				progressListener.exceptionOccurred(e);
+			}
 			throw new ProcessException("There was an error while while processing Input parameters.", e);
-		}
-		finally
-		{
-			if (coverage != null)
-			{
-				try
-				{
+		} finally {
+			if (coverage != null) {
+				try {
 					coverage.dispose(true);
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					// ignore
 				}
 			}
 
-			if (gtiffWriter != null)
-			{
-				try
-				{
+			if (gtiffWriter != null) {
+				try {
 					gtiffWriter.dispose();
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					// ignore
 				}
 			}
@@ -313,191 +366,298 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		}
 
 		GeoTiffReader gtiffReader = null;
-		try
-		{
+		try {
 			gtiffReader = new GeoTiffReader(f);
 			coverage = gtiffReader.read(null);
-		}
-		catch (Exception e)
-		{
-        	/**
-    		 * Update Feature Attributes and LOG into the DB
-    		 */
-            filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+		} catch (Exception e) {
+			/**
+			 * Update Feature Attributes and LOG into the DB
+			 */
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
 
-            SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-            
-            // build the feature
-            feature.setAttribute("runEnd", new Date());
-            feature.setAttribute("itemStatus", "FAILED");
-            feature.setAttribute("itemStatusMessage", "There was an error while while processing Input parameters: "+e.getMessage());
-            
-            ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-            output.add(feature);
-    		
-    		features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
 
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(e);
-    		}
+			// build the feature
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "FAILED");
+			feature.setAttribute("itemStatusMessage", "There was an error while while processing Input parameters: " + e.getMessage());
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
+			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
+			if (progressListener != null) {
+				progressListener.exceptionOccurred(e);
+			}
 			throw new ProcessException("There was an error while while processing Input parameters.", e);
-		}
-		finally
-		{
-			if (gtiffWriter != null)
-			{
-				try
-				{
+		} finally {
+			if (gtiffWriter != null) {
+				try {
 					gtiffWriter.dispose();
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					// ignore
 				}
 			}
 		}
-		
+
 		final String rstAlgebraRasterStoreName = FilenameUtils.getBaseName(f.getAbsolutePath());
 		final String rstAlgebraRasterLayerName = FilenameUtils.getBaseName(f.getAbsolutePath());
 
 		String result = null;
-		try
-		{
+		try {
 			/**
 			 * Import output Octave ASC layer into GeoServer
 			 */
 			ImportProcess importProcess = new ImportProcess(catalog);
-			result = importProcess.execute(
-					null,
-					coverage,
-					wsName,
-					null,
-					rstAlgebraRasterLayerName,
-					crs,
-					null,
-					(styleName!=null?styleName:"raster"));
-		}
-		catch (Exception e)
-		{
-			/**
-    		 * Update Feature Attributes and LOG into the DB
-    		 */
-            filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
-
-            SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-            
-            // build the feature
-            feature.setAttribute("runEnd", new Date());
-            feature.setAttribute("itemStatus", "FAILED");
-            feature.setAttribute("itemStatusMessage", e.getLocalizedMessage());
-            
-            ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-            output.add(feature);
-    		
-    		features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
-
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(e);
-    		}
-			throw new ProcessException(e);
-		}
-		
-		if (result == null || !result.contains(rstAlgebraRasterLayerName))
-		{
-        	/**
-    		 * Update Feature Attributes and LOG into the DB
-    		 */
-            filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
-
-            SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-            
-            // build the feature
-            feature.setAttribute("runEnd", new Date());
-            feature.setAttribute("itemStatus", "FAILED");
-            feature.setAttribute("itemStatusMessage", "There was an error while importing ASC layer into GeoServer.");
-            
-            ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-            output.add(feature);
-    		
-    		features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
-
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(new Exception("There was an error while importing ASC layer into GeoServer."));
-    		}
-			throw new ProcessException("There was an error while importing ASC layer into GeoServer.");
-		}
-        
-		if (progressListener != null)
-		{
-			progressListener.progress(90);
-		}
-		
-        if (features == null || features.isEmpty())
-		{
-        	/**
-    		 * Update Feature Attributes and LOG into the DB
-    		 */
-            filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
-
-            SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-            
-            // build the feature
-            feature.setAttribute("runEnd", new Date());
-            feature.setAttribute("itemStatus", "FAILED");
-            feature.setAttribute("itemStatusMessage", "There was an error while logging FeatureType into the storage.");
-            
-            ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-            output.add(feature);
-    		
-    		features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
-    		
-    		if (progressListener != null)
-    		{
-    			progressListener.exceptionOccurred(new Exception("There was an error while logging FeatureType into the storage."));
-    		}
-			throw new ProcessException("There was an error while logging FeatureType into the storage.");
-		}
-        
-		if (progressListener != null)
-		{
+			result = importProcess.execute(null, coverage, wsName, null, rstAlgebraRasterLayerName, crs, null, (styleName != null ? styleName : "raster"));
+		} catch (Exception e) {
 			/**
 			 * Update Feature Attributes and LOG into the DB
 			 */
-	        filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
 
-	        SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
-	        
-	        // build the feature
-	        feature.setAttribute("storeName", rstAlgebraRasterStoreName);
-	        feature.setAttribute("layerName", rstAlgebraRasterLayerName);
-	        feature.setAttribute("runEnd", new Date());
-	        feature.setAttribute("itemStatus", "COMPLETED");
-	        feature.setAttribute("srcPath", f.getAbsolutePath());
-	        
-	        // set layer attribution info
-	        LayerInfo layer = catalog.getLayerByName(new NameImpl(wsName, rstAlgebraRasterLayerName));
-	        if (layer != null)
-	        {
-	        	AttributionInfo attribution = catalog.getFactory().createAttribution();
-	        	attribution.setTitle(classification);
-				layer.setAttribution(attribution);
-				
-				catalog.save(layer);
-	        }
-	        
-	        ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
-	        output.add(feature);
-			
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
+
+			// build the feature
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "FAILED");
+			feature.setAttribute("itemStatusMessage", e.getLocalizedMessage());
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
 			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
+			if (progressListener != null) {
+				progressListener.exceptionOccurred(e);
+			}
+			throw new ProcessException(e);
+		}
+
+		if (result == null || !result.contains(rstAlgebraRasterLayerName)) {
+			/**
+			 * Update Feature Attributes and LOG into the DB
+			 */
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
+
+			// build the feature
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "FAILED");
+			feature.setAttribute("itemStatusMessage", "There was an error while importing ASC layer into GeoServer.");
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
+			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
+			if (progressListener != null) {
+				progressListener
+						.exceptionOccurred(new Exception(
+								"There was an error while importing ASC layer into GeoServer."));
+			}
+			throw new ProcessException(
+					"There was an error while importing ASC layer into GeoServer.");
+		}
+
+		if (progressListener != null) {
+			progressListener.progress(90);
+		}
+
+		if (features == null || features.isEmpty()) {
+			/**
+			 * Update Feature Attributes and LOG into the DB
+			 */
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
+
+			// build the feature
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "FAILED");
+			feature.setAttribute("itemStatusMessage", "There was an error while logging FeatureType into the storage.");
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
+			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
+			if (progressListener != null) {
+				progressListener
+						.exceptionOccurred(new Exception(
+								"There was an error while logging FeatureType into the storage."));
+			}
+			throw new ProcessException(
+					"There was an error while logging FeatureType into the storage.");
+		}
+
+		if (progressListener != null) {
+			/**
+			 * Update Feature Attributes and LOG into the DB
+			 */
+			filter = ff.equals(ff.property("ftUUID"), ff.literal(uuid.toString()));
+
+			SimpleFeature feature = SimpleFeatureBuilder.copy(features.subCollection(filter).toArray(new SimpleFeature[1])[0]);
+
+			// build the feature
+			feature.setAttribute("storeName", rstAlgebraRasterStoreName);
+			feature.setAttribute("layerName", rstAlgebraRasterLayerName);
+			feature.setAttribute("runEnd", new Date());
+			feature.setAttribute("itemStatus", "COMPLETED");
+			feature.setAttribute("srcPath", f.getAbsolutePath());
+
+			// store coverages and stats
+			List<String> coverageNames = new ArrayList<String>();
+			List<String> count = new ArrayList<String>();
+			List<String> min = new ArrayList<String>();
+			List<String> max = new ArrayList<String>();
+			List<String> sum = new ArrayList<String>();
+			List<String> avg = new ArrayList<String>();
+			List<String> stddev = new ArrayList<String>();
 			
+			SimpleFeatureCollection stats = null;
+			String coverageName = null;
+			try {
+				stats = getCoverageStatistics(areaOfInterest, coverage);
+				if (stats != null && !stats.isEmpty()) {
+					coverageName = coverage.getName().toString();
+					coverageNames.add(coverageName);
+					SimpleFeature statFeature = stats.features().next();
+					count.add(String.valueOf((Long) statFeature.getAttribute("count")));
+					min.add(String.valueOf((Double) statFeature.getAttribute("min")));
+					max.add(String.valueOf((Double) statFeature.getAttribute("max")));
+					sum.add(String.valueOf((Double) statFeature.getAttribute("sum")));
+					avg.add(String.valueOf((Double) statFeature.getAttribute("avg")));
+					stddev.add(String.valueOf((Double) statFeature.getAttribute("stddev")));
+				}
+
+				if (coverages != null && !coverages.isEmpty()) {
+					for (Entry<String, GridCoverage2D> entry : coverages.entrySet()) {
+						try {
+							GridCoverage2D gc = entry.getValue();
+							stats = getCoverageStatistics(areaOfInterest, gc);
+							
+							if (stats != null && !stats.isEmpty()) {
+								coverageNames.add(entry.getKey());
+								SimpleFeature statFeature = stats.features().next();
+								count.add(String.valueOf((Long) statFeature.getAttribute("count")));
+								min.add(String.valueOf((Double) statFeature.getAttribute("min")));
+								max.add(String.valueOf((Double) statFeature.getAttribute("max")));
+								sum.add(String.valueOf((Double) statFeature.getAttribute("sum")));
+								avg.add(String.valueOf((Double) statFeature.getAttribute("avg")));
+								stddev.add(String.valueOf((Double) statFeature.getAttribute("stddev")));
+							}
+						} catch (Exception e) {
+							LOGGER.warning("Failing to compute the stats for Coverage : " + entry.getKey());
+						}
+					}
+				}
+
+			} catch (Exception e) {
+				LOGGER.warning("Failing to compute the stats for Coverage : " + coverageName);
+			}
+			
+			// stats attributes
+			feature.setAttribute("coverages", toPipedString(coverageNames));
+			feature.setAttribute("count", toPipedString(count));
+			feature.setAttribute("min", toPipedString(min));
+			feature.setAttribute("max", toPipedString(max));
+			feature.setAttribute("sum", toPipedString(sum));
+			feature.setAttribute("avg", toPipedString(avg));
+			feature.setAttribute("stddev", toPipedString(stddev));
+			
+			// set layer attribution info
+			LayerInfo layer = catalog.getLayerByName(new NameImpl(wsName, rstAlgebraRasterLayerName));
+			if (layer != null) {
+				AttributionInfo attribution = catalog.getFactory()
+						.createAttribution();
+				attribution.setTitle(classification);
+				layer.setAttribution(attribution);
+
+				catalog.save(layer);
+			}
+
+			ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
+			output.add(feature);
+
+			features = wfsLogProcess.execute(output, DEFAULT_TYPE_NAME, wsName, storeName, filter, false, new NullProgressListener());
+
 			progressListener.progress(100);
 			progressListener.complete();
 		}
 
-		
 		return features;
+	}
+
+	/**
+	 * 
+	 * @param collectionToConvert
+	 * @return
+	 */
+	private String toPipedString(List<String> collectionToConvert) {
+		if (collectionToConvert != null)
+			return StringUtils.collectionToDelimitedString(collectionToConvert, " | ");
+		else
+			return "";
+	}
+
+	/**
+	 * @param areaOfInterest
+	 * @param gc
+	 * @return
+	 * @throws NoSuchAuthorityCodeException
+	 * @throws FactoryException
+	 * @throws MismatchedDimensionException
+	 * @throws TransformException
+	 */
+	private SimpleFeatureCollection getCoverageStatistics(Geometry areaOfInterest,
+			GridCoverage2D gc) throws NoSuchAuthorityCodeException,
+			FactoryException, MismatchedDimensionException, TransformException {
+		CoordinateReferenceSystem gcCrs = gc.getCoordinateReferenceSystem();
+
+		SimpleFeatureCollection zones = null;
+
+		if (areaOfInterest != null) {
+			if (areaOfInterest instanceof Polygon
+					|| areaOfInterest instanceof MultiPolygon) {
+				// build the feature type
+				List<Object> values = new LinkedList<Object>();
+				SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
+				tb.setName(DEFAULT_TYPE_NAME);
+				tb.add("the_geom", areaOfInterest.getClass(), gcCrs);
+
+				// assuming WGS84 if no SRID is there
+		        CoordinateReferenceSystem aoiCRS = null;
+		        
+				if (aoiCRS == null) {
+					if (areaOfInterest.getUserData() instanceof CoordinateReferenceSystem) {
+						aoiCRS = (CoordinateReferenceSystem) areaOfInterest.getUserData();
+					} else {
+						// assume the geometry is in the same crs
+						aoiCRS = gcCrs;
+					}
+				}
+
+				Geometry roi = (Geometry) areaOfInterest.clone();
+				if (!CRS.equalsIgnoreMetadata(aoiCRS, gcCrs)) {
+					roi = JTS.transform(areaOfInterest, CRS.findMathTransform(aoiCRS, gcCrs, true));
+				}
+				values.add(roi);
+
+				SimpleFeatureType schema = tb.buildFeatureType();
+
+				// build the feature
+				SimpleFeature sf = SimpleFeatureBuilder.build(schema, values, null);
+				zones = new ListFeatureCollection(schema);
+				((ListFeatureCollection) zones).add(sf);
+			}
+		}
+
+		RasterZonalStatistics statProcess = new RasterZonalStatistics();
+		
+		return statProcess.execute(gc, null, zones, null);
 	}
 
 }

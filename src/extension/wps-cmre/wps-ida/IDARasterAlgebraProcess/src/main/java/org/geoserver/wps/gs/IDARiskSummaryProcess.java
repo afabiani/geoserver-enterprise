@@ -109,10 +109,8 @@ public class IDARiskSummaryProcess implements GSProcess {
 
 					SimpleFeatureCollection features;
 					try {
-						GridCoverage2D gc = (GridCoverage2D) coverage
-								.getGridCoverage(progressListener, null);
-						CoordinateReferenceSystem crs = gc
-								.getCoordinateReferenceSystem();
+						GridCoverage2D gc = (GridCoverage2D) coverage.getGridCoverage(progressListener, null);
+						CoordinateReferenceSystem crs = gc.getCoordinateReferenceSystem();
 
 						SimpleFeatureCollection zones = null;
 
@@ -123,13 +121,11 @@ public class IDARiskSummaryProcess implements GSProcess {
 								List<Object> values = new LinkedList<Object>();
 								SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
 								tb.setName(DEFAULT_TYPE_NAME);
-								tb.add("the_geom", areaOfInterest.getClass(),
-										crs);
+								tb.add("the_geom", areaOfInterest.getClass(), crs);
 
 								if (aoiCRS == null) {
 									if (areaOfInterest.getUserData() instanceof CoordinateReferenceSystem) {
-										aoiCRS = (CoordinateReferenceSystem) areaOfInterest
-												.getUserData();
+										aoiCRS = (CoordinateReferenceSystem) areaOfInterest.getUserData();
 									} else {
 										// assume the geometry is in the same
 										// crs
@@ -139,18 +135,14 @@ public class IDARiskSummaryProcess implements GSProcess {
 
 								if (!CRS.equalsIgnoreMetadata(aoiCRS, crs)) {
 									areaOfInterest = JTS.transform(
-											areaOfInterest, CRS
-													.findMathTransform(aoiCRS,
-															crs, true));
+											areaOfInterest, CRS.findMathTransform(aoiCRS, crs, true));
 								}
 								values.add(areaOfInterest);
 
-								SimpleFeatureType schema = tb
-										.buildFeatureType();
+								SimpleFeatureType schema = tb.buildFeatureType();
 
 								// build the feature
-								SimpleFeature sf = SimpleFeatureBuilder.build(
-										schema, values, null);
+								SimpleFeature sf = SimpleFeatureBuilder.build(schema, values, null);
 								zones = new ListFeatureCollection(schema);
 								((ListFeatureCollection) zones).add(sf);
 							}

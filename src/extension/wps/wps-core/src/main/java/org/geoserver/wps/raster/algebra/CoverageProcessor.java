@@ -71,7 +71,7 @@ import org.opengis.filter.expression.PropertyName;
  * @author Simone Giannecchini, GeoSolutions SAS
  *
  */    
-class CoverageProcessor extends DefaultFilterVisitor implements FilterVisitor {
+public class CoverageProcessor extends DefaultFilterVisitor implements FilterVisitor {
     
     private final RenderingHints hints;
     private final HashMap<String, GridCoverage2D> sources;
