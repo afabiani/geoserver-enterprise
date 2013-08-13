@@ -199,9 +199,9 @@ public class JiffleProcess implements GSProcess {
                     new GridSampleDimension[]{new GridSampleDimension("Binary")},//TODO generalize in the future
                     null,//TODO carry along sources
                     null); // TODO carry along no data
-            GeoTiffWriter w = new GeoTiffWriter(new File("d:/wps/"+Long.toString(System.nanoTime())+".tif"));
-            w.write(retValue, null);
-            w.dispose();
+//            GeoTiffWriter w = new GeoTiffWriter(new File("d:/wps/"+Long.toString(System.nanoTime())+".tif"));
+//            w.write(retValue, null);
+//            w.dispose();
             return retValue;
         } finally{
             // --- clean up
