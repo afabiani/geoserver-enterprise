@@ -68,7 +68,6 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Simone Giannecchini, GeoSolutions SAS
  * @author Andrea Aime, GeoSolutions SAS
  */
-@SuppressWarnings("deprecation")
 @DescribeProcess(title = "JiffleProcess", description = "Compute the operations specified by the Jiffle script provided on the coverages provided")
 public class JiffleProcess implements GSProcess {
     
