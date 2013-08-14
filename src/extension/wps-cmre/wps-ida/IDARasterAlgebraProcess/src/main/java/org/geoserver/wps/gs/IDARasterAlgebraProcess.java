@@ -5,9 +5,9 @@ import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -23,6 +23,8 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.wps.WPSException;
 import org.geoserver.wps.ppio.FeatureAttribute;
 import org.geoserver.wps.raster.algebra.CoverageCollector;
+import org.geoserver.wps.raster.algebra.JiffleProcess;
+import org.geoserver.wps.raster.algebra.ListCoverageCollector;
 import org.geoserver.wps.raster.algebra.RasterAlgebraProcess;
 import org.geoserver.wps.raster.algebra.ResolutionChoice;
 import org.geotools.coverage.grid.GridCoverage2D;
@@ -147,19 +149,21 @@ public class IDARasterAlgebraProcess implements GSProcess {
 	@DescribeResult(name = "result", description = "List of attributes to be converted to a FeatureType")
 	public SimpleFeatureCollection execute(
 			@DescribeParameter(name = "attributeName", min = 1, description = "RasterAlgebra attribute attributeName") String name,
-			@DescribeParameter(name = "outputUrl", min = 1, description = "SPM attribute outputUrl") URL outputUrl,
-			@DescribeParameter(name = "runBegin", min = 1, description = "SPM attribute runBegin") Date runBegin,
-			@DescribeParameter(name = "runEnd", min = 0, description = "SPM attribute runEnd") Date runEnd,
-			@DescribeParameter(name = "itemStatus", min = 0, description = "SPM attribute item_status") String itemStatus,
-			@DescribeParameter(name = "itemStatusMessage", min = 0, description = "SPM attribute itemStatusMessage") String itemStatusMessage,
-			@DescribeParameter(name = "srcPath", min = 0, description = "SPM attribute src_path") String srcPath,
+			@DescribeParameter(name = "outputUrl", min = 1, description = "RasterAlgebra attribute outputUrl") URL outputUrl,
+			@DescribeParameter(name = "runBegin", min = 0, description = "RasterAlgebra attribute runBegin") Date runBegin,
+			@DescribeParameter(name = "runEnd", min = 0, description = "RasterAlgebra attribute runEnd") Date runEnd,
+			@DescribeParameter(name = "itemStatus", min = 0, description = "RasterAlgebra attribute item_status") String itemStatus,
+			@DescribeParameter(name = "itemStatusMessage", min = 0, description = "RasterAlgebra attribute itemStatusMessage") String itemStatusMessage,
+			@DescribeParameter(name = "srcPath", min = 0, description = "RasterAlgebra attribute src_path") String srcPath,
 			@DescribeParameter(name = "wsName", min = 1, description = "RasterAlgebra attribute workspaceName") String wsName,
 			@DescribeParameter(name = "storeName", min = 1, description = "RasterAlgebra attribute storeName") String storeName,
 			@DescribeParameter(name = "layerName", min = 0, description = "RasterAlgebra attribute layerName") String layerName,
 			@DescribeParameter(name = "styleName", min = 0, description = "RasterAlgebra attribute styleName") String styleName,
 			@DescribeParameter(name = "classification", description = "RasterAlgebra attribute classification") String classification,
-			@DescribeParameter(name = "areaOfInterest", min = 0, description = "RasterAlgebra attribute ROI") Geometry areaOfInterest,
-			@DescribeParameter(name = "attributeFilter", description = "RasterAlgebra attribute attributeFilter") String attributeFilter,
+			@DescribeParameter(name = "areaOfInterest", min = 1, description = "RasterAlgebra attribute ROI") Geometry areaOfInterest,
+			@DescribeParameter(name = "attributeFilter", min = 0, description = "RasterAlgebra attribute attributeFilter") String attributeFilter,
+			@DescribeParameter(name = "script", min = 0, description = "RasterAlgebra Jiffle Script to use on the raster data") String script,
+			@DescribeParameter(name = "inputs", min = 0, description = "RasterAlgebra Jiffle Inputs",collectionType=String.class) List<String> inputs,
 			ProgressListener progressListener) throws ProcessException {
 
 		// first off, decide what is the target store
@@ -207,7 +211,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("ftUUID", uuid.toString()));
 		attributes.add(new FeatureAttribute("attributeName", name));
 		attributes.add(new FeatureAttribute("outputUrl", outputUrl.toExternalForm()));
-		attributes.add(new FeatureAttribute("runBegin", new Date()));
+		attributes.add(new FeatureAttribute("runBegin", (runBegin != null ? runBegin : new Date())));
 		attributes.add(new FeatureAttribute("runEnd", (runEnd != null ? runEnd : new Date())));
 		attributes.add(new FeatureAttribute("itemStatus", (itemStatus != null ? itemStatus : "RUNNING")));
 		attributes.add(new FeatureAttribute("itemStatusMessage", (itemStatusMessage != null ? itemStatusMessage : "Instrumented by Server")));
@@ -218,6 +222,8 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("srcPath", (srcPath != null ? srcPath : "")));
 		attributes.add(new FeatureAttribute("classification", (classification != null ? classification : "")));
 		attributes.add(new FeatureAttribute("attributeFilter", (attributeFilter != null ? attributeFilter.toString() : "")));
+		attributes.add(new FeatureAttribute("script", (script != null ? script.toString() : "")));
+		attributes.add(new FeatureAttribute("inputs", (inputs != null ? toString(inputs) : "")));
 		
 		String aoi = "";
 		aoi = "[" + areaOfInterest.getEnvelopeInternal().getMinX() + " " + areaOfInterest.getEnvelopeInternal().getMinY() + "; ";
@@ -278,37 +284,50 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		File f = null;
 		GeoTiffWriter gtiffWriter = null;
 
-		HashMap<String, GridCoverage2D> coverages = null;
+		// hints for tiling
+        final Hints hints = GeoTools.getDefaultHints().clone();
+        final ImageLayout2 layout = new ImageLayout2();
+        layout.setTileWidth(JAI.getDefaultTileSize().width);
+        layout.setTileHeight(JAI.getDefaultTileSize().height);
+        hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
+        
+		Map<String, GridCoverage2D> coverages = null;
 		try {
-			// === filter or expression
-	        Object ra=null;
-	        try{
-	            ra=ECQL.toFilter(attributeFilter);
-	        } catch (Exception e) {
-	            try{
-	                ra=ECQL.toExpression(attributeFilter);
-	            } catch (Exception e1) {
-	                throw new WPSException("Unable to parse input expression", e1);
-	            }
-	        }
+			if (attributeFilter != null) {
+				// === filter or expression
+				Object ra = null;
+				try {
+					ra = ECQL.toFilter(attributeFilter);
+				} catch (Exception e) {
+					try {
+						ra = ECQL.toExpression(attributeFilter);
+					} catch (Exception e1) {
+						throw new WPSException(
+								"Unable to parse input expression", e1);
+					}
+				}
 
-			// hints for tiling
-			final Hints hints = GeoTools.getDefaultHints().clone();
-			final ImageLayout2 layout = new ImageLayout2();
-			layout.setTileWidth(JAI.getDefaultTileSize().width);
-			layout.setTileHeight(JAI.getDefaultTileSize().height);
-			hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
-	        // collect input coverages
-			final CoverageCollector collector = new CoverageCollector(catalog, ResolutionChoice.getDefault(), areaOfInterest, hints);
-			if(ra instanceof Expression){
-	            ((Expression)ra).accept(collector, null);
-	        } else if(ra instanceof Filter){
-	            ((Filter)ra).accept(collector, null);
-	        }
-			coverages = collector.getCoverages();
-			
-			RasterAlgebraProcess rstAlgebraProcess = new RasterAlgebraProcess(catalog);
-			coverage = rstAlgebraProcess.execute(attributeFilter, areaOfInterest, null);
+				// collect input coverages
+				final CoverageCollector collector = new CoverageCollector(catalog, ResolutionChoice.getDefault(), areaOfInterest, hints);
+				if (ra instanceof Expression) {
+					((Expression) ra).accept(collector, null);
+				} else if (ra instanceof Filter) {
+					((Filter) ra).accept(collector, null);
+				}
+				coverages = collector.getCoverages();
+
+				RasterAlgebraProcess rstAlgebraProcess = new RasterAlgebraProcess(catalog);
+				coverage = rstAlgebraProcess.execute(attributeFilter, areaOfInterest, null);
+			} else if (script != null && inputs != null) {
+				// collect input coverages
+				final ListCoverageCollector collector= new ListCoverageCollector(catalog, ResolutionChoice.getDefault(), areaOfInterest, hints);
+		        collector.collect(inputs);
+		        
+		        coverages = collector.getCoverages();
+		        
+				JiffleProcess advRstAlgebraProcess = new JiffleProcess(catalog);
+				coverage = advRstAlgebraProcess.execute(script, areaOfInterest, inputs, null);
+			}
 
 			if (coverage == null) {
 				throw new Exception("WPS RasterAlgebraProcess failed.");
@@ -589,6 +608,23 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		}
 
 		return features;
+	}
+
+	/**
+	 * 
+	 * @param inputs
+	 * @return
+	 */
+	private static String toString(List<String> inputs) {
+		String listString = "";
+
+		if (inputs != null) {
+			for (String s : inputs) {
+				listString += s + " | ";
+			}
+		}
+
+		return listString;
 	}
 
 	/**

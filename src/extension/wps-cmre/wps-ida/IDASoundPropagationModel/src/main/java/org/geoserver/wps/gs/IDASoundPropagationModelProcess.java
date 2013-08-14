@@ -81,7 +81,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 			@DescribeParameter(name = "userId", min = 1, description = "SPM attribute userId") String userId,
 			@DescribeParameter(name = "modelName", min = 1, description = "SPM attribute modelName") String name,
 			@DescribeParameter(name = "outputUrl", min = 1, description = "SPM attribute outputUrl") URL outputUrl,
-			@DescribeParameter(name = "runBegin", min = 1, description = "SPM attribute runBegin") Date runBegin,
+			@DescribeParameter(name = "runBegin", min = 0, description = "SPM attribute runBegin") Date runBegin,
 			@DescribeParameter(name = "runEnd", min = 0, description = "SPM attribute runEnd") Date runEnd,
 			@DescribeParameter(name = "itemStatus", min = 0, description = "SPM attribute item_status") String itemStatus,
 			@DescribeParameter(name = "itemStatusMessage", min = 0, description = "SPM attribute itemStatusMessage") String itemStatusMessage,
@@ -160,7 +160,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("userId", userId));
 		attributes.add(new FeatureAttribute("modelName", name));
 		attributes.add(new FeatureAttribute("outputUrl", outputUrl.toExternalForm()));
-		attributes.add(new FeatureAttribute("runBegin", new Date()));
+		attributes.add(new FeatureAttribute("runBegin", (runBegin != null ? runBegin : new Date())));
 		attributes.add(new FeatureAttribute("runEnd", (runEnd!=null?runEnd:new Date())));
 		attributes.add(new FeatureAttribute("itemStatus", (itemStatus != null ? itemStatus : "RUNNING")));
 		attributes.add(new FeatureAttribute("itemStatusMessage", (itemStatusMessage != null ? itemStatusMessage : "Instrumented by Server")));
