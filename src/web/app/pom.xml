@@ -666,11 +666,6 @@
         </dependency>
         <dependency>
           <groupId>org.geoserver.extension</groupId>
-          <artifactId>wps-clustermanager</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.geoserver.extension</groupId>
           <artifactId>wps-download</artifactId>
           <version>${project.version}</version>
         </dependency>
