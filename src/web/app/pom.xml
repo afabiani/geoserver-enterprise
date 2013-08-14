@@ -666,12 +666,12 @@
         </dependency>
         <dependency>
           <groupId>org.geoserver.extension</groupId>
-          <artifactId>WPS-ClusterManagerProcess</artifactId>
+          <artifactId>wps-clustermanager</artifactId>
           <version>${project.version}</version>
         </dependency>
         <dependency>
           <groupId>org.geoserver.extension</groupId>
-          <artifactId>WPS-DownloadProcess</artifactId>
+          <artifactId>wps-download</artifactId>
           <version>${project.version}</version>
         </dependency>
       </dependencies>
