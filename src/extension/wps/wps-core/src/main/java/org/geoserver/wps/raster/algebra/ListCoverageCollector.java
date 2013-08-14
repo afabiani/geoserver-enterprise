@@ -80,7 +80,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Simone Giannecchini, GeoSolutions SAS
  * TODO make the logic to choose the final {@link AffineTransform2D} more generic and if possible customizable.
  */
-class ListCoverageCollector {
+public class ListCoverageCollector {
     
     private final static Logger LOGGER= Logging.getLogger(ListCoverageCollector.class);
 
