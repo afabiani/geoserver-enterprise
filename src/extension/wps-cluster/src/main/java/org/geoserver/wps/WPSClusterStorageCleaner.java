@@ -22,9 +22,15 @@ import org.geoserver.wps.executor.ProcessStorage;
 import org.geotools.util.logging.Logging;
 
 /**
- * Cleans up the temporary storage directory for WPS
+ * Cleans up the temporary storage directory for WPS.
+ * Extends the wps core WPSStorageCleaner looking for old storage records.
+ * Moreover if a file has been associated to an event, it will be removed 
+ * on file expiration.
+ * 
+ * Expiration time taken from WPS Service.
  * 
  * @author Andrea Aime - GeoSolutions
+ * @author Alessio Fabiani - GeoSolutions
  */
 public class WPSClusterStorageCleaner extends WPSStorageCleaner {
     Logger LOGGER = Logging.getLogger(WPSClusterStorageCleaner.class);

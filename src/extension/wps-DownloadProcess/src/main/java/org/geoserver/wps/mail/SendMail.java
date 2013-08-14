@@ -32,7 +32,6 @@ import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class SendMail.
  * 
