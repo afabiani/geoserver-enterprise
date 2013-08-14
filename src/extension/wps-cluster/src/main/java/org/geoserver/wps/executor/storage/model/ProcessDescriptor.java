@@ -31,7 +31,7 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "processdescriptor")
 @XmlRootElement(name = "ProcessDescriptor")
 @XmlType(propOrder = { "id", "clusterId", "executionId", "status", "phase", "progress", "result" })
-public class ProcessDescriptor implements Identifiable, Serializable {
+public class ProcessDescriptor implements Serializable {
 
     /** The Constant serialVersionUID. */
     private static final long serialVersionUID = 3654914559439623648L;
