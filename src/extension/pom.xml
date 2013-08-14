@@ -164,7 +164,6 @@
       <id>wps-cluster</id>
       <modules>
         <module>wps-cluster</module>
-        <module>wps-clustermanager</module>
         <module>wps-download</module>
       </modules>
     </profile>

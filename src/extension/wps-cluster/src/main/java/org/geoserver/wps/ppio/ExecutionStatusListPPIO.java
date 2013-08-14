@@ -61,10 +61,9 @@ public class ExecutionStatusListPPIO extends BinaryPPIO {
         if (output instanceof List) {
             try {
                 List<ExecutionStatus> statusList = (List<ExecutionStatus>) output;
-
                 marshaller.toXML(statusList, os);
             } catch (Exception e) {
-                throw new ProcessException("Could not encode " + output.getClass());
+                throw new ProcessException("Could not encode output" + output!=null?(" :"+output.getClass()):": null",e);
             }
         }
     }
@@ -96,21 +95,15 @@ public class ExecutionStatusListPPIO extends BinaryPPIO {
     public Object decode(InputStream input) throws Exception {
         try {
             Object object = marshaller.fromXML(input);
-
             if (object instanceof List) {
-                try {
-                    List<ExecutionStatus> statusList = (List<ExecutionStatus>) object;
-
-                    return statusList;
-                } catch (Exception e) {
-                    throw new ProcessException("Could not encode " + object.getClass());
-                }
-            }
+                return (List<ExecutionStatus>) object;
+            } 
+            // object of wrong type
+            throw new ProcessException("Could not decode the provided input");
         } catch (Exception e) {
-            throw new ProcessException("Could not decode " + input.getClass(), e);
+            throw new ProcessException("Could not decode the provided input" , e);
         }
 
-        throw new ProcessException("Could not decode " + input.getClass());
     }
 
     /**
