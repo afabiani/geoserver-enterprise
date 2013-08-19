@@ -102,13 +102,16 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
             ResourceInfo resourceInfo = null;
             StoreInfo storeInfo = null;
 
+            // cheking for the rsources on the GeoServer catalog
             layerInfo = catalog.getLayerByName(layerName);
             resourceInfo = layerInfo.getResource();
             storeInfo = resourceInfo.getStore();
 
             if (storeInfo == null) {
+                // could not find any data store associated to the specified layer ... abruptly interrupt the process
+                LOGGER.severe("Unable to locate the resource " + layerName);
                 cause = new IllegalArgumentException("Unable to locate feature:"
-                        + resourceInfo.getName());
+                        + layerName);
                 if (progressListener != null) {
                     progressListener.exceptionOccurred(new ProcessException(
                             "Could not complete the Download Process", cause));
@@ -116,11 +119,16 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                 throw new ProcessException("Could not complete the Download Process", cause);
             }
 
+            // ////
+            // 1. DataStore -> look for vectorial data download
+            // 2. CoverageStore -> look for raster data download
+            // ////
             if (storeInfo instanceof DataStoreInfo) {
                 final DataStoreInfo dataStore = (DataStoreInfo) storeInfo;
 
                 SimpleFeatureSource featureSource = null;
                 Filter ra = null;
+                // The filter is parsed by the GeoServer FilterPPIOs
                 try {
                     
                     if (filter == null) ra = Filter.INCLUDE;
@@ -159,9 +167,11 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                         
                      */
 
+                    // get the feature source given the datastore
                     featureSource = getFeatureSource(dataStore, resourceInfo, progressListener);
 
                 } catch (Exception e) {
+                    LOGGER.severe("Could not parse the feature source for " + layerName);
                     if (progressListener != null) {
                         progressListener.exceptionOccurred(new ProcessException(
                                 "Error while checking Feature Source", e));
@@ -169,28 +179,36 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                     throw new ProcessException("Error while checking Feature Source", e);
                 }
                 
+                // count the features and compare to the "maxfeatures" limit
+                long count = maxFeatures;
                 try {
-                    int count = featureSource.getCount(new Query("counter", ra));
+                    // try first using the storage count capabilities using the getCount(...) method
+                    count = featureSource.getCount(new Query("counter", ra));
 
                     if (count < 0) {
+                        // a value minor than "0" means that the store does not provide any counting feature ... lets proceed using the iterator
                         SimpleFeatureCollection features = featureSource.getFeatures(ra);
                         count = features.size();
                     }
 
-                    if (count > maxFeatures) {
-                        if (progressListener != null) {
-                            progressListener.exceptionOccurred(new ProcessException(
-                                    "Features Download Limits: Max allowed features exceeded."));
-                        }
-                        throw new ProcessException("Max allowed of " + this.maxFeatures
-                                + " features exceeded.");
-                    }
                 } catch (Exception e) {
+                    LOGGER.severe("Error while checking Feature Download Limits");
                     if (progressListener != null) {
                         progressListener.exceptionOccurred(new ProcessException(
                                 "Error while checking Feature Download Limits", e));
                     }
                     throw new ProcessException("Error while checking Feature Download Limits", e);
+                }
+
+                // finally checking the number of features accordingly to the "maxfeatures" limit
+                if (count > maxFeatures) {
+                    LOGGER.severe("MaxFeatures limit exceeded.");
+                    if (progressListener != null) {
+                        progressListener.exceptionOccurred(new ProcessException(
+                                "Features Download Limits: Max allowed features exceeded."));
+                    }
+                    throw new ProcessException("Max allowed of " + this.maxFeatures
+                            + " features exceeded.");
                 }
 
                 return (true);
@@ -207,9 +225,19 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                     }
                     throw new ProcessException("Could not complete the Download Process", cause);
                 } else {
-                    try {
-                        GridCoverage2D gc = getCoverage(resourceInfo, coverage, roi, roiCRS,
-                                targetCRS, cropToGeometry, progressListener);
+                        GridCoverage2D gc = null;
+                        try {
+                            gc = getCoverage(resourceInfo, coverage, roi, roiCRS,
+                                    targetCRS, cropToGeometry, progressListener);
+                        } catch (Exception e) {
+                            LOGGER.severe("Could not complete the Download Process");
+                            cause = e;
+                            if (progressListener != null) {
+                                progressListener.exceptionOccurred(new ProcessException(
+                                        "Could not complete the Download Process", cause));
+                            }
+                            throw new ProcessException("Could not complete the Download Process", cause);
+                        }
 
                         /**
                          * Checking that the coverage described by the specified geometry and sample model does not exceeds the read limits
@@ -258,18 +286,10 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                                             + "written in the output is " + formatBytes(actual));
                         }
 
-                    } catch (Exception e) {
-                        cause = e;
-                        if (progressListener != null) {
-                            progressListener.exceptionOccurred(new ProcessException(
-                                    "Could not complete the Download Process", cause));
-                        }
-                        throw new ProcessException("Could not complete the Download Process", cause);
-                    }
-
                     return (true);
                 }
             } else {
+                LOGGER.severe("Could not find store for layer " + layerName);
                 cause = new WPSException("Could not find store for layer " + layerName);
                 if (progressListener != null) {
                     progressListener.exceptionOccurred(new WPSException(
@@ -277,6 +297,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                 }
             }
         } else {
+            LOGGER.severe("Could not find layer " + layerName);
             cause = new WPSException("Could not find layer " + layerName);
             if (progressListener != null) {
                 progressListener.exceptionOccurred(new WPSException("Could not find layer "

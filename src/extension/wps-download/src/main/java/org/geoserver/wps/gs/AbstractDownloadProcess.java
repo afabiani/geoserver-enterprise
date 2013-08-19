@@ -56,7 +56,6 @@ import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.renderer.lite.gridcoverage2d.GridCoverageRenderer;
 import org.geotools.styling.RasterSymbolizerImpl;
-import org.geotools.util.NullProgressListener;
 import org.geotools.util.logging.Logging;
 import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.coverage.ColorInterpretation;

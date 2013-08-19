@@ -81,14 +81,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
         Map<String, Object> result = p.execute(inputs, listener);
         if (listener.exception != null) {
             if (!(processNamesEsclusionList.contains(processName.getLocalPart()))) {
-                if (availableStorages != null && availableStorages.size() > 0) {
-                    for (ProcessStorage storage : availableStorages) {
-                        String clusterId = storage.getInstance(executionId.toString(), false);
-                        storage.putStatus(clusterId, executionId, new ExecutionStatus(processName,
-                                executionId, ProcessState.FAILED, 100), false);
-                        storage.storeResult(clusterId, executionId,
-                                listener.exception.getMessage(), false);
-                    }
+                for (ProcessStorage storage : availableStorages) {
+                    String clusterId = storage.getInstance(executionId.toString(), false);
+                    storage.putStatus(clusterId, executionId, new ExecutionStatus(processName,
+                            executionId, ProcessState.FAILED, 100), false);
+                    storage.storeResult(clusterId, executionId, listener.exception.getMessage(),
+                            false);
                 }
             }
             throw new ProcessException("Process failed: " + listener.exception.getMessage(),
@@ -174,11 +172,9 @@ public class ClusterProcessManager extends DefaultProcessManager {
                 p = pf.create(processName);
 
                 if (p != null && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
-                    if (availableStorages != null && availableStorages.size() > 0) {
-                        for (ProcessStorage storage : availableStorages) {
-                            storage.submit(clusterId, status.getExecutionId(), processName, inputs,
-                                    ((ClusterExecutionStatus) status).isBackground());
-                        }
+                    for (ProcessStorage storage : availableStorages) {
+                        storage.submit(clusterId, status.getExecutionId(), processName, inputs,
+                                ((ClusterExecutionStatus) status).isBackground());
                     }
                 }
 
@@ -195,39 +191,33 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
                     if (p != null
                             && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
-                        if (availableStorages != null && availableStorages.size() > 0) {
-                            for (ProcessStorage storage : availableStorages) {
-                                String clusterId = storage.getInstance(executionId, false);
-                                storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                        processName, executionId, ProcessState.FAILED, 100), false);
-                                storage.storeResult(
-                                        clusterId,
-                                        executionId,
-                                        listener.exception.getMessage()
-                                                + ": "
-                                                + (listener.exception.getCause() != null ? listener.exception
-                                                        .getCause().getMessage() : ""), false);
-                            }
+                        for (ProcessStorage storage : availableStorages) {
+                            String clusterId = storage.getInstance(executionId, false);
+                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
+                                    processName, executionId, ProcessState.FAILED, 100), false);
+                            storage.storeResult(
+                                    clusterId,
+                                    executionId,
+                                    listener.exception.getMessage()
+                                            + ": "
+                                            + (listener.exception.getCause() != null ? listener.exception
+                                                    .getCause().getMessage() : ""), false);
                         }
                     }
                     throw new WPSException("Process failed: " + listener.exception.getMessage(),
                             listener.exception);
                 } else if (p != null
                         && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
-                    if (availableStorages != null && availableStorages.size() > 0) {
-                        for (ProcessStorage storage : availableStorages) {
-                            String clusterId = storage.getInstance(executionId, false);
-                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                    processName, executionId, ProcessState.COMPLETED, 100), false);
+                    for (ProcessStorage storage : availableStorages) {
+                        String clusterId = storage.getInstance(executionId, false);
+                        storage.putStatus(clusterId, executionId, new ExecutionStatus(processName,
+                                executionId, ProcessState.COMPLETED, 100), false);
 
-                            for (Entry<String, Object> entry : result.entrySet()) {
-                                if (entry.getKey().equalsIgnoreCase("result"))
-                                    storage.storeResult(clusterId, executionId, entry.getValue(),
-                                            false);
-                            }
+                        for (Entry<String, Object> entry : result.entrySet()) {
+                            if (entry.getKey().equalsIgnoreCase("result"))
+                                storage.storeResult(clusterId, executionId, entry.getValue(), false);
                         }
                     }
-
                 }
                 return result;
             } catch (Exception e) {
@@ -237,15 +227,15 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
                     if (p != null
                             && !(processNamesEsclusionList.contains(processName.getLocalPart()))) {
-                        if (availableStorages != null && availableStorages.size() > 0) {
-                            for (ProcessStorage storage : availableStorages) {
-                                String clusterId = storage.getInstance(executionId, false);
-                                storage.putStatus(clusterId, executionId, new ExecutionStatus(
-                                        processName, executionId, ProcessState.FAILED, 100), false);
-                                storage.storeResult(clusterId, executionId, e.getMessage() + ": "
-                                        + (e.getCause() != null ? e.getCause().getMessage() : ""),
-                                        false);
-                            }
+                        for (ProcessStorage storage : availableStorages) {
+                            String clusterId = storage.getInstance(executionId, false);
+                            storage.putStatus(clusterId, executionId, new ExecutionStatus(
+                                    processName, executionId, ProcessState.FAILED, 100), false);
+                            storage.storeResult(clusterId, executionId,
+                                    e.getMessage()
+                                            + ": "
+                                            + (e.getCause() != null ? e.getCause().getMessage()
+                                                    : ""), false);
                         }
                     }
                     throw new WPSException("Process failed: " + e.getMessage(), e);
@@ -294,13 +284,11 @@ public class ClusterProcessManager extends DefaultProcessManager {
             }
 
             if (status != null)
-                if (availableStorages != null && availableStorages.size() > 0) {
-                    for (ProcessStorage storage : availableStorages) {
-                        if (storage.getInstance(executionId.toString(), true) != null) {
-                            String clusterId = storage.getInstance(executionId.toString(), true);
-                            // return new ClusterExecutionStatus(clusterId, storage.getStatus(clusterId, executionId.toString()));
-                            storage.putStatus(clusterId, executionId.toString(), status, true);
-                        }
+                for (ProcessStorage storage : availableStorages) {
+                    if (storage.getInstance(executionId.toString(), true) != null) {
+                        String clusterId = storage.getInstance(executionId.toString(), true);
+                        // return new ClusterExecutionStatus(clusterId, storage.getStatus(clusterId, executionId.toString()));
+                        storage.putStatus(clusterId, executionId.toString(), status, true);
                     }
                 }
 
@@ -317,10 +305,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
         @Override
         public ExecutionStatus put(String executionId, ExecutionStatus status) {
             localProcesses.put(executionId, status);
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    storage.putStatus(clusterId, executionId, status, true);
-                }
+            for (ProcessStorage storage : availableStorages) {
+                storage.putStatus(clusterId, executionId, status, true);
             }
             return status;
         }
@@ -338,10 +324,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
             }
             ExecutionStatus status = null;
             if (localProcesses.containsKey(executionId)) {
-                if (availableStorages != null && availableStorages.size() > 0) {
-                    for (ProcessStorage storage : availableStorages) {
-                        status = storage.removeStatus(clusterId, executionId.toString(), true);
-                    }
+                for (ProcessStorage storage : availableStorages) {
+                    status = storage.removeStatus(clusterId, executionId.toString(), true);
                 }
                 return localProcesses.remove(executionId);
             }
@@ -355,10 +339,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
          */
         @Override
         public Collection<ExecutionStatus> values() {
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    return storage.getAll();
-                }
+            for (ProcessStorage storage : availableStorages) {
+                return storage.getAll();
             }
 
             return null;
@@ -431,17 +413,15 @@ public class ClusterProcessManager extends DefaultProcessManager {
          */
         @Override
         public void setPhase(ProcessState phase) {
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    storage.updatePhase(clusterId, executionId, phase, true);
-                    if (phase == ProcessState.COMPLETED && localProcess) {
-                        try {
-                            ExecutionStatus newStatus = new ExecutionStatus(
-                                    Ows11Util.name(clusterId), executionId, phase, 100.0f);
-                            storage.putOutput(clusterId, executionId, newStatus, true);
-                        } catch (Exception e) {
-                            storage.putOutput(clusterId, executionId, e, true);
-                        }
+            for (ProcessStorage storage : availableStorages) {
+                storage.updatePhase(clusterId, executionId, phase, true);
+                if (phase == ProcessState.COMPLETED && localProcess) {
+                    try {
+                        ExecutionStatus newStatus = new ExecutionStatus(Ows11Util.name(clusterId),
+                                executionId, phase, 100.0f);
+                        storage.putOutput(clusterId, executionId, newStatus, true);
+                    } catch (Exception e) {
+                        storage.putOutput(clusterId, executionId, e, true);
                     }
                 }
             }
@@ -462,20 +442,18 @@ public class ClusterProcessManager extends DefaultProcessManager {
                 output = super.getOutput(timeout);
             }
 
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    Map<String, Object> psOutput = storage.getOutput(clusterId, executionId,
-                            timeout, true);
+            for (ProcessStorage storage : availableStorages) {
+                Map<String, Object> psOutput = storage.getOutput(clusterId, executionId, timeout,
+                        true);
 
-                    if (output != null) {
-                        // Special case when output contains a file
-                        for (Entry<String, Object> entry : output.entrySet()) {
-                            if (entry.getKey().equalsIgnoreCase("result"))
-                                storage.storeResult(clusterId, executionId, entry.getValue(), true);
-                        }
-                    } else if (psOutput != null) {
-                        output = psOutput;
+                if (output != null) {
+                    // Special case when output contains a file
+                    for (Entry<String, Object> entry : output.entrySet()) {
+                        if (entry.getKey().equalsIgnoreCase("result"))
+                            storage.storeResult(clusterId, executionId, entry.getValue(), true);
                     }
+                } else if (psOutput != null) {
+                    output = psOutput;
                 }
             }
 
@@ -499,10 +477,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
          */
         @Override
         public void setProgress(float progress) {
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    storage.updateProgress(clusterId, executionId, progress, true);
-                }
+            for (ProcessStorage storage : availableStorages) {
+                storage.updateProgress(clusterId, executionId, progress, true);
             }
         }
 
@@ -529,7 +505,14 @@ public class ClusterProcessManager extends DefaultProcessManager {
     public ClusterProcessManager(WPSResourceManager resourceManager) {
         super(resourceManager);
 
+        // retrieve all the available process storages
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
+
+        // if no storage is available just initialize an empty list
+        if (availableStorages == null) {
+            availableStorages = new ArrayList<ProcessStorage>();
+        }
+
         processNamesEsclusionList = new ArrayList<String>();
 
         if (GeoServerExtensions.getProperty("CLUSTER_PROCESS_MANAGER_ID") != null) {

@@ -522,7 +522,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
                     );
         } catch (ProcessException e) {
             assertEquals(
-                    "Could not complete the Download Process: This request is trying to read too much data, the limit is 10B but the actual amount of bytes to be read is 11,32MB",
+                    "This request is trying to read too much data, the limit is 10B but the actual amount of bytes to be read is 11,32MB",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }
@@ -559,7 +559,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
                     );
         } catch (ProcessException e) {
             assertEquals(
-                    "Could not complete the Download Process: This request is trying to generate too much data, the limit is 10B but the actual amount of bytes to be written in the output is 10,86MB",
+                    "This request is trying to generate too much data, the limit is 10B but the actual amount of bytes to be written in the output is 10,86MB",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }
@@ -592,7 +592,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
                     );
         } catch (ProcessException e) {
             assertEquals(
-                    "Error while checking Feature Download Limits: Max allowed of 0 features exceeded.",
+                    "Max allowed of 0 features exceeded.",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }

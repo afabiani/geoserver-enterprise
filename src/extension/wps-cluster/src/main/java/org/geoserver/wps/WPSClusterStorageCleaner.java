@@ -6,6 +6,7 @@ package org.geoserver.wps;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,11 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner {
 
         // retrieve all the available process storages
         availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
+
+        // if no storage is available just initialize an empty list
+        if (availableStorages == null) {
+            availableStorages = new ArrayList<ProcessStorage>();
+        }
     }
 
     @Override
@@ -108,19 +114,16 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner {
      */
     private void cleanupStorages(long now) throws IOException {
         if (enabled) {
-            if (availableStorages != null && availableStorages.size() > 0) {
-                for (ProcessStorage storage : availableStorages) {
-                    Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
+            for (ProcessStorage storage : availableStorages) {
+                Collection<ExecutionStatus> processesExecutionStauts = storage.getAll();
 
-                    if (processesExecutionStauts != null) {
-                        for (ExecutionStatus executionStatus : processesExecutionStauts) {
-                            if (executionDelays.get(executionStatus.getExecutionId()) == null || executionDelays.get(executionStatus.getExecutionId()) != null && (expirationDelay > 0
-                                        && now
-                                                - executionDelays.get(executionStatus
-                                                        .getExecutionId()) > expirationDelay)) {
-                                    storage.removeStatus(clusterId,
-                                            executionStatus.getExecutionId(), true);
-                                }
+                if (processesExecutionStauts != null) {
+                    for (ExecutionStatus executionStatus : processesExecutionStauts) {
+                        if (executionDelays.get(executionStatus.getExecutionId()) == null
+                                || executionDelays.get(executionStatus.getExecutionId()) != null
+                                && (expirationDelay > 0 && now
+                                        - executionDelays.get(executionStatus.getExecutionId()) > expirationDelay)) {
+                            storage.removeStatus(clusterId, executionStatus.getExecutionId(), true);
                         }
                     }
                 }

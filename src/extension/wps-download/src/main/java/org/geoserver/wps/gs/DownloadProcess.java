@@ -138,11 +138,14 @@ public class DownloadProcess extends AbstractDownloadProcess {
             ResourceInfo resourceInfo = null;
             StoreInfo storeInfo = null;
 
+            // cheking for the rsources on the GeoServer catalog
             layerInfo = catalog.getLayerByName(layerName);
             resourceInfo = layerInfo.getResource();
             storeInfo = resourceInfo.getStore();
 
             if (storeInfo == null) {
+                // could not find any data store associated to the specified layer ... abruptly interrupt the process
+                LOGGER.severe("Unable to locate the resource " + layerName);
                 cause = new IllegalArgumentException("Unable to locate feature:"
                         + resourceInfo.getName());
                 if (progressListener != null) {
@@ -152,19 +155,29 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 throw new ProcessException("Could not complete the Download Process", cause);
             }
 
+            // ////
+            // 1. DataStore -> look for vectorial data download
+            // 2. CoverageStore -> look for raster data download
+            // ////
             if (storeInfo instanceof DataStoreInfo) {
+                // first of all if sendMail is enabled, send an email for the starting process ...
                 sendMail(email, progressListener, null, true);
 
+                // perform the actual download of vectorial data accordingly to the request inputs
                 return handleVectorialLayerDownload(resourceInfo, storeInfo, filter, email,
                         outputFormat, targetCRS, roiCRS, roi, cropToGeometry, progressListener);
 
             } else if (storeInfo instanceof CoverageStoreInfo) {
+                // first of all if sendMail is enabled, send an email for the starting process ...
                 sendMail(email, progressListener, null, true);
 
+                // get the "coverageInfo" from the GeoServer catalog
                 final CoverageStoreInfo coverageStore = (CoverageStoreInfo) storeInfo;
                 final CoverageInfo coverage = catalog.getCoverageByName(resourceInfo.getName());
 
                 if (coverageStore == null || coverage == null) {
+                    LOGGER.severe("Unable to locate coverage:"
+                            + resourceInfo.getName());
                     cause = new IllegalArgumentException("Unable to locate coverage:"
                             + resourceInfo.getName());
                     if (progressListener != null) {
@@ -174,10 +187,11 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     throw new ProcessException("Could not complete the Download Process", cause);
                 } else {
                     try {
-
+                        // read the source Grid Coverage "roi" area from the mass storage at the source resolution
                         GridCoverage2D gc = getCoverage(resourceInfo, coverage, roi, roiCRS,
                                 targetCRS, cropToGeometry, progressListener);
 
+                        // look for output extension. Tiff/tif/geotiff will be all threated as GeoTIFF
                         String extension = null;
                         if (outputFormat.toLowerCase().startsWith("image")
                                 || outputFormat.indexOf("/") > 0) {
@@ -187,13 +201,15 @@ public class DownloadProcess extends AbstractDownloadProcess {
                             extension = outputFormat;
                         }
 
-                        // writing the output
+                        // writing the output to a temporary folder
                         final File output = File.createTempFile(resourceInfo.getName(), "."
                                 + extension, WPSClusterStorageCleaner.getWpsOutputStorage());
                         long limit = (estimator != null && estimator.getHardOutputLimit() > 0 ? estimator
                                 .getHardOutputLimit() * 1024
                                 : (estimator != null && estimator.getWriteLimits() > 0 ? estimator
                                         .getWriteLimits() * 1024 : Long.MAX_VALUE));
+                        
+                        // the limit ouutput stream will throw an exception if the process is trying to writr more than the max allowed bytes
                         OutputStream os = new LimitedFileOutputStream(new FileOutputStream(output),
                                 limit) {
 
@@ -211,11 +227,13 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         };
 
+                        // convert/reproject/crop if needed the coverage
                         writeRasterOutput(outputFormat, progressListener, extension, os,
                                 resourceInfo, coverage, gc, roi, roiCRS, targetCRS, cropToGeometry);
 
                         File tempZipFile = output;
 
+                        // zip the output if it's not already an zrchive 
                         if (!FilenameUtils.getExtension(tempZipFile.getName()).equalsIgnoreCase(
                                 "zip")) {
                             ZipArchive ppio = new ZipArchivePPIO.ZipArchive(geoServer, null);
@@ -225,6 +243,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                             ppio.encode(output, new FileOutputStream(tempZipFile));
                         }
 
+                        // if enabled, send an email back for completion with the link to the resource
                         sendMail(email, progressListener, tempZipFile, false);
 
                         if (progressListener != null) {
