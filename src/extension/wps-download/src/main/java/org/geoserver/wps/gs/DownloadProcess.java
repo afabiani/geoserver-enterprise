@@ -8,8 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringReader;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +20,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.DataStoreInfo;
+import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.StoreInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wfs.response.ShapeZipOutputFormat;
@@ -36,13 +37,13 @@ import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geoserver.wps.ppio.WFSPPIO;
 import org.geoserver.wps.ppio.ZipArchivePPIO;
 import org.geoserver.wps.ppio.ZipArchivePPIO.ZipArchive;
+import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.store.ReprojectingFeatureCollection;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geojson.feature.FeatureJSON;
@@ -55,7 +56,6 @@ import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.feature.gs.ClipProcess;
 import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
-import org.geotools.xml.Parser;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.spatial.Intersects;
@@ -64,7 +64,6 @@ import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.util.ProgressListener;
-import org.xml.sax.InputSource;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.MultiPoint;
@@ -109,6 +108,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * @param email the email
      * @param outputFormat the output format
      * @param targetCRS the target crs
+     * @param roiCRS the roi crs
      * @param roi the roi
      * @param cropToGeometry the crop to geometry
      * @param progressListener the progress listener
@@ -118,7 +118,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
     @DescribeResult(name = "result", description = "Zipped output files to download")
     public File execute(
             @DescribeParameter(name = "layerName", min = 1, description = "Original layer to download") String layerName,
-            @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") String filter,
+            @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") Filter filter,
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
             @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
@@ -131,9 +131,16 @@ public class DownloadProcess extends AbstractDownloadProcess {
             estimator.execute(layerName, filter, email, outputFormat, targetCRS, roiCRS, roi,
                     cropToGeometry, progressListener);
 
-        if (layerName != null) {
+        Throwable cause = null;
 
-            getLayerAndResourceInfo(layerName);
+        if (layerName != null) {
+            LayerInfo layerInfo = null;
+            ResourceInfo resourceInfo = null;
+            StoreInfo storeInfo = null;
+
+            layerInfo = catalog.getLayerByName(layerName);
+            resourceInfo = layerInfo.getResource();
+            storeInfo = resourceInfo.getStore();
 
             if (storeInfo == null) {
                 cause = new IllegalArgumentException("Unable to locate feature:"
@@ -148,8 +155,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
             if (storeInfo instanceof DataStoreInfo) {
                 sendMail(email, progressListener, null, true);
 
-                return handleVectorialLayerDownload(filter, email, outputFormat, targetCRS, roiCRS,
-                        roi, cropToGeometry, progressListener);
+                return handleVectorialLayerDownload(resourceInfo, storeInfo, filter, email,
+                        outputFormat, targetCRS, roiCRS, roi, cropToGeometry, progressListener);
 
             } else if (storeInfo instanceof CoverageStoreInfo) {
                 sendMail(email, progressListener, null, true);
@@ -168,14 +175,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 } else {
                     try {
 
-                        if (estimator != null && estimator.getGc() != null
-                                && estimator.getFinalCoverage() != null) {
-                            setGc(estimator.getGc());
-                            setFinalCoverage(estimator.getFinalCoverage());
-                        } else {
-                            getCoverage(coverage, roi, roiCRS, targetCRS, cropToGeometry,
-                                    progressListener);
-                        }
+                        GridCoverage2D gc = getCoverage(resourceInfo, coverage, roi, roiCRS,
+                                targetCRS, cropToGeometry, progressListener);
 
                         String extension = null;
                         if (outputFormat.toLowerCase().startsWith("image")
@@ -210,7 +211,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
 
                         };
 
-                        writeRasterOutput(outputFormat, progressListener, extension, os);
+                        writeRasterOutput(outputFormat, progressListener, extension, os,
+                                resourceInfo, coverage, gc, roi, roiCRS, targetCRS, cropToGeometry);
 
                         File tempZipFile = output;
 
@@ -268,11 +270,24 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * @param progressListener the progress listener
      * @param extension the extension
      * @param os the os
+     * @param resourceInfo the resource info
+     * @param coverage the coverage
+     * @param gc the gc
+     * @param roi the roi
+     * @param roiCRS the roi crs
+     * @param targetCRS the target crs
+     * @param cropToGeometry the crop to geometry
      * @throws IOException Signals that an I/O exception has occurred.
      */
     private void writeRasterOutput(String outputFormat, final ProgressListener progressListener,
-            String extension, OutputStream os) throws IOException {
+            String extension, OutputStream os, ResourceInfo resourceInfo, CoverageInfo coverage,
+            GridCoverage2D gc, Geometry roi, CoordinateReferenceSystem roiCRS,
+            CoordinateReferenceSystem targetCRS, boolean cropToGeometry) throws IOException {
+        Throwable cause = null;
+        GridCoverage2D finalCoverage = null;
         try {
+            finalCoverage = getFinalCoverage(resourceInfo, coverage, gc, roi, roiCRS, targetCRS,
+                    cropToGeometry, progressListener);
             if (extension.toLowerCase().contains("tif")) {
 
                 GeoTiffWriter gtiffWriter = new GeoTiffWriter(os);
@@ -284,7 +299,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     gtWparam.setValue(param);
                     GeneralParameterValue[] params = new GeneralParameterValue[] { gtWparam };
 
-                    gtiffWriter.write(getFinalCoverage(), params);
+                    gtiffWriter.write(finalCoverage, params);
                 } finally {
                     gtiffWriter.dispose();
                 }
@@ -298,7 +313,7 @@ public class DownloadProcess extends AbstractDownloadProcess {
                     ImageWriter writer = imageWriter.next();
                     try {
                         writer.setOutput(ImageIO.createImageOutputStream(os));
-                        writer.write(getFinalCoverage().getRenderedImage());
+                        writer.write(finalCoverage.getRenderedImage());
                     } finally {
                         writer.dispose();
                     }
@@ -312,63 +327,75 @@ public class DownloadProcess extends AbstractDownloadProcess {
                 }
             }
         } finally {
-            getGc().dispose(true);
-            getFinalCoverage().dispose(true);
+            if (gc != null)
+                gc.dispose(true);
+            if (finalCoverage != null)
+                finalCoverage.dispose(true);
         }
     }
 
     /**
      * Handle vectorial layer download.
      * 
+     * @param resourceInfo the resource info
+     * @param storeInfo the store info
      * @param filter the filter
      * @param email the email
      * @param outputFormat the output format
      * @param targetCRS the target crs
+     * @param roiCRS the roi crs
      * @param roi the roi
      * @param cropToGeometry the crop to geometry
      * @param progressListener the progress listener
      * @return the file
      */
-    private File handleVectorialLayerDownload(String filter, String email, String outputFormat,
-            CoordinateReferenceSystem targetCRS, CoordinateReferenceSystem roiCRS, Geometry roi,
-            Boolean cropToGeometry, final ProgressListener progressListener) {
+    private File handleVectorialLayerDownload(ResourceInfo resourceInfo, StoreInfo storeInfo,
+            Filter filter, String email, String outputFormat, CoordinateReferenceSystem targetCRS,
+            CoordinateReferenceSystem roiCRS, Geometry roi, Boolean cropToGeometry,
+            final ProgressListener progressListener) {
         final DataStoreInfo dataStore = (DataStoreInfo) storeInfo;
+        Throwable cause = null;
 
-        Filter ra = null;
         SimpleFeatureSource featureSource = null;
+        Filter ra = null;
         try {
-            // === filter or expression
-            if (filter != null) {
-                try {
-                    ra = ECQL.toFilter(filter);
-                } catch (Exception e) {
+            if (filter == null) ra = Filter.INCLUDE;
+            else ra = filter;
+            
+            /*
+             * OLD Filter Parsing Code
+
+                // === filter or expression
+                if (filter != null) {
                     try {
-                        Parser parser = new Parser(
-                                new org.geotools.filter.v1_1.OGCConfiguration());
-                        Reader reader = new StringReader(filter);
-                        // set the input source with the correct encoding
-                        InputSource source = new InputSource(reader);
-                        source.setEncoding(getCharset().name());
-                        ra = (Filter) parser.parse(source);
+                        ra = ECQL.toFilter(filter);
+                    } catch (Exception e_cql) {
+                        try {
+                            Parser parser = new Parser(
+                                    new org.geotools.filter.v1_1.OGCConfiguration());
+                            Reader reader = new StringReader(filter);
+                            // set the input source with the correct encoding
+                            InputSource source = new InputSource(reader);
+                            source.setEncoding(getCharset().name());
+                            ra = (Filter) parser.parse(source);
 
-                    } catch (Exception e_ogc) {
-                        cause = new WPSException("Unable to parse input expression", e_ogc);
-                        if (progressListener != null) {
-                            progressListener.exceptionOccurred(new ProcessException(
-                                    "Could not complete the Download Process", cause));
+                        } catch (Exception e_ogc) {
+                            cause = new WPSException("Unable to parse input expression", e_ogc);
+                            if (progressListener != null) {
+                                progressListener.exceptionOccurred(new ProcessException(
+                                        "Could not complete the Download Process", cause));
+                            }
+                            throw new ProcessException(
+                                    "Could not complete the Download Process", cause);
                         }
-                        throw new ProcessException(
-                                "Could not complete the Download Process", cause);
                     }
+                } else {
+                    ra = Filter.INCLUDE;
                 }
-            } else {
-                ra = Filter.INCLUDE;
-            }
+                
+             */
 
-            if (estimator != null && estimator.getFeatureSource() != null)
-                featureSource = estimator.getFeatureSource();
-            else
-                featureSource = getFeatureSource(dataStore, progressListener);
+            featureSource = getFeatureSource(dataStore, resourceInfo, progressListener);
 
             SimpleFeatureCollection features = featureSource.getFeatures(ra);
             boolean needResample = false;
@@ -547,6 +574,9 @@ public class DownloadProcess extends AbstractDownloadProcess {
     private void writeVectorialOutput(String outputFormat, final ProgressListener progressListener,
             SimpleFeatureCollection features, String extension, OutputStream os)
             throws IOException, Exception {
+
+        Throwable cause = null;
+
         try {
             if ("zip".equals(extension)) {
                 ShapeZipOutputFormat of = new ShapeZipOutputFormat();
@@ -597,8 +627,8 @@ public class DownloadProcess extends AbstractDownloadProcess {
      * 
      * @param email the email
      * @param progressListener the progress listener
-     * @param output
-     * @throws IOException Signals that an I/O exception has occurred.
+     * @param output the output
+     * @param started the started
      */
     private void sendMail(String email, final ProgressListener progressListener, File output,
             boolean started) {

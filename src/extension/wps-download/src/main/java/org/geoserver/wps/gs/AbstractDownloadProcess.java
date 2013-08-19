@@ -7,9 +7,11 @@ package org.geoserver.wps.gs;
 import java.awt.Color;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
 import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.util.logging.Level;
@@ -23,9 +25,7 @@ import javax.servlet.ServletContext;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.DataStoreInfo;
-import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
-import org.geoserver.catalog.StoreInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wfs.response.ShapeZipOutputFormat;
@@ -61,13 +61,17 @@ import org.geotools.util.logging.Logging;
 import org.jaitools.imageutils.ImageLayout2;
 import org.opengis.coverage.ColorInterpretation;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import org.opengis.geometry.Envelope;
+import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
+import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.ProgressListener;
 
 import com.sun.media.jai.opimage.RIFUtil;
@@ -100,27 +104,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     /** The geom builder. */
     protected GeometryBuilder geomBuilder = new GeometryBuilder();
 
-    /** The cause. */
-    protected Throwable cause = null;
-
-    /** The layer info. */
-    protected LayerInfo layerInfo = null;
-
-    /** The resource info. */
-    protected ResourceInfo resourceInfo = null;
-
-    /** The store info. */
-    protected StoreInfo storeInfo = null;
-
-    /** The feature source. */
-    private SimpleFeatureSource featureSource = null;
-
-    /** The gc. */
-    private GridCoverage2D gc = null;
-
-    /** The final coverage. */
-    private GridCoverage2D finalCoverage = null;
-
     /**
      * Instantiates a new abstract download process.
      * 
@@ -132,24 +115,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     }
 
     /**
-     * Sets the feature source.
-     * 
-     * @param featureSource the featureSource to set
-     */
-    public void setFeatureSource(SimpleFeatureSource featureSource) {
-        this.featureSource = featureSource;
-    }
-
-    /**
-     * Gets the feature source.
-     * 
-     * @return the featureSource
-     */
-    public SimpleFeatureSource getFeatureSource() {
-        return featureSource;
-    }
-
-    /**
      * Execute.
      * 
      * @param layerName the layer name
@@ -157,6 +122,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
      * @param email the email
      * @param outputFormat the output format
      * @param targetCRS the target crs
+     * @param roiCRS the roi crs
      * @param roi the roi
      * @param cropToGeometry the crop to geometry
      * @param progressListener the progress listener
@@ -166,7 +132,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     @DescribeResult(name = "result", description = "Zipped output files to download")
     public abstract Object execute(
             @DescribeParameter(name = "layerName", min = 1, description = "Original layer to download") String layerName,
-            @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") String filter,
+            @DescribeParameter(name = "filter", min = 0, description = "Optional Vectorial Filter") Filter filter,
             @DescribeParameter(name = "email", min = 0, description = "Optional Email Address for notification") String email,
             @DescribeParameter(name = "outputFormat", min = 1, description = "Output Format") String outputFormat,
             @DescribeParameter(name = "targetCRS", min = 0, description = "Target CRS") CoordinateReferenceSystem targetCRS,
@@ -176,27 +142,16 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             final ProgressListener progressListener) throws ProcessException;
 
     /**
-     * Gets the layer and resource info.
-     * 
-     * @param layerName the layer name
-     * @return the layer and resource info
-     */
-    protected void getLayerAndResourceInfo(String layerName) {
-        layerInfo = catalog.getLayerByName(layerName);
-        resourceInfo = layerInfo.getResource();
-        storeInfo = resourceInfo.getStore();
-    }
-
-    /**
      * Gets the feature source.
      * 
      * @param dataStore the data store
+     * @param resourceInfo the resource info
      * @param progressListener the progress listener
      * @return the feature source
      * @throws Exception the exception
      */
     protected SimpleFeatureSource getFeatureSource(DataStoreInfo dataStore,
-            ProgressListener progressListener) throws Exception {
+            ResourceInfo resourceInfo, ProgressListener progressListener) throws Exception {
         SimpleFeatureType targetType;
         // grab the data store
         DataStore ds = (DataStore) dataStore.getDataStore(null);
@@ -217,7 +172,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         }
 
         if (targetType == null) {
-            cause = new WPSException(
+            Throwable cause = new WPSException(
                     "No TypeName detected on source schema.Cannot proceeed further.");
             if (progressListener != null) {
                 progressListener.exceptionOccurred(new ProcessException(cause));
@@ -232,29 +187,20 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     /**
      * Gets the coverage.
      * 
+     * @param resourceInfo the resource info
      * @param coverage the coverage
      * @param roi the roi
      * @param roiCRS the roi crs
      * @param targetCRS the target crs
-     * @param cropToGeometry
+     * @param cropToGeometry the crop to geometry
      * @param progressListener the progress listener
      * @return the coverage
      * @throws Exception the exception
      */
-    protected void getCoverage(CoverageInfo coverage, Geometry roi,
-            CoordinateReferenceSystem roiCRS, CoordinateReferenceSystem targetCRS,
+    protected GridCoverage2D getCoverage(ResourceInfo resourceInfo, CoverageInfo coverage,
+            Geometry roi, CoordinateReferenceSystem roiCRS, CoordinateReferenceSystem targetCRS,
             boolean cropToGeometry, ProgressListener progressListener) throws Exception {
-        // pixel scale
-        final MathTransform tempTransform = coverage.getGrid().getGridToCRS();
-        if (!(tempTransform instanceof AffineTransform)) {
-            cause = new IllegalArgumentException(
-                    "Grid to world tranform is not an AffineTransform:" + resourceInfo.getName());
-            if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(cause));
-            }
-            throw new ProcessException(cause);
-        }
-        AffineTransform tr = (AffineTransform) tempTransform;
+        Throwable cause = null;
 
         CoordinateReferenceSystem referenceCRS = coverage.getCRS();
         ReferencedEnvelope finalEnvelope = null;
@@ -267,19 +213,14 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         // simulate reprojection
         // tr=new GridToEnvelopeMapper(coverage.getGrid().getGridRange(), finalEnvelope).createAffineTransform();
 
-        // resolution
-        double pixelSizesX = XAffineTransform.getScaleX0(tr);
-        double pixelSizesY = XAffineTransform.getScaleY0(tr);
-
         // prepare the envelope and make sure the CRS is set
 
         // use ROI if present
         boolean needResample = false;
-        MathTransform targetTX = null;
         if (roi != null) {
             // reproject the coverage envelope if needed
-            needResample = chekTargetCRSValidity(targetCRS, progressListener, referenceCRS,
-                    needResample);
+            needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                    progressListener);
 
             com.vividsolutions.jts.geom.Envelope envelope = null;
             ReferencedEnvelope refEnvelope = null;
@@ -297,8 +238,8 @@ public abstract class AbstractDownloadProcess implements GSProcess {
                     referenceCRS);
         } else {
             // reproject the coverage envelope if needed
-            needResample = chekTargetCRSValidity(targetCRS, progressListener, referenceCRS,
-                    needResample);
+            needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                    progressListener);
         }
 
         final GeneralEnvelope envelope = new GeneralEnvelope(finalEnvelope);
@@ -328,6 +269,22 @@ public abstract class AbstractDownloadProcess implements GSProcess {
                     "Reference CRS is not valid for this projection. Destination envelope has 0 dimension!");
         }
         // ---- END - Envelope and geometry sanity checks
+
+        // pixel scale
+        final MathTransform tempTransform = coverage.getGrid().getGridToCRS();
+        if (!(tempTransform instanceof AffineTransform)) {
+            cause = new IllegalArgumentException(
+                    "Grid to world tranform is not an AffineTransform:" + resourceInfo.getName());
+            if (progressListener != null) {
+                progressListener.exceptionOccurred(new ProcessException(cause));
+            }
+            throw new ProcessException(cause);
+        }
+        AffineTransform tr = (AffineTransform) tempTransform;
+
+        // resolution
+        double pixelSizesX = XAffineTransform.getScaleX0(tr);
+        double pixelSizesY = XAffineTransform.getScaleY0(tr);
 
         // G2W transform
         final AffineTransform2D g2w = new AffineTransform2D(pixelSizesX, 0, 0, -pixelSizesY,
@@ -366,23 +323,145 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             suggestedTileSize.setValue(String.valueOf(JAI.getDefaultTileSize().width) + ","
                     + String.valueOf(JAI.getDefaultTileSize().height));
         }
-        gc = (GridCoverage2D) coverage.getGridCoverageReader(new NullProgressListener(), hints)
-                .read(new GeneralParameterValue[] { streamingRead, readGG, suggestedTileSize });
+        GridCoverage2D gc = (GridCoverage2D) coverage.getGridCoverageReader(
+                progressListener, hints).read(
+                new GeneralParameterValue[] { streamingRead, readGG, suggestedTileSize });
 
+        return gc;
+    }
+
+    /**
+     * Gets the final coverage.
+     * 
+     * @param resourceInfo the resource info
+     * @param coverage the coverage
+     * @param gc the gc
+     * @param roi the roi
+     * @param roiCRS the roi crs
+     * @param targetCRS the target crs
+     * @param cropToGeometry the crop to geometry
+     * @param progressListener the progress listener
+     * @return the final coverage
+     */
+    protected GridCoverage2D getFinalCoverage(ResourceInfo resourceInfo, CoverageInfo coverage,
+            GridCoverage2D gc, Geometry roi, CoordinateReferenceSystem roiCRS,
+            CoordinateReferenceSystem targetCRS, boolean cropToGeometry,
+            ProgressListener progressListener) {
+        Throwable cause = null;
+        GridCoverage2D finalCoverage = null;
         // create return coverage reusing origin grid to world
         RenderedImage raster = null;
+
+        CoordinateReferenceSystem referenceCRS = coverage.getCRS();
+        ReferencedEnvelope finalEnvelope = null;
+        try {
+            finalEnvelope = coverage.getNativeBoundingBox();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, e.getMessage(), e);
+        }
+
+        // simulate reprojection
+        // tr=new GridToEnvelopeMapper(coverage.getGrid().getGridRange(), finalEnvelope).createAffineTransform();
+
+        // prepare the envelope and make sure the CRS is set
+
+        // use ROI if present
+        boolean needResample = false;
+        try {
+            if (roi != null) {
+                // reproject the coverage envelope if needed
+                needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                        progressListener);
+
+                com.vividsolutions.jts.geom.Envelope envelope = null;
+                ReferencedEnvelope refEnvelope = null;
+                if (needResample) {
+                    roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, targetCRS));
+                } else {
+                    roi = JTS.transform(roi, CRS.findMathTransform(roiCRS, referenceCRS));
+                }
+
+                envelope = roi.getEnvelopeInternal();
+                refEnvelope = new ReferencedEnvelope(envelope, (targetCRS != null ? targetCRS
+                        : referenceCRS));
+                refEnvelope = refEnvelope.transform(referenceCRS, true);
+                finalEnvelope = new ReferencedEnvelope(refEnvelope.intersection(finalEnvelope),
+                        referenceCRS);
+            } else {
+                // reproject the coverage envelope if needed
+                needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                        progressListener);
+            }
+        } catch (MismatchedDimensionException e) {
+            cause = e;
+            if (progressListener != null) {
+                progressListener.exceptionOccurred(new ProcessException(cause));
+            }
+            throw new ProcessException(cause);
+        } catch (TransformException e) {
+            cause = e;
+            if (progressListener != null) {
+                progressListener.exceptionOccurred(new ProcessException(cause));
+            }
+            throw new ProcessException(cause);
+        } catch (FactoryException e) {
+            cause = e;
+            if (progressListener != null) {
+                progressListener.exceptionOccurred(new ProcessException(cause));
+            }
+            throw new ProcessException(cause);
+        }
+
         if (needResample) {
+            // hints for tiling
+            final Hints hints = GeoTools.getDefaultHints().clone();
+            final ImageLayout2 layout = new ImageLayout2();
+            layout.setTileWidth(JAI.getDefaultTileSize().width);
+            layout.setTileHeight(JAI.getDefaultTileSize().height);
+            hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT, layout));
+
             hints.add(new RenderingHints(JAI.KEY_INTERPOLATION, Interpolation
                     .getInstance(Interpolation.INTERP_NEAREST)));
-            ReferencedEnvelope targetEnvelope = finalEnvelope.transform(targetCRS, true);
-            GridCoverageRenderer renderer = new GridCoverageRenderer(targetCRS, targetEnvelope, gc
-                    .getGridGeometry().getGridRange2D().getBounds(), (AffineTransform) null, hints);
-            raster = renderer.renderImage(gc, new RasterSymbolizerImpl(),
-                    Interpolation.getInstance(Interpolation.INTERP_NEAREST), Color.WHITE,
-                    Integer.parseInt(suggestedTileSize.getValue().split(",")[1]),
-                    Integer.parseInt(suggestedTileSize.getValue().split(",")[0]));
+            ReferencedEnvelope targetEnvelope;
+            try {
+                targetEnvelope = finalEnvelope.transform(targetCRS, true);
+                GridCoverageRenderer renderer = new GridCoverageRenderer(targetCRS, targetEnvelope,
+                        gc.getGridGeometry().getGridRange2D().getBounds(), (AffineTransform) null,
+                        hints);
+                final ParameterValue<String> suggestedTileSize = AbstractGridFormat.SUGGESTED_TILE_SIZE
+                        .createValue();
+                raster = renderer.renderImage(gc, new RasterSymbolizerImpl(),
+                        Interpolation.getInstance(Interpolation.INTERP_NEAREST), Color.WHITE,
+                        Integer.parseInt(suggestedTileSize.getValue().split(",")[1]),
+                        Integer.parseInt(suggestedTileSize.getValue().split(",")[0]));
 
-            finalCoverage = createCoverage("resampled", raster, targetEnvelope);
+                finalCoverage = createCoverage("resampled", raster, targetEnvelope);
+
+            } catch (TransformException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            } catch (FactoryException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            } catch (NumberFormatException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            } catch (NoninvertibleTransformException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            }
         } else {
             finalCoverage = gc;
         }
@@ -391,8 +470,25 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         if (roi != null && cropToGeometry) {
 
             Geometry cropShape = roi;
-            ReferencedEnvelope finalEnvelopeInTargetCRS = (needResample ? finalEnvelope.transform(
-                    targetCRS, true) : finalEnvelope);
+            ReferencedEnvelope finalEnvelopeInTargetCRS;
+            try {
+                finalEnvelopeInTargetCRS = (needResample ? finalEnvelope.transform(targetCRS, true)
+                        : finalEnvelope);
+            } catch (TransformException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+
+            } catch (FactoryException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            }
+
             double x1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(0);
             double y1 = finalEnvelopeInTargetCRS.getLowerCorner().getOrdinate(1);
             double x2 = finalEnvelopeInTargetCRS.getUpperCorner().getOrdinate(0);
@@ -410,29 +506,41 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             }
 
             CropCoverage cropProcess = new CropCoverage();
-            finalCoverage = cropProcess.execute(finalCoverage, cropShape, progressListener);
+            try {
+                finalCoverage = cropProcess.execute(finalCoverage, cropShape, progressListener);
+            } catch (IOException e) {
+                cause = e;
+                if (progressListener != null) {
+                    progressListener.exceptionOccurred(new ProcessException(cause));
+                }
+                throw new ProcessException(cause);
+            }
         }
+
+        return finalCoverage;
     }
 
     /**
-     * @param targetCRS
-     * @param progressListener
-     * @param referenceCRS
-     * @param needResample
-     * @return
+     * Chek target crs validity.
+     * 
+     * @param targetCRS the target crs
+     * @param referenceCRS the reference crs
+     * @param needResample the need resample
+     * @param progressListener the progress listener
+     * @return true, if successful
      */
     private boolean chekTargetCRSValidity(CoordinateReferenceSystem targetCRS,
-            ProgressListener progressListener, CoordinateReferenceSystem referenceCRS,
-            boolean needResample) {
+            CoordinateReferenceSystem referenceCRS, boolean needResample,
+            ProgressListener progressListener) {
         if (targetCRS != null) {
             if (!CRS.equalsIgnoreMetadata(referenceCRS, targetCRS)) {
 
                 // testing reprojection...
                 try {
                     /* if (! ( */CRS.findMathTransform(referenceCRS, targetCRS) /*
-                                                                                            * instanceof AffineTransform) ) throw new ProcessException
-                                                                                            * ("Could not reproject to reference CRS")
-                                                                                            */;
+                                                                                 * instanceof AffineTransform) ) throw new ProcessException
+                                                                                 * ("Could not reproject to reference CRS")
+                                                                                 */;
                 } catch (Exception e) {
                     if (progressListener != null) {
                         progressListener.exceptionOccurred(new ProcessException(
@@ -541,39 +649,4 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         }
     }
 
-    /**
-     * Sets the gc.
-     * 
-     * @param gc the gc to set
-     */
-    public void setGc(GridCoverage2D gc) {
-        this.gc = gc;
-    }
-
-    /**
-     * Gets the gc.
-     * 
-     * @return the gc
-     */
-    public GridCoverage2D getGc() {
-        return gc;
-    }
-
-    /**
-     * Sets the final coverage.
-     * 
-     * @param finalCoverage the finalCoverage to set
-     */
-    public void setFinalCoverage(GridCoverage2D finalCoverage) {
-        this.finalCoverage = finalCoverage;
-    }
-
-    /**
-     * Gets the final coverage.
-     * 
-     * @return the finalCoverage
-     */
-    public GridCoverage2D getFinalCoverage() {
-        return finalCoverage;
-    }
 }

@@ -4,15 +4,18 @@
  */
 package org.geoserver.wps.executor;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.geoserver.data.test.MockData;
 import org.geoserver.ows.Ows11Util;
 import org.geoserver.wps.WPSTestSupport;
 import org.geoserver.wps.executor.DefaultProcessManager.ProcessListener;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
+import org.geoserver.wps.executor.storage.dao.BaseDAOTest;
 import org.opengis.feature.type.Name;
 
 import com.thoughtworks.xstream.XStream;
@@ -25,6 +28,23 @@ import com.thoughtworks.xstream.XStream;
  */
 public class ClusterProcessManagerTest extends WPSTestSupport {
 
+    private static final boolean skipTest = false;
+
+    @Override
+    protected void populateDataDirectory(MockData dataDirectory) throws Exception {
+        super.populateDataDirectory(dataDirectory);
+
+        dataDirectory.addWcs10Coverages();
+
+        new File(dataDirectory.getDataDirectoryRoot(), "wps-cluster").mkdirs();
+        dataDirectory.copyTo(
+                BaseDAOTest.class.getClassLoader().getResourceAsStream(
+                        "wps-cluster/dbConfig.properties"), "wps-cluster/dbConfig.properties");
+        dataDirectory.copyTo(
+                BaseDAOTest.class.getClassLoader().getResourceAsStream(
+                        "wps-cluster/wpsCluster.properties"), "wps-cluster/wpsCluster.properties");
+    }
+    
     /**
      * Test serialization.
      *
@@ -32,6 +52,8 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
      */
     public void testSerialization() throws Exception {
 
+        if (skipTest) return;
+        
         ExecutionStatusExTest statusSrc = new ExecutionStatusExTest(Ows11Util.name("test_process"),
                 "0");
 

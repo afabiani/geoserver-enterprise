@@ -30,6 +30,7 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.filter.text.cql2.CQL;
 import org.geotools.gce.geotiff.GeoTiffReader;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.geotools.geometry.jts.JTS;
@@ -183,7 +184,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
                 null).getFeatures();
 
         File shpeZip = downloadProcess.execute(getLayerId(MockData.BUILDINGS), // layerName
-                "ADDRESS = '123 Main Street'", // filter
+                CQL.toFilter("ADDRESS = '123 Main Street'"), // filter
                 null, // mail
                 "shape-zip", // outputFormat
                 null, // targetCRS
