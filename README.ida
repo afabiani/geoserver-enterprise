@@ -1,4 +1,4 @@
-How to Build
+ok How to Build
 =======================================================
 
  > mvn eclipse:clean eclipse:eclipse clean install -Pwps,wps-cluster,wps-cmre,wps-ida -DskipTests
