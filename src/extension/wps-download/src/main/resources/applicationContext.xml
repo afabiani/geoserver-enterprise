@@ -55,5 +55,9 @@
 	<!-- WPS SendMail bean -->
 	<bean id="wpsSendMail" class="org.geoserver.wps.mail.SendMail">
     </bean>
-	
+    
+	<!-- KML PPIO -->
+	<bean id="KMLPPIO" class="org.geoserver.wps.ppio.KMLPPIO">
+		  <!-- <constructor-arg ref="wpsResourceManager"/> -->
+	</bean>
 </beans>

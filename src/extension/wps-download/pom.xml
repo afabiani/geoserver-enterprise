@@ -92,12 +92,6 @@
 			<version>0.3.6</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- dependency>
-			<groupId>org.geoserver</groupId>
-			<artifactId>WPS_ToFeature</artifactId>
-			<version>${gs.version}</version>
-			<scope>test</scope>
-		</dependency -->
 		<dependency>
 			<groupId>org.geoserver</groupId>
 			<artifactId>main</artifactId>
@@ -123,26 +117,13 @@
 			<version>2.7.0</version>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- for KML output -->
+		<dependency>
+			<groupId>org.geotools.xsd</groupId>
+			<artifactId>gt-xsd-kml</artifactId>
+			<version>${gt.version}</version>
+		</dependency>    
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.5</source>
-					<target>1.5</target>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	<repositories>
-		<repository>
-			<id>opengeo</id>
-			<name>opengeo</name>
-			<url>http://repo.opengeo.org</url>
-		</repository>
-	</repositories>
 
 </project>

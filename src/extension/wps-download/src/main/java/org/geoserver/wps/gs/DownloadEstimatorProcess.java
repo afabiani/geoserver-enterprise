@@ -131,44 +131,15 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                 // The filter is parsed by the GeoServer FilterPPIOs
                 try {
                     
-                    if (filter == null) ra = Filter.INCLUDE;
-                    else ra = filter;
-                    
-                    /*
-                     * OLD Filter Parsing Code
+                    if (filter == null){
+                        ra = Filter.INCLUDE;
+                    } else{
+                        ra = filter;
+                    }
 
-                        // === filter or expression
-                        if (filter != null) {
-                            try {
-                                ra = ECQL.toFilter(filter);
-                            } catch (Exception e_cql) {
-                                try {
-                                    Parser parser = new Parser(
-                                            new org.geotools.filter.v1_1.OGCConfiguration());
-                                    Reader reader = new StringReader(filter);
-                                    // set the input source with the correct encoding
-                                    InputSource source = new InputSource(reader);
-                                    source.setEncoding(getCharset().name());
-                                    ra = (Filter) parser.parse(source);
-    
-                                } catch (Exception e_ogc) {
-                                    cause = new WPSException("Unable to parse input expression", e_ogc);
-                                    if (progressListener != null) {
-                                        progressListener.exceptionOccurred(new ProcessException(
-                                                "Could not complete the Download Process", cause));
-                                    }
-                                    throw new ProcessException(
-                                            "Could not complete the Download Process", cause);
-                                }
-                            }
-                        } else {
-                            ra = Filter.INCLUDE;
-                        }
-                        
-                     */
 
                     // get the feature source given the datastore
-                    featureSource = getFeatureSource(dataStore, resourceInfo, progressListener);
+                    featureSource = DownloadUtilities.getFeatureSource(dataStore, resourceInfo, progressListener);
 
                 } catch (Exception e) {
                     LOGGER.severe("Could not parse the feature source for " + layerName);
@@ -243,21 +214,21 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                          * Checking that the coverage described by the specified geometry and sample model does not exceeds the read limits
                          */
                         // compute the coverage memory usage and compare with limit
-                        long actual = getCoverageSize(gc.getGridGeometry().getGridRange2D(), gc
+                        long actual = DownloadUtilities.getCoverageSize(gc.getGridGeometry().getGridRange2D(), gc
                                 .getRenderedImage().getSampleModel());
                         if (readLimits > 0 && actual > readLimits * 1024) {
                             if (progressListener != null) {
                                 progressListener.exceptionOccurred(new ProcessException(
                                         "This request is trying to read too much data, "
-                                                + "the limit is " + formatBytes(readLimits)
+                                                + "the limit is " + DownloadUtilities.formatBytes(readLimits)
                                                 + " but the actual amount of "
-                                                + "bytes to be read is " + formatBytes(actual)));
+                                                + "bytes to be read is " + DownloadUtilities.formatBytes(actual)));
                             }
                             throw new ProcessException(
                                     "This request is trying to read too much data, "
-                                            + "the limit is " + formatBytes(readLimits)
+                                            + "the limit is " + DownloadUtilities.formatBytes(readLimits)
                                             + " but the actual amount of " + "bytes to be read is "
-                                            + formatBytes(actual));
+                                            + DownloadUtilities.formatBytes(actual));
                         }
 
                         /**
@@ -266,7 +237,7 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                         // compute the coverage memory usage and compare with limit
                         GridCoverage2D finalCoverage = getFinalCoverage(resourceInfo, coverage, gc,
                                 roi, roiCRS, targetCRS, cropToGeometry, progressListener);
-                        actual = getCoverageSize(finalCoverage.getGridGeometry().getGridRange2D(),
+                        actual = DownloadUtilities.getCoverageSize(finalCoverage.getGridGeometry().getGridRange2D(),
                                 finalCoverage.getRenderedImage().getSampleModel());
                         if (writeLimits > 0 && actual > writeLimits * 1024) {
                             if (progressListener != null) {
@@ -274,19 +245,19 @@ public class DownloadEstimatorProcess extends AbstractDownloadProcess {
                                         .exceptionOccurred(new ProcessException(
                                                 "This request is trying to generate too much data, "
                                                         + "the limit is "
-                                                        + formatBytes(writeLimits)
+                                                        + DownloadUtilities.formatBytes(writeLimits)
                                                         + " but the actual amount of bytes to be "
                                                         + "written in the output is "
-                                                        + formatBytes(actual)));
+                                                        + DownloadUtilities.formatBytes(actual)));
                             }
                             throw new ProcessException(
                                     "This request is trying to generate too much data, "
-                                            + "the limit is " + formatBytes(writeLimits)
+                                            + "the limit is " + DownloadUtilities.formatBytes(writeLimits)
                                             + " but the actual amount of bytes to be "
-                                            + "written in the output is " + formatBytes(actual));
+                                            + "written in the output is " + DownloadUtilities.formatBytes(actual));
                         }
 
-                    return (true);
+                    return true;
                 }
             } else {
                 LOGGER.severe("Could not find store for layer " + layerName);

@@ -4,8 +4,6 @@
  */
 package org.geoserver.wps.ppio;
 
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * Process parameter input / output for objects which are text based (no Base64 encoding needed)

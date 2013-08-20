@@ -8,38 +8,22 @@ import java.awt.Color;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
-import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
-import java.awt.image.SampleModel;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.text.DecimalFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.media.jai.ImageLayout;
 import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
-import javax.servlet.ServletContext;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
-import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.config.GeoServer;
-import org.geoserver.platform.GeoServerExtensions;
-import org.geoserver.wfs.response.ShapeZipOutputFormat;
-import org.geoserver.wps.WPSException;
-import org.geotools.coverage.GridSampleDimension;
-import org.geotools.coverage.TypeMap;
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.GridCoverageFactory;
-import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.data.DataStore;
-import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
@@ -58,11 +42,7 @@ import org.geotools.renderer.lite.gridcoverage2d.GridCoverageRenderer;
 import org.geotools.styling.RasterSymbolizerImpl;
 import org.geotools.util.logging.Logging;
 import org.jaitools.imageutils.ImageLayout2;
-import org.opengis.coverage.ColorInterpretation;
-import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;
-import org.opengis.filter.FilterFactory;
-import org.opengis.geometry.Envelope;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValue;
@@ -88,17 +68,11 @@ public abstract class AbstractDownloadProcess implements GSProcess {
     /** The Constant LOGGER. */
     protected static final Logger LOGGER = Logging.getLogger(AbstractDownloadProcess.class);
 
-    /** The gc factory. */
-    protected static GridCoverageFactory gcFactory = new GridCoverageFactory();
-
     /** The geo server. */
     protected GeoServer geoServer;
 
     /** The catalog. */
     protected Catalog catalog;
-
-    /** The ff. */
-    protected FilterFactory ff = CommonFactoryFinder.getFilterFactory(GeoTools.getDefaultHints());
 
     /** The geom builder. */
     protected GeometryBuilder geomBuilder = new GeometryBuilder();
@@ -141,49 +115,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             final ProgressListener progressListener) throws ProcessException;
 
     /**
-     * Gets the feature source.
-     * 
-     * @param dataStore the data store
-     * @param resourceInfo the resource info
-     * @param progressListener the progress listener
-     * @return the feature source
-     * @throws Exception the exception
-     */
-    protected SimpleFeatureSource getFeatureSource(DataStoreInfo dataStore,
-            ResourceInfo resourceInfo, ProgressListener progressListener) throws Exception {
-        SimpleFeatureType targetType;
-        // grab the data store
-        DataStore ds = (DataStore) dataStore.getDataStore(null);
-
-        // try to get the target feature type (might have slightly different name and structure)
-        String type = "";
-        for (String typeName : ds.getTypeNames()) {
-            if (typeName.equalsIgnoreCase(resourceInfo.getName())) {
-                type = typeName;
-            }
-        }
-
-        targetType = ds.getSchema(type);
-        if (targetType == null) {
-            // ouch, the name was changed... we can only guess now...
-            // try with the typical Oracle mangling
-            targetType = ds.getSchema(type.toUpperCase());
-        }
-
-        if (targetType == null) {
-            Throwable cause = new WPSException(
-                    "No TypeName detected on source schema.Cannot proceeed further.");
-            if (progressListener != null) {
-                progressListener.exceptionOccurred(new ProcessException(cause));
-            }
-            throw new ProcessException(cause);
-        }
-
-        // get the features
-        return ds.getFeatureSource(targetType.getTypeName());
-    }
-
-    /**
      * Gets the coverage.
      * 
      * @param resourceInfo the resource info
@@ -218,7 +149,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         boolean needResample = false;
         if (roi != null) {
             // reproject the coverage envelope if needed
-            needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+            needResample = checkTargetCRSValidity(targetCRS, referenceCRS, needResample,
                     progressListener);
 
             com.vividsolutions.jts.geom.Envelope envelope = null;
@@ -237,7 +168,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
                     referenceCRS);
         } else {
             // reproject the coverage envelope if needed
-            needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+            needResample = checkTargetCRSValidity(targetCRS, referenceCRS, needResample,
                     progressListener);
         }
 
@@ -369,7 +300,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
         try {
             if (roi != null) {
                 // reproject the coverage envelope if needed
-                needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                needResample = checkTargetCRSValidity(targetCRS, referenceCRS, needResample,
                         progressListener);
 
                 com.vividsolutions.jts.geom.Envelope envelope = null;
@@ -388,7 +319,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
                         referenceCRS);
             } else {
                 // reproject the coverage envelope if needed
-                needResample = chekTargetCRSValidity(targetCRS, referenceCRS, needResample,
+                needResample = checkTargetCRSValidity(targetCRS, referenceCRS, needResample,
                         progressListener);
             }
         } catch (MismatchedDimensionException e) {
@@ -434,7 +365,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
                         Integer.parseInt(suggestedTileSize.getValue().split(",")[1]),
                         Integer.parseInt(suggestedTileSize.getValue().split(",")[0]));
 
-                finalCoverage = createCoverage("resampled", raster, targetEnvelope);
+                finalCoverage = DownloadUtilities.createCoverage("resampled", raster, targetEnvelope);
 
             } catch (TransformException e) {
                 cause = e;
@@ -528,7 +459,7 @@ public abstract class AbstractDownloadProcess implements GSProcess {
      * @param progressListener the progress listener
      * @return true, if successful
      */
-    private boolean chekTargetCRSValidity(CoordinateReferenceSystem targetCRS,
+    private boolean checkTargetCRSValidity(CoordinateReferenceSystem targetCRS,
             CoordinateReferenceSystem referenceCRS, boolean needResample,
             ProgressListener progressListener) {
         if (targetCRS != null) {
@@ -552,100 +483,6 @@ public abstract class AbstractDownloadProcess implements GSProcess {
             }
         }
         return needResample;
-    }
-
-    /**
-     * Gets the charset.
-     * 
-     * @return the charset
-     */
-    public static Charset getCharset() {
-        final String charsetName = GeoServerExtensions.getProperty(
-                ShapeZipOutputFormat.GS_SHAPEFILE_CHARSET, (ServletContext) null);
-        if (charsetName != null) {
-            return Charset.forName(charsetName);
-        } else {
-            // if not specified let's use the shapefile default one
-            return Charset.forName("ISO-8859-1");
-        }
-    }
-
-    /**
-     * Creates the coverage.
-     * 
-     * @param name the name
-     * @param raster the raster
-     * @param envelope the envelope
-     * @return the grid coverage2 d
-     */
-    public static GridCoverage2D createCoverage(final String name, final RenderedImage raster,
-            final Envelope envelope) {
-
-        // creating bands
-        final SampleModel sm = raster.getSampleModel();
-        final ColorModel cm = raster.getColorModel();
-        final int numBands = sm.getNumBands();
-        final GridSampleDimension[] bands = new GridSampleDimension[numBands];
-        // setting bands names.
-        for (int i = 0; i < numBands; i++) {
-            final ColorInterpretation colorInterpretation = TypeMap.getColorInterpretation(cm, i);
-            final String sdName = (colorInterpretation == null) ? ("band" + i)
-                    : colorInterpretation.name();
-            bands[i] = new GridSampleDimension(sdName).geophysics(true);
-        }
-
-        return gcFactory.create(name, raster, new GeneralEnvelope(envelope), bands, null, null);
-    }
-
-    /**
-     * Computes the size of a grid coverage given its grid envelope and the target sample model.
-     * 
-     * @param envelope the envelope
-     * @param sm the sm
-     * @return the coverage size
-     */
-    public static long getCoverageSize(GridEnvelope2D envelope, SampleModel sm) {
-        // === compute the coverage memory usage and compare with limit
-        final long pixelsNumber = computePixelsNumber(envelope);
-
-        long pixelSize = 0;
-        final int numBands = sm.getNumBands();
-        for (int i = 0; i < numBands; i++) {
-            pixelSize += sm.getSampleSize(i);
-        }
-        return pixelsNumber * pixelSize / 8;
-    }
-
-    /**
-     * Computes the number of pixels for this {@link GridEnvelope2D}.
-     * 
-     * @param rasterEnvelope the {@link GridEnvelope2D} to compute the number of pixels for
-     * @return the number of pixels for the provided {@link GridEnvelope2D}
-     */
-    public static long computePixelsNumber(GridEnvelope2D rasterEnvelope) {
-        // pixels
-        long pixelsNumber = 1;
-        final int dimensions = rasterEnvelope.getDimension();
-        for (int i = 0; i < dimensions; i++) {
-            pixelsNumber *= rasterEnvelope.getSpan(i);
-        }
-        return pixelsNumber;
-    }
-
-    /**
-     * Utility function to format a byte amount into a human readable string.
-     * 
-     * @param bytes the bytes
-     * @return the string
-     */
-    public static String formatBytes(long bytes) {
-        if (bytes < 1024) {
-            return bytes + "B";
-        } else if (bytes < 1024 * 1024) {
-            return new DecimalFormat("#.##").format(bytes / 1024.0) + "KB";
-        } else {
-            return new DecimalFormat("#.##").format(bytes / 1024.0 / 1024.0) + "MB";
-        }
     }
 
 }

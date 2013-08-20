@@ -38,6 +38,7 @@ import org.geotools.geometry.jts.WKTReader2;
 import org.geotools.process.ProcessException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.util.DefaultProgressListener;
 import org.geotools.util.NullProgressListener;
 import org.geotools.util.logging.Logging;
 import org.opengis.feature.simple.SimpleFeature;
@@ -50,11 +51,11 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 
 /**
- * The Class DownloadlProcessTest.
+ * The Class DownloadProcessTest.
  * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
-public class DownloadlProcessTest extends GeoServerTestSupport {
+public class DownloadProcessTest extends GeoServerTestSupport {
 
     /**
      * Populate data directory.
@@ -70,17 +71,17 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         new File(dataDirectory.getDataDirectoryRoot(), "wps-cluster").mkdirs();
         dataDirectory.copyTo(
-                DownloadlProcessTest.class.getClassLoader().getResourceAsStream(
+                DownloadProcessTest.class.getClassLoader().getResourceAsStream(
                         "wps-cluster/dbConfig.properties"), "wps-cluster/dbConfig.properties");
         dataDirectory.copyTo(
-                DownloadlProcessTest.class.getClassLoader().getResourceAsStream(
+                DownloadProcessTest.class.getClassLoader().getResourceAsStream(
                         "wps-cluster/downloadProcess.properties"),
                 "wps-cluster/downloadProcess.properties");
         dataDirectory.copyTo(
-                DownloadlProcessTest.class.getClassLoader().getResourceAsStream(
+                DownloadProcessTest.class.getClassLoader().getResourceAsStream(
                         "wps-cluster/mail.properties"), "wps-cluster/mail.properties");
         dataDirectory.copyTo(
-                DownloadlProcessTest.class.getClassLoader().getResourceAsStream(
+                DownloadProcessTest.class.getClassLoader().getResourceAsStream(
                         "wps-cluster/wpsCluster.properties"), "wps-cluster/wpsCluster.properties");
     }
 
@@ -102,7 +103,8 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testGetFeaturesAsShapefile() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -111,7 +113,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         File shpeZip = downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                 null, // filter
                 null, // mail
-                "shape-zip", // outputFormat
+                "application/zip", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:32615"), // roiCRS
                 roi, // roi
@@ -174,7 +176,8 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testFilteredClippedFeatures() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON ((0.0008993124415341 0.0006854377923293, 0.0008437876520112 0.0006283489242283, 0.0008566913002806 0.0005341131898971, 0.0009642217025257 0.0005188634237605, 0.0011198475210477 0.000574779232928, 0.0010932581852198 0.0006572843779233, 0.0008993124415341 0.0006854377923293))");
@@ -186,7 +189,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         File shpeZip = downloadProcess.execute(getLayerId(MockData.BUILDINGS), // layerName
                 CQL.toFilter("ADDRESS = '123 Main Street'"), // filter
                 null, // mail
-                "shape-zip", // outputFormat
+                "application/zip", // outputFormat
                 null, // targetCRS
                 DefaultGeographicCRS.WGS84, // roiCRS
                 roi, // roi
@@ -221,7 +224,8 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testGetFeaturesAsGML() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -231,7 +235,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         File gml2Zip = downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                 null, // filter
                 null, // mail
-                "application/gml-2.1.2", // outputFormat
+                "application/wfs-collection-1.0", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:32615"), // roiCRS
                 roi, // roi
@@ -243,8 +247,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
 
         File[] files = exctractGMLFile(gml2Zip);
 
-        SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) new WFSPPIO.WFS10()
-                .decode(new FileInputStream(files[0]));
+        SimpleFeatureCollection rawTarget = (SimpleFeatureCollection) new WFSPPIO.WFS10().decode(new FileInputStream(files[0]));
 
         assertNotNull(rawTarget);
 
@@ -254,7 +257,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         File gml3Zip = downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                 null, // filter
                 null, // mail
-                "application/gml-3.1.1", // outputFormat
+                "application/wfs-collection-1.1", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:32615"), // roiCRS
                 roi, // roi
@@ -336,8 +339,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * 
      * @throws Exception the exception
      */
-    public void testGetFeaturesAsGeoJSON() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+    public void testGetFeaturesAsGeoJSON() throws Exception {        
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+    DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -346,7 +350,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
         File jsonZip = downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                 null, // filter
                 null, // mail
-                "json", // outputFormat
+                "application/json", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:32615"), // roiCRS
                 roi, // roi
@@ -372,7 +376,8 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testDownloadRaster() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         // Envelope env = new Envelope(-125.074006936869,-123.88300771369998, 48.5552612829,49.03872);
         // Polygon roi = JTS.toGeometry(env);
@@ -461,8 +466,9 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
      * 
      * @throws Exception the exception
      */
-    public void testZipPPIO() throws Exception {
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
+    public void testZipGeoTiffPPIO() throws Exception {
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
 
         // -130.88669845369998 : -123.88300771369998, 48.5552612829 : 54.1420338629
         Envelope env = new Envelope(-125.074006936869, -123.88300771369998, 48.5552612829, 49.03872);
@@ -653,7 +659,7 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
             downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                     null, // filter
                     null, // mail
-                    "shape-zip", // outputFormat
+                    "application/zip", // outputFormat
                     null, // targetCRS
                     CRS.decode("EPSG:32615"), // roiCRS
                     roi, // roi
@@ -904,6 +910,40 @@ public class DownloadlProcessTest extends GeoServerTestSupport {
             ShapefileDataStore store = new ShapefileDataStore(DataUtilities.fileToURL(shapeFile));
             return store.getFeatureSource().getFeatures();
         }
+    }
+
+    /**
+     * Test get features as gml.
+     * 
+     * @throws Exception the exception
+     */
+    public void testWrongOutputFormat() throws Exception {
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+    
+        FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
+        SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
+                null).getFeatures();
+    
+        // GML 2
+        final DefaultProgressListener progressListener = new DefaultProgressListener();
+        try{ 
+                downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
+                null, // filter
+                null, // mail
+                "IAmWrong!!!", // outputFormat
+                null, // targetCRS
+                CRS.decode("EPSG:32615"), // roiCRS
+                roi, // roi
+                false, // cropToGeometry
+                progressListener // progressListener
+                );
+                assertTrue("We did not get an exception",false);
+        }catch (Exception e) {
+            assertTrue("Everything as expected",true);
+        }
+        
+       
     }
 
 }
