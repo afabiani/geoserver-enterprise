@@ -4,7 +4,7 @@
 <beans>
   <bean id="printingWrapper" class="org.geoserver.printing.PrintingServletWrappingController">
     <property name="servletClass">
-      <value>org.mapfish.print.servlet.MapPrinterServlet</value>
+      <value>org.geoserver.printing.servlet.MapPrinterServlet</value>
     </property>
     <property name="servletName">
       <value>mapfish.print</value>
