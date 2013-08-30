@@ -24,8 +24,6 @@ import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wcs.response.WCSStorageCleaner;
 import org.geotools.util.logging.Logging;
-import org.vfny.geoserver.global.GeoserverDataDirectory;
-import org.vfny.geoserver.wcs.WcsException;
 
 /**
  * Cleans up the temporary storage directory for WPS
@@ -33,29 +31,25 @@ import org.vfny.geoserver.wcs.WcsException;
  * @author Andrea Aime - GeoSolutions
  */
 public class WPSStorageCleaner extends TimerTask {
+    
     Logger LOGGER = Logging.getLogger(WCSStorageCleaner.class);
 
     long expirationDelay;
 
     private File storage;
 
-    private String baseURL;
-
     Set<File> lockedFiles = Collections.newSetFromMap(new ConcurrentHashMap<File, Boolean>());
 
     public WPSStorageCleaner(GeoServerDataDirectory dataDirectory) throws IOException,
             ConfigurationException {
-        // get the temporary storage for WPS
-        try {
-            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
-            File temp = null;
-            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
-                temp = dataDirectory.findOrCreateDataDir("temp/wps");
-            else {
-                temp = new File(wpsOutputStorage, "wps");
-            }
-            storage = temp;
-        } catch (Exception e) {
+
+        // get the default temporary storage for WPS
+        storage = dataDirectory.findOrCreateDir("temp/wps");        
+    }
+    
+    protected WPSStorageCleaner(File storage)throws IOException{
+        this.storage=storage;
+        if(storage==null||!storage.exists()||!storage.isDirectory()){
             throw new IOException("Could not find the temporary storage directory for WPS");
         }
     }
@@ -83,7 +77,7 @@ public class WPSStorageCleaner extends TimerTask {
      * @param now
      * @throws IOException
      */
-    private void cleanupDirectory(File directory, long now) throws IOException {
+    protected void cleanupDirectory(File directory, long now) throws IOException {
         for (File f : directory.listFiles()) {
             // skip locked files, someone is downloading them
             if (lockedFiles.contains(f)) {
@@ -168,31 +162,6 @@ public class WPSStorageCleaner extends TimerTask {
      */
     public void unlock(File file) {
         this.lockedFiles.remove(file);
-    }
-    
-    /**
-     * Gets the wps output storage.
-     * 
-     * @return the wps output storage
-     */
-    public static File getWpsOutputStorage() {
-        File wpsStore = null;
-        try {
-            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
-            File temp = null;
-            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
-                temp = GeoserverDataDirectory.findCreateConfigDir("temp");
-            else {
-                temp = new File(wpsOutputStorage);
-            }
-            wpsStore = new File(temp, "wps");
-            if (!wpsStore.exists()) {
-                mkdir(wpsStore);
-            }
-        } catch (Exception e) {
-            throw new WcsException("Could not create the temporary storage directory for WPS");
-        }
-        return wpsStore;
     }
     
     /**

@@ -2,7 +2,7 @@
  * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
-package org.geoserver.wps.gs.utils;
+package org.geoserver.wps.gs;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.io.OutputStream;
  * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
-public abstract class LimitedFileOutputStream extends FilterOutputStream {
+abstract class LimitedOutputStream extends FilterOutputStream {
     /**
      * The maximum size of an item, in bytes.
      */
@@ -35,7 +35,7 @@ public abstract class LimitedFileOutputStream extends FilterOutputStream {
      * @param pOut The input stream, which shall be limited.
      * @param pSizeMax The limit; no more than this number of bytes shall be returned by the source stream.
      */
-    public LimitedFileOutputStream(OutputStream pOut, long pSizeMax) {
+    public LimitedOutputStream(OutputStream pOut, long pSizeMax) {
         super(pOut);
         sizeMax = pSizeMax;
     }

@@ -150,21 +150,15 @@ public class WPSResourceManager implements DispatcherCallback,
         return file;
     }
 
-    File getWpsOutputStorage() {
+    public File getWpsOutputStorage() {
         File wpsStore = null;
         try {
-            String wpsOutputStorage = GeoServerExtensions.getProperty("WPS_OUTPUT_STORAGE");
-            File temp = null;
-            if (wpsOutputStorage == null || !new File(wpsOutputStorage).exists())
-                temp = GeoserverDataDirectory.findCreateConfigDir("temp");
-            else {
-                temp = new File(wpsOutputStorage);
-            }
+            File temp = GeoserverDataDirectory.findCreateConfigDir("temp");
             wpsStore = new File(temp, "wps");
-            if (!wpsStore.exists()) {
+            if(!wpsStore.exists()) {
                 mkdir(wpsStore);
             }
-        } catch (Exception e) {
+        } catch(Exception e) {
             throw new WcsException("Could not create the temporary storage directory for WPS");
         }
         return wpsStore;

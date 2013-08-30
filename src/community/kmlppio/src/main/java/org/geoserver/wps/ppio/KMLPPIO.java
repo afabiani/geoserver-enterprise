@@ -110,11 +110,13 @@ public class KMLPPIO extends CDataPPIO {
     }
     
     @Override
-    public void encode(Object obj, OutputStream handler) throws Exception {
+    public void encode(Object obj, OutputStream os) throws Exception {
         LOGGER.info("KMLPPIO::encode: obj is of class " + obj.getClass().getName()
-                + ", handler is of class " + handler.getClass().getName());
+                + ", handler is of class " + os.getClass().getName());
         KmlEncoder kmlEncoder = new KmlEncoder();
-        kmlEncoder.encode(handler, (SimpleFeatureCollection) obj);
+        kmlEncoder.encode(os, (SimpleFeatureCollection) obj);
+        os.flush();
+        
     }
 
     public String getFileExtension() {

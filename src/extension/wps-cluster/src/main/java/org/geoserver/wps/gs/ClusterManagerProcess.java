@@ -4,16 +4,11 @@
  */
 package org.geoserver.wps.gs;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geoserver.config.GeoServer;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wps.executor.ExecutionStatus;
-import org.geoserver.wps.executor.ProcessStorage;
-import org.geoserver.wps.executor.ProcessStorage.ExecutionStatusEx;
+import org.geoserver.wps.executor.storage.ProcessStorage;
 import org.geotools.process.ProcessException;
 import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
@@ -25,6 +20,10 @@ import org.opengis.util.ProgressListener;
 /**
  * The Class ClusterManagerProcess.
  * 
+ * <p>
+ * In the future this process could be used to stop ongoing processes.
+ * For the time being it simply access the executiong logs
+ * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 @DescribeProcess(title = "Enterprise Cluster-Manager Process", description = "Allows to retrieve the Execution Status of the Cluster running processes.")
@@ -32,19 +31,19 @@ public class ClusterManagerProcess implements GSProcess {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(ClusterManagerProcess.class);
+    
+    private final ProcessStorage storage;
 
-    /** The available storages. */
-    private List<ProcessStorage> availableStorages;
 
     /**
      * Instantiates a new cluster manager process.
      * 
-     * @param geoServer the geo server
+     * @param storage the {@link ProcessStorage} to inquiry
      */
-    public ClusterManagerProcess(GeoServer geoServer) {
-        availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
-        if (availableStorages == null || availableStorages.size() == 0) {
-            throw new RuntimeException("No available Process Storage registered on GeoServer!");
+    public ClusterManagerProcess(ProcessStorage storage) {
+        this.storage = storage;
+        if (storage == null ) {
+            throw new RuntimeException("Provided null ProcessStorage");
         }
     }
 
@@ -57,51 +56,16 @@ public class ClusterManagerProcess implements GSProcess {
      * @throws ProcessException the process exception
      */
     @DescribeResult(name = "result", description = "Zipped output files to download")
-    public List<ExecutionStatus> execute(
+    public ExecutionStatus execute(
             @DescribeParameter(name = "executionId", min = 1, description = "The requested WPS ExecutionId") String executionId,
             ProgressListener progressListener) throws ProcessException {
+        
             if(LOGGER.isLoggable(Level.FINE)){
                 LOGGER.fine("Requested status for execution ID: "+executionId);
             }
-            final List<ExecutionStatus> processesStatus = new ArrayList<ExecutionStatus>();
-            for (ProcessStorage storage : availableStorages) {
-                List<ExecutionStatusEx> status = storage.getStatus(executionId, true);
+            return storage.getStatus(executionId, true);
 
-                if (status != null && status.size() > 0) {
-                    for (ExecutionStatus exStatus : status) {
-                        boolean canUpdate = true;
-
-                        for (ExecutionStatus storedStatus : processesStatus) {
-                            if (storedStatus.getExecutionId().equals(exStatus.getExecutionId())
-                                    && exStatus.getProgress() < storedStatus.getProgress())
-                                canUpdate = false;
-                        }
-
-                        if (exStatus.getProcessName().getLocalPart()
-                                .equalsIgnoreCase("TestProcess")
-                                || !exStatus.getExecutionId().equals(executionId))
-                            canUpdate = false;
-
-                        if (canUpdate) {
-                            for (ExecutionStatus storedStatus : processesStatus) {
-                                if (exStatus.getProcessName().getLocalPart()
-                                        .equalsIgnoreCase("TestProcess")
-                                        || !storedStatus.getExecutionId().equals(
-                                                exStatus.getExecutionId())
-                                        || (storedStatus.getExecutionId().equals(
-                                                exStatus.getExecutionId()) && exStatus
-                                                .getProgress() < storedStatus.getProgress()))
-                                    canUpdate = false;
-                            }
-                        }
-                        if (canUpdate) {
-                            processesStatus.add(exStatus);
-                        }
-                    }
-                }
-            }
-
-            return processesStatus;
+        
     }
 
 }

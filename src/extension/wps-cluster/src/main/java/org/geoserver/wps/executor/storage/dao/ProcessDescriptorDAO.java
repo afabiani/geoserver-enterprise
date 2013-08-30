@@ -63,6 +63,13 @@ public interface ProcessDescriptorDAO{
      * @return true, if successful
      */
     public boolean removeById(Long id);
+    
+    /**
+     * Removes the by id.
+     *
+     * @param id the ids
+     */
+    public void removeByIds(Long... id);
 
     /**
      * Search.

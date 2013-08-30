@@ -333,7 +333,7 @@ public class DefaultProcessManager implements ProcessManager, ExtensionPriority,
 
         @Override
         public void complete() {
-            // nothing to do
+            status.setPhase(ProcessState.COMPLETED);
         }
 
         @Override

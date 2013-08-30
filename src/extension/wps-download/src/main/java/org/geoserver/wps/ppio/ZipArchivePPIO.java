@@ -6,19 +6,20 @@ package org.geoserver.wps.ppio;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.config.GeoServer;
 import org.geoserver.data.util.IOUtils;
-import org.geoserver.wps.resource.WPSResourceManager;
+import org.geotools.util.Utilities;
+import org.geotools.util.logging.Logging;
 
 /**
  * Handles input and output of feature collections as zipped files.
@@ -27,14 +28,12 @@ import org.geoserver.wps.resource.WPSResourceManager;
  */
 public class ZipArchivePPIO extends BinaryPPIO {
 
-    /** The geo server. */
-    GeoServer geoServer;
+    private final static Logger LOGGER = Logging.getLogger(ZipArchivePPIO.class);
 
     /** The catalog. */
-    Catalog catalog;
+    private Catalog catalog;
 
-    /** The resources. */
-    WPSResourceManager resources;
+    private int compressionLevel=ZipOutputStream.STORED;
 
     /**
      * Instantiates a new zip archive ppio.
@@ -42,11 +41,14 @@ public class ZipArchivePPIO extends BinaryPPIO {
      * @param geoServer the geo server
      * @param resources the resources
      */
-    protected ZipArchivePPIO(GeoServer geoServer, WPSResourceManager resources) {
+    public ZipArchivePPIO(GeoServer geoServer, int compressionLevel) {
         super(File.class, File.class, "application/zip");
-        this.geoServer = geoServer;
+        Utilities.ensureNonNull("geoserver", geoServer);
+        if(compressionLevel<ZipOutputStream.STORED||compressionLevel>ZipOutputStream.DEFLATED){
+            throw new IllegalArgumentException("Invalid Compression Level: "+compressionLevel);
+        }
         this.catalog = geoServer.getCatalog();
-        this.resources = resources;
+        this.compressionLevel=compressionLevel;
     }
 
     /**
@@ -59,19 +61,42 @@ public class ZipArchivePPIO extends BinaryPPIO {
     @Override
     public void encode(final Object output, OutputStream os) throws Exception {
         ZipOutputStream zipout = new ZipOutputStream(os);
-        try {
-            File directory = catalog.getResourceLoader().findOrCreateDirectory("downloads");
-            FileUtils.copyFileToDirectory((File) output, directory);
-            IOUtils.zipDirectory(directory, zipout, new FilenameFilter() {
-
-                public boolean accept(File parent, String name) {
-                    return name.equals(FilenameUtils.getName(((File) output).getName()));
+        zipout.setLevel(compressionLevel); 
+        
+        // directory
+        if(output instanceof File){
+            final File file= ((File)output);
+            if(file.isDirectory()){
+                IOUtils.zipDirectory(file, zipout,FileFilterUtils.trueFileFilter());
+            } else {
+                // check if is a zip file already
+                IOUtils.zipFile(file, zipout);
+            }
+        } else {
+            // list of files
+            if(output instanceof Collection){
+                // create temp dir
+                final Collection collection=(Collection) output;
+                for(Object obj:collection){
+                    if(obj instanceof File){
+                        // convert to file and add to zip
+                        final File file= ((File)obj);
+                        if(file.isDirectory()){
+                            IOUtils.zipDirectory(file, zipout,FileFilterUtils.trueFileFilter());
+                        } else {
+                            // check if is a zip file already
+                            IOUtils.zipFile(file, zipout);
+                        }
+                    } else {
+                        LOGGER.info("Skipping object -->"+obj.toString());
+                    }
                 }
-            });
-            zipout.finish();
-        } finally {
-            FileUtils.deleteQuietly((File) output);
+            } else {
+                // error
+                throw new IllegalArgumentException("Unable to zip provided output. Output-->"+output!=null?output.getClass().getCanonicalName():"null");
+            }
         }
+        zipout.finish();
     }
 
     /**
@@ -80,6 +105,7 @@ public class ZipArchivePPIO extends BinaryPPIO {
      * @param input the input
      * @return the object
      * @throws Exception the exception
+     * TODO review
      */
     @Override
     public Object decode(InputStream input) throws Exception {
@@ -93,7 +119,6 @@ public class ZipArchivePPIO extends BinaryPPIO {
             ZipEntry entry = null;
 
             while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
                 File file = new File(directory, entry.getName());
                 if (entry.isDirectory()) {
                     file.mkdir();
@@ -135,20 +160,4 @@ public class ZipArchivePPIO extends BinaryPPIO {
         return "zip";
     }
 
-    /**
-     * The Class ZipArchive.
-     */
-    public static class ZipArchive extends ZipArchivePPIO {
-
-        /**
-         * Instantiates a new zip archive.
-         *
-         * @param geoServer the geo server
-         * @param resources the resources
-         */
-        public ZipArchive(GeoServer geoServer, WPSResourceManager resources) {
-            super(geoServer, resources);
-        }
-
-    }
 }

@@ -169,5 +169,23 @@
 				<module>cluster</module>
 			</modules>
 		</profile>		
+		<!-- ======================================== -->
+		<!-- PAB -->
+		<!-- ======================================== -->
+		<profile>
+			<id>PAB</id>
+			<activation>
+				<property>
+					<name>all</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<modules>
+				<module>gpxppio</module>
+				<module>kmlppio</module>
+				<module>dxf</module>
+			</modules>
+		</profile>
+	
   </profiles>
 </project>

@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -23,8 +22,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.geoserver.platform.GeoServerExtensions;
-import org.geoserver.wps.executor.util.ClusterFilePublisherURLMangler;
-import org.geotools.process.ProcessException;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import freemarker.template.Configuration;
@@ -43,27 +40,27 @@ public class SendMail {
     private Properties props;
 
     /** The conf. */
-    final MailConfiguration conf = new MailConfiguration();
+    private final MailConfiguration conf = new MailConfiguration();
 
-    /** FreeMarker templates *. */
-    static final Configuration templates;
+    /** FreeMarker TEMPLATES *. */
+    static final Configuration TEMPLATES;
 
     static {
-        templates = new Configuration();
+        TEMPLATES = new Configuration();
         // same package of this class
         try {
             File templatesPath = getSendMailTemplatesPath();
 
             if (templatesPath != null) {
-                templates.setDirectoryForTemplateLoading(templatesPath);
+                TEMPLATES.setDirectoryForTemplateLoading(templatesPath);
             } else {
-                templates.setClassForTemplateLoading(SendMail.class, "");
+                TEMPLATES.setClassForTemplateLoading(SendMail.class, "");
             }
         } catch (IOException e) {
-            templates.setClassForTemplateLoading(SendMail.class, "");
+            TEMPLATES.setClassForTemplateLoading(SendMail.class, "");
 
         }
-        templates.setObjectWrapper(new DefaultObjectWrapper());
+        TEMPLATES.setObjectWrapper(new DefaultObjectWrapper());
     }
 
     /**
@@ -103,15 +100,11 @@ public class SendMail {
             message.setSubject(subject);
             message.setText(body.toString());
 
-            // session.getTransport("smtp").send(message);
-
             Transport.send(message);
 
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
-        } finally {
-
-        }
+        } 
 
     }
 
@@ -124,14 +117,12 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendFinishedNotification(String toAddress, String executiondId, Object result,
-            int expirationDelay) throws IOException, MessagingException {
+    public void sendFinishedNotification(String toAddress, String executiondId, String result, int expirationDelay) throws IOException, MessagingException {
 
         // load template for the password reset email
-        Template mailTemplate = templates.getTemplate("FinishedNotificationMail.ftl");
+        Template mailTemplate = TEMPLATES.getTemplate("FinishedNotificationMail.ftl");
 
-        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
-                mailTemplate);
+        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay, mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
     }
@@ -147,55 +138,34 @@ public class SendMail {
      * @return the string writer
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    private StringWriter fillMailBody(String toAddress, String executiondId, Object result,
+    private StringWriter fillMailBody(String toAddress, String executiondId, String result,
             int expirationDelay, Template mailTemplate) throws IOException {
+
+        // create template context
         StringWriter body = new StringWriter();
+        Map<String, Object> templateContext = new HashMap<String, Object>();
+        templateContext.put("toAddress", toAddress);
+        templateContext.put("executiondId", executiondId);
 
-        if (mailTemplate != null) {
-            // create template context
-            Map<String, Object> templateContext = new HashMap<String, Object>();
-            templateContext.put("toAddress", toAddress);
-            templateContext.put("executiondId", executiondId);
+        String millis = String.format("%d min, %d sec", 
+                TimeUnit.MILLISECONDS.toMinutes(expirationDelay),
+                TimeUnit.MILLISECONDS.toSeconds(expirationDelay) - 
+                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(expirationDelay))
+            );
+        
+        if (expirationDelay > 0) {
+            templateContext.put("expirationDelay", millis);
+        }
+        if(result!=null){
+            templateContext.put("result", result.toString());
+        }
 
-            String millis = String.format("%d min, %d sec", 
-                    TimeUnit.MILLISECONDS.toMinutes(expirationDelay),
-                    TimeUnit.MILLISECONDS.toSeconds(expirationDelay) - 
-                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(expirationDelay))
-                );
-            
-            if (expirationDelay > 0) {
-                templateContext.put("expirationDelay", millis);
-            }
+        // create message string
+        try {
+            mailTemplate.process(templateContext, body);
+        } catch (TemplateException e) {
+            throw new IOException(e);
 
-            if (result != null) {
-                if (result instanceof File) {
-                    List<ClusterFilePublisherURLMangler> filePublishers = GeoServerExtensions
-                            .extensions(ClusterFilePublisherURLMangler.class);
-                    if (filePublishers != null && filePublishers.size() > 0)
-                        try {
-                            templateContext.put("result",
-                                    filePublishers.get(0).getPublishingURL(((File) result)));
-                        } catch (Exception e) {
-                            throw new ProcessException(
-                                    "Could not publish the output file for process ["
-                                            + executiondId + "]");
-                        }
-                    else
-                        templateContext.put("result", ((File) result).getAbsolutePath());
-                } else {
-                    templateContext.put("result", result.toString());
-                }
-            }
-
-            // create message string
-            try {
-                mailTemplate.process(templateContext, body);
-            } catch (TemplateException e) {
-                e.printStackTrace();
-
-            }
-        } else {
-            body.append(conf.getBody());
         }
         return body;
     }
@@ -211,11 +181,42 @@ public class SendMail {
     public void sendStartedNotification(String toAddress, String executiondId) throws IOException,
             MessagingException {
         // load template for the password reset email
-        Template mailTemplate = templates.getTemplate("StartedNotificationMail.ftl");
+        Template mailTemplate = TEMPLATES.getTemplate("StartedNotificationMail.ftl");
 
         StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
+    }
+    
+    /**
+     * Send started notification.
+     * 
+     * @param toAddress the to address
+     * @param executiondId the executiond id
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws MessagingException the messaging exception
+     */
+    public void sendFailedNotification(String toAddress, String executiondId, String reason) throws IOException {
+        // load template for failed error
+        Template mailTemplate = TEMPLATES.getTemplate("FailedNotificationMail.ftl");
+
+
+        // create template context
+        StringWriter body = new StringWriter();
+        Map<String, Object> templateContext = new HashMap<String, Object>();
+        templateContext.put("toAddress", toAddress);
+        templateContext.put("executiondId", executiondId);
+        templateContext.put("reason", reason);
+        
+
+        // create message string
+        try {
+            mailTemplate.process(templateContext, body);
+            send(toAddress, conf.getSubjet(), body.toString());
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+
     }
 
     /**
@@ -229,9 +230,9 @@ public class SendMail {
             String wpsClusterDataDir = GeoServerExtensions.getProperty("WPS_CLUSTER_DATA_DIR");
             File storage = null;
             if (wpsClusterDataDir == null || !new File(wpsClusterDataDir).exists())
-                storage = GeoserverDataDirectory.findCreateConfigDir("wps-cluster/templates");
+                storage = GeoserverDataDirectory.findCreateConfigDir("wps-cluster/TEMPLATES");
             else {
-                storage = new File(wpsClusterDataDir, "templates");
+                storage = new File(wpsClusterDataDir, "TEMPLATES");
             }
             return storage;
         } catch (Exception e) {

@@ -6,12 +6,10 @@ package org.geoserver.wps.executor.util;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
-import org.geoserver.config.GeoServer;
-import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.platform.ExtensionPriority;
+import org.geoserver.wps.resource.WPSResourceManager;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
@@ -25,15 +23,15 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
         ExtensionPriority, ApplicationListener<ApplicationEvent> {
 
     /** The geoserver. */
-    GeoServer geoserver;
+    WPSResourceManager wpsResourceManager;
 
     /**
      * Instantiates a new default cluster file publisher url mangler.
      * 
      * @param geoserver the geoserver
      */
-    public DefaultClusterFilePublisherURLMangler(GeoServer geoserver) {
-        this.geoserver = geoserver;
+    public DefaultClusterFilePublisherURLMangler(WPSResourceManager wpsResourceManager) {
+        this.wpsResourceManager = wpsResourceManager;
     }
 
     /**
@@ -44,20 +42,10 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
      * @throws Exception the exception
      */
     @Override
-    public String getPublishingURL(File file) throws Exception {
-        File gsTempFolder = GeoserverDataDirectory.findCreateConfigDir("temp");
-        FileUtils.copyFileToDirectory(file, gsTempFolder, true);
+    public String getPublishingURL(File file, String baseURL) throws Exception {
 
-        String baseURL = geoserver.getGlobal().getSettings().getProxyBaseUrl();
-        if (baseURL == null || baseURL.length() == 0) {
-            if (Dispatcher.REQUEST.get() != null) {
-                baseURL = ResponseUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest());
-            }
-        }
-        baseURL = (baseURL == null ? "/" : baseURL);
-        // return ResponseUtils.appendPath(baseURL, "/temp/" + FilenameUtils.getName(file.getName()));
-
-        String path = "/temp/" + gsTempFolder.toURI().relativize(file.toURI()).getPath();
+        // relativize to temp dir directory
+        String path =  GeoserverDataDirectory.getGeoserverDataDirectory().toURI().relativize(file.toURI()).getPath();
         return ResponseUtils.buildURL(baseURL, path, null, URLType.RESOURCE);
     }
 

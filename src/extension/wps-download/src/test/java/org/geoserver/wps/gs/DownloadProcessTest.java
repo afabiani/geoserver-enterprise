@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -25,7 +26,6 @@ import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.ppio.WFSPPIO;
 import org.geoserver.wps.ppio.ZipArchivePPIO;
-import org.geoserver.wps.ppio.ZipArchivePPIO.ZipArchive;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -103,8 +103,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testGetFeaturesAsShapefile() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -143,7 +149,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
     // at org.geotools.process.feature.gs.ClipProcess$ClippingFeatureIterator.hasNext(ClipProcess.java:195)
 
     // public void testGetProjectedFeaturesAsShapefile() throws Exception {
-    // DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null, null);
+    // DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, null);
     //
     // FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
     // SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -176,8 +182,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testFilteredClippedFeatures() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON ((0.0008993124415341 0.0006854377923293, 0.0008437876520112 0.0006283489242283, 0.0008566913002806 0.0005341131898971, 0.0009642217025257 0.0005188634237605, 0.0011198475210477 0.000574779232928, 0.0010932581852198 0.0006572843779233, 0.0008993124415341 0.0006854377923293))");
@@ -224,8 +236,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testGetFeaturesAsGML() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -340,8 +358,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testGetFeaturesAsGeoJSON() throws Exception {        
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-    DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,
@@ -376,8 +400,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testDownloadRaster() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         // Envelope env = new Envelope(-125.074006936869,-123.88300771369998, 48.5552612829,49.03872);
         // Polygon roi = JTS.toGeometry(env);
@@ -428,7 +458,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
             assertEquals(-130.8545966116691, gc.getEnvelope().getLowerCorner().getOrdinate(0));
             assertEquals(48.60392508062592, gc.getEnvelope().getLowerCorner().getOrdinate(1));
             assertEquals(-123.984159178178, gc.getEnvelope().getUpperCorner().getOrdinate(0));
-            assertEquals(54.06575021619523, gc.getEnvelope().getUpperCorner().getOrdinate(1));
+            assertEquals(54.065750216195234, gc.getEnvelope().getUpperCorner().getOrdinate(1));
 
         } finally {
             if (gc != null)
@@ -467,8 +497,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testZipGeoTiffPPIO() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         // -130.88669845369998 : -123.88300771369998, 48.5552612829 : 54.1420338629
         Envelope env = new Envelope(-125.074006936869, -123.88300771369998, 48.5552612829, 49.03872);
@@ -487,8 +524,6 @@ public class DownloadProcessTest extends GeoServerTestSupport {
 
         assertNotNull(rasterZip);
 
-        ZipArchive ppio = new ZipArchivePPIO.ZipArchive(getGeoServer(), null);
-
         File tempZipFile = File.createTempFile("zipppiotemp", ".zip");
         ppio.encode(rasterZip, new FileOutputStream(tempZipFile));
 
@@ -506,10 +541,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      */
     public void testDownloadEstimatorReadLimitsRaster() throws Exception {
 
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        estimator.setReadLimits(10);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                10,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
 
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON (( -127.57473954542964 54.06575021619523, -130.8545966116691 52.00807146727025, -129.50812897394974 49.85372324691927, -130.5300633861675 49.20465679591609, -129.25955033314003 48.60392508062591, -128.00975216684665 50.986137055052474, -125.8623089087404 48.63154492960477, -123.984159178178 50.68231871628503, -126.91186316993704 52.15307567440926, -125.3444367403868 53.54787804784162, -127.57473954542964 54.06575021619523 ))");
@@ -543,10 +583,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      */
     public void testDownloadEstimatorWriteLimitsRaster() throws Exception {
 
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        estimator.setWriteLimits(10);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                10,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
 
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON (( -127.57473954542964 54.06575021619523, -130.8545966116691 52.00807146727025, -129.50812897394974 49.85372324691927, -130.5300633861675 49.20465679591609, -129.25955033314003 48.60392508062591, -128.00975216684665 50.986137055052474, -125.8623089087404 48.63154492960477, -123.984159178178 50.68231871628503, -126.91186316993704 52.15307567440926, -125.3444367403868 53.54787804784162, -127.57473954542964 54.06575021619523 ))");
@@ -580,10 +625,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      */
     public void testDownloadEstimatorMaxFeaturesLimit() throws Exception {
 
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        estimator.setMaxFeatures(0);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
 
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         try {
             downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
@@ -615,10 +665,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         ProcessListener listener = new ProcessListener(new ExecutionStatus(null, "0",
                 ProcessState.RUNNING, 0));
 
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        estimator.setHardOutputLimit(10);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                10,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
 
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         Polygon roi = (Polygon) new WKTReader2()
                 .read("POLYGON (( -127.57473954542964 54.06575021619523, -130.8545966116691 52.00807146727025, -129.50812897394974 49.85372324691927, -130.5300633861675 49.20465679591609, -129.25955033314003 48.60392508062591, -128.00975216684665 50.986137055052474, -125.8623089087404 48.63154492960477, -123.984159178178 50.68231871628503, -126.91186316993704 52.15307567440926, -125.3444367403868 53.54787804784162, -127.57473954542964 54.06575021619523 ))");
@@ -636,6 +691,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 );
 
         Throwable e = listener.exception;
+        assertNotNull(e);
         assertEquals(
                 "Could not complete the Download Process: Download Exceeded the maximum HARD allowed size!",
                 e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
@@ -650,10 +706,15 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         ProcessListener listener = new ProcessListener(new ExecutionStatus(null, "0",
                 ProcessState.RUNNING, 0));
 
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        estimator.setHardOutputLimit(1);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                1,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
 
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
 
         try {
             downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
@@ -918,8 +979,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testWrongOutputFormat() throws Exception {
-        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(getGeoServer());
-        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), null, estimator);
+        DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                getGeoServer());
+        ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(),ZipOutputStream.STORED);
+        DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator,ppio);
     
         FeatureTypeInfo ti = getCatalog().getFeatureTypeByName(getLayerId(MockData.POLYGONS));
         SimpleFeatureCollection rawSource = (SimpleFeatureCollection) ti.getFeatureSource(null,

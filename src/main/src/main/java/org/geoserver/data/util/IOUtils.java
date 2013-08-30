@@ -3,6 +3,7 @@ package org.geoserver.data.util;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -24,6 +25,7 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.geoserver.config.util.XStreamPersister;
 import org.geotools.util.logging.Logging;
 
@@ -281,19 +283,7 @@ public class IOUtils {
                     // recurse and append
                     zipDirectory(file, prefix + file.getName() + "/", zipout, filter);
                 } else {
-                    ZipEntry entry = new ZipEntry(prefix  + file.getName());
-                    zipout.putNextEntry(entry);
-   
-                    InputStream in = new FileInputStream(file);
-                    int c;
-                    try {
-                        while (-1 != (c = in.read(buffer))) {
-                            zipout.write(buffer, 0, c);
-                        }
-                        zipout.closeEntry();
-                    } finally {
-                        in.close();
-                    }
+                    zipFileInternal(file, zipout,buffer);
                 }
             }
         }
@@ -463,5 +453,99 @@ public class IOUtils {
         if(!source.renameTo(dest)) {
             throw new IOException("Failed to rename " + source.getAbsolutePath() + " to " + dest.getAbsolutePath());
         }
+    }
+
+    /**
+     * This method zip the provided file to the provided {@link ZipOutputStream}.
+     * 
+     * <p>
+     * It throws {@link IllegalArgumentException} in case the provided file does not exists or is not a readable file.
+     * 
+     * @param file the {@link File} to zip
+     * @param zipout the {@link ZipOutputStream} to write to
+     * @throws IOException in case something bad happen 
+     */
+    public static void zipFile(File file, ZipOutputStream zipout) throws IOException {
+        // copy file by reading 4k at a time (faster than buffered reading)
+        byte[] buffer = new byte[4096];
+        zipFileInternal(file, zipout, buffer);
+            
+    }
+    
+    /**
+     * This method tells us if the provided {@link File} is a Zip File.
+     * 
+     * <p>
+     * It throws {@link IllegalArgumentException} in case the provided file does not exists or is not a readable file.
+     * 
+     * @param file the {@link File} to check for zip
+     * @throws IOException in case something bad happen 
+     */
+    public static boolean isZpFile(File file) {
+        if (file==null||!file.exists()||!file.canRead()) {
+            throw new IllegalArgumentException("Provided File is not valid and/or reqadable! --> File:"+file!=null?file.getAbsolutePath():"null");
+        }
+
+        if(file.isDirectory()) {
+            return false;
+        }
+        if(file.length() < 4) {
+            return false;
+        }
+        DataInputStream in = null;
+        try{
+            in=new DataInputStream(new FileInputStream(file));
+
+            int test = in.readInt();
+            return test == 0x504b0304;
+        } catch (IOException e) {
+            if(LOGGER.isLoggable(Level.SEVERE)){
+                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
+            }
+            return false;
+        } finally {
+            if(in!=null){
+                org.apache.commons.io.IOUtils.closeQuietly(in);
+            }
+        }
+            
+    }
+
+    /**
+     * This method zip the provided file to the provided {@link ZipOutputStream}.
+     * 
+     * <p>
+     * It throws {@link IllegalArgumentException} in case the provided file does not exists or is not a readable file.
+     * 
+     * @param file the {@link File} to zip
+     * @param zipout the {@link ZipOutputStream} to write to
+     * @param buffer the buffer to use for reading/writing
+     * @throws IOException in case something bad happen 
+     */
+    private static void zipFileInternal(File file, ZipOutputStream zipout, byte[] buffer)
+            throws IOException {
+        if (file==null||!file.exists()||!file.canRead()) {
+            throw new IllegalArgumentException("Provided File is not valid and/or reqadable! --> File:"+file!=null?file.getAbsolutePath():"null");
+        }
+
+        final ZipEntry entry = new ZipEntry(FilenameUtils.getName(file.getAbsolutePath()));
+        zipout.putNextEntry(entry);
+        
+        // copy over the file
+        InputStream in =null;
+        try {
+            int c;
+            in = new FileInputStream(file);
+            while (-1 != (c = in.read(buffer))) {
+                zipout.write(buffer, 0, c);
+            }
+            zipout.closeEntry();
+        } finally {
+            // close the input stream
+            if(in!=null){
+                org.apache.commons.io.IOUtils.closeQuietly(in);
+            }
+        }
+        zipout.flush();
     }
 }

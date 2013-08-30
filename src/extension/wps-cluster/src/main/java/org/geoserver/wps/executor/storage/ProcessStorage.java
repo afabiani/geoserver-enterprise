@@ -2,13 +2,16 @@
  * This code is licensed under the GPL 2.0 license, availible at the root
  * application directory.
  */
-package org.geoserver.wps.executor;
+package org.geoserver.wps.executor.storage;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
+import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
 import org.opengis.feature.type.Name;
 
 /**
@@ -27,126 +30,94 @@ public interface ProcessStorage {
      * @param executionId process id
      * @param status current process status
      */
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status, Boolean silently);
+    public void putStatus( String executionId, ExecutionStatus status, Boolean silently);
 
     /**
      * Retrieves the status of a process from the storage.
      *
-     * @param clusterId the cluster id
      * @param executionId process id
      * @return the status
      */
-    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently);
+    public ExecutionStatus getStatus(String executionId, Boolean silently);
+
 
     /**
-     * Retrieves the status of the process from the storage.
+     * Removes a process from the storage. The last status is returned.
      *
-     * @param executionId the execution id
-     * @return the status
-     */
-    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently);
-
-    /**
-     * Removes the status of a process from the storage. The last status is returned.
-     *
-     * @param clusterId the cluster id
+     * 
      * @param executionId process id
      * @return the execution status
      */
-    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently);
+    public ExecutionStatus removeProcess( String executionId, Boolean silently);
 
     /**
      * Gets the status of all executing processes on all the instances of the cluster.
      *
      * @return the all
      */
-    public Collection<ExecutionStatus> getAll();
+    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterID,Date finishedDateTimeLimit);
 
     /**
      * Updates the phase of a process.
      *
-     * @param clusterId the cluster id
      * @param executionId the execution id
      * @param phase the phase
      */
-    public void updatePhase(String clusterId, String executionId, ProcessState phase, Boolean silently);
+    public void updatePhase( String executionId, ProcessState phase, Boolean silently);
 
     /**
      * Updates the progress of a process.
      *
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param progress the progress
      */
-    public void updateProgress(String clusterId, String executionId, float progress, Boolean silently);
+    public void updateProgress( String executionId, float progress, Boolean silently);
 
     /**
      * Retrieves the output of a process, with the given max timeout.
      *
-     * @param clusterId the cluster id
-     * @param executionId the execution id
-     * @param timeout the timeout
+     * 
      * @return the output
      */
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout, Boolean silently);
-
-    /**
-     * Gets the id of the instance executing a process.
-     *
-     * @param executionId the execution id
-     * @return single instance of ProcessStorage
-     */
-    public String getInstance(String executionId, Boolean silently);
+    public Map<String, Object> getOutput( String executionId, Boolean silently);
 
     /**
      * Puts the output of a process on the storage.
      *
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param status the status
      */
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status, Boolean silently);
+    public void putOutput( String executionId, ExecutionStatus status, Boolean silently);
 
     /**
      * Puts the output error of a process on the storage.
      *
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param e the e
      */
-    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently);
+    public void putOutput( String executionId, Exception e, Boolean silently);
 
     /**
      * Submit.
      *
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param processName the process name
-     * @param inputs the inputs
      * @param background the background
      */
-    public void submit(String clusterId, String executionId, Name processName,
-            Map<String, Object> inputs, boolean background);
-
-    /**
-     * Submit chained.
-     *
-     * @param clusterId the cluster id
-     * @param executionId the execution id
-     * @param processName the process name
-     * @param inputs the inputs
-     */
-    public void submitChained(String clusterId, String executionId, Name processName,
-            Map<String, Object> inputs);
+    public ProcessDescriptor createOrFindProcess(String clusterId, String executionId, Name processName, boolean background, String email);
 
     /**
      * Store result.
      *
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param value the value
      */
-    public void storeResult(String clusterId, String executionId, Object value, Boolean silently);
+    public void storeResult( String executionId, Object value, Boolean silently);
 
     /**
      * The Class ExecutionStatusEx.

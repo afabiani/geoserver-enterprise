@@ -22,6 +22,6 @@ public interface ClusterFilePublisherURLMangler {
      * @return the publishing url
      * @throws Exception the exception
      */
-    public String getPublishingURL(File file) throws Exception;
+    public String getPublishingURL(File file, String baseURL) throws Exception;
 
 }

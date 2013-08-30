@@ -8,20 +8,16 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.geoserver.platform.ExtensionPriority;
-import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
-import org.geoserver.wps.executor.ProcessStorage;
 import org.geoserver.wps.executor.storage.dao.ProcessDescriptorDAO;
 import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
-import org.geoserver.wps.executor.util.ClusterFilePublisherURLMangler;
 import org.geotools.process.ProcessException;
 import org.opengis.feature.type.Name;
 import org.springframework.context.ApplicationEvent;
@@ -61,30 +57,22 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put status.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param status the status
      */
     @Override
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status,
+    public void putStatus(String executionId, ExecutionStatus status,
             Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
-        } else {
+        ProcessDescriptor process= getProcess( executionId, silently);
+        if(process!=null){
             ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
                     status.getPhase(), status.getProgress());
 
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
             process.setPhase(status.getPhase());
             process.setProgress(status.getProgress());
             process.setStatus(marshaller.toXML(newStatus));
+            process.setLastUpdateTime(new Date());
             processDescriptorDAO.merge(process);
         }
     }
@@ -97,62 +85,17 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Gets the status.
      * 
-     * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the status
      */
     @Override
-    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        ExecutionStatusEx status = new ExecutionStatusEx(
-                (ExecutionStatus) marshaller.fromXML(processes.get(0).getStatus()), processes
-                        .get(0).getResult());
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not retrieve the status of process ["
-                        + executionId + "]");
-            else
-                return status;
-        } else {
-            return status;
+    public ExecutionStatus getStatus(String executionId, Boolean silently) {
+        ProcessDescriptor process=getProcess(executionId, silently);
+        if(process!=null){
+            return  new ExecutionStatusEx(
+                    (ExecutionStatus) marshaller.fromXML(process.getStatus()), process.getResult());
         }
-    }
-
-    /**
-     * Gets the status.
-     * 
-     * @param executionId the execution id
-     * @return the status
-     */
-    @Override
-    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently) {
-        List<ExecutionStatusEx> status = new ArrayList<ExecutionStatusEx>();
-
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not retrieve the status of process ["
-                        + executionId + "]");
-            else
-                return status;
-        } else {
-            for (ProcessDescriptor process : processes) {
-                status.add(new ExecutionStatusEx((ExecutionStatus) marshaller.fromXML(process
-                        .getStatus()), process.getResult()));
-            }
-
-            return status;
-        }
+        return null;
     }
 
     /*
@@ -163,26 +106,20 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Removes the status.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @return the execution status
      */
     @Override
-    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes != null && processes.size() > 0) {
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
-            if (processDescriptorDAO.remove(process)) {
-                return status;
-            }
+    public ExecutionStatus removeProcess(String executionId, Boolean silently) {
+        ProcessDescriptor process = getProcess( executionId, true);
+        if(process==null){
+            return null;
         }
-
+        ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+        if (processDescriptorDAO.remove(process)) {
+            return status;
+        }
         return null;
     }
 
@@ -197,20 +134,15 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
      * @return the all
      */
     @Override
-    public Collection<ExecutionStatus> getAll() {
+    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterId,Date finishedDateTimeLimit) {
         Search search = new Search(ProcessDescriptor.class);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes != null && processes.size() > 0) {
-            List<ExecutionStatus> theProcesses = new ArrayList<ExecutionStatus>();
-            for (ProcessDescriptor process : processes) {
-                theProcesses.add((ExecutionStatus) marshaller.fromXML(process.getStatus()));
-            }
-            return theProcesses;
+        search =search.addFilterEqual("clusterId", clusterId);
+        search =search.addFilterIn("phase", status);
+        if(finishedDateTimeLimit!=null){
+            search =search.addFilterLessOrEqual("finishTime", finishedDateTimeLimit);
         }
+        return processDescriptorDAO.search(search);
 
-        return Collections.EMPTY_LIST;
     }
 
     /*
@@ -221,15 +153,14 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Update phase.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param phase the phase
      */
     @Override
-    public void updatePhase(String clusterId, String executionId, ProcessState phase,
+    public void updatePhase(String executionId, ProcessState phase,
             Boolean silently) {
         Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
         search.addSortDesc("id");
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
@@ -244,6 +175,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
             status.setPhase(phase);
             process.setPhase(phase);
             process.setStatus(marshaller.toXML(status));
+            process.setLastUpdateTime(new Date());
             processDescriptorDAO.merge(process);
         }
     }
@@ -256,31 +188,46 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Update progress.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param progress the progress
      */
     @Override
-    public void updateProgress(String clusterId, String executionId, float progress,
+    public void updateProgress(String executionId, float progress,
             Boolean silently) {
+        ProcessDescriptor process = getProcess( executionId, silently);
+        ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+        status.setProgress(progress);
+        process.setProgress(progress);
+        process.setStatus(marshaller.toXML(status));
+        process.setLastUpdateTime(new Date());
+        processDescriptorDAO.merge(process);
+        
+    }
+
+    /**
+     * @param clusterId
+     * @param executionId
+     * @param silently
+     * @return
+     * @throws ProcessException
+     */
+    private ProcessDescriptor getProcess(String executionId, Boolean silently)
+            throws ProcessException {
         Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
         search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
+        search.setMaxResults(1);
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not retrieve the progress of process ["
-                        + executionId + "]");
-        } else {
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
-            status.setProgress(progress);
-            process.setProgress(progress);
-            process.setStatus(marshaller.toXML(status));
-            processDescriptorDAO.merge(process);
-        }
+            if (!silently){                
+                throw new ProcessException("Could not retrieve the progress of process ["+ executionId + "]");
+            }
+            return null;
+        } 
+        
+        ProcessDescriptor process = processes.get(0);//processDescriptorDAO.find(processes.get(0).getId());
+        return process;
     }
 
     /*
@@ -291,63 +238,21 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Gets the output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param timeout the timeout
      * @return the output
      */
     @Override
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout,
-            Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
-        } else {
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
-            status.setPhase(ProcessState.COMPLETED);
-            status.setProgress(100.0f);
-            process.setPhase(ProcessState.COMPLETED);
-            process.setProgress(100.0f);
-            process.setStatus(marshaller.toXML(status));
-            processDescriptorDAO.merge(process);
+    public Map<String, Object> getOutput(String executionId,Boolean silently) {
+        ProcessDescriptor process = getProcess( executionId, silently);
+        ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+        try {
+            return status.getOutput(0);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        return null;
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.geoserver.wps.executor.ProcessStorage#getInstance(java.lang.String)
-     */
-    /**
-     * Gets the single instance of DefaultProcessStorage.
-     * 
-     * @param executionId the execution id
-     * @return single instance of DefaultProcessStorage
-     */
-    @Override
-    public String getInstance(String executionId, Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
-            else
-                return null;
-        } else {
-            return processes.get(0).getClusterId();
-        }
+        
     }
 
     /*
@@ -358,32 +263,21 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param status the status
      */
     @Override
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status,
+    public void putOutput(String executionId, ExecutionStatus status,
             Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
-        } else {
-            ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
-                    status.getPhase(), status.getProgress());
-
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            process.setPhase(status.getPhase());
-            process.setProgress(status.getProgress());
-            process.setStatus(marshaller.toXML(newStatus));
-            processDescriptorDAO.merge(process);
-        }
+        ProcessDescriptor process = getProcess( executionId, silently);
+        ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,status.getPhase(), status.getProgress());
+        process.setPhase(status.getPhase());
+        process.setProgress(status.getProgress());
+        process.setStatus(marshaller.toXML(newStatus));
+        process.setLastUpdateTime(new Date());
+        processDescriptorDAO.merge(process);
+        
     }
 
     /*
@@ -394,29 +288,20 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param e the e
      */
     @Override
-    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
-        } else {
-            Writer out = new StringWriter();
-            PrintWriter pw = new PrintWriter(out);
-            e.printStackTrace(pw);
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            process.setStatus(pw.toString());
-            processDescriptorDAO.merge(process);
-        }
+    public void putOutput(String executionId, Exception e, Boolean silently) {
+        ProcessDescriptor process = getProcess( executionId, silently);
+        Writer out = new StringWriter();
+        PrintWriter pw = new PrintWriter(out);
+        e.printStackTrace(pw);
+        process.setStatus(pw.toString());
+        process.setLastUpdateTime(new Date());
+        processDescriptorDAO.merge(process);
+        
     }
 
     /**
@@ -442,114 +327,60 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Submit.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param processName the process name
      * @param inputs the inputs
      * @param background the background
      */
     @Override
-    public void submit(String clusterId, String executionId, Name processName,
-            Map<String, Object> inputs, boolean background) {
+    public ProcessDescriptor createOrFindProcess(String clusterId,String executionId, Name processName, boolean background,String email) {
 
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            ExecutionStatus status = new ExecutionStatus(processName, executionId,
-                    ProcessState.QUEUED, 0);
-
-            ProcessDescriptor process = new ProcessDescriptor();
-            process.setClusterId(clusterId);
+        // look for an existing process (should not happen!)
+        ProcessDescriptor process=getProcess( executionId, true);
+        if (process==null) {
+            // create
+            ExecutionStatus status = new ExecutionStatus(processName, executionId, ProcessState.QUEUED, 0);
+            process = new ProcessDescriptor();
+            if(clusterId!=null&&clusterId.length()>0){
+                process.setClusterId(clusterId);
+            }
             process.setExecutionId(executionId);
             process.setStatus(marshaller.toXML(status));
             process.setProgress(0.0f);
             process.setPhase(ProcessState.QUEUED);
+            process.setStartTime(new Date());
+            if(email!=null){
+                process.setEmail(email);
+            }
             processDescriptorDAO.persist(process);
         }
+        return process;
     }
 
-    /**
-     * Submit chained.
-     * 
-     * @param clusterId the cluster id
-     * @param executionId the execution id
-     * @param processName the process name
-     * @param inputs the inputs
-     */
-    @Override
-    public void submitChained(String clusterId, String executionId, Name processName,
-            Map<String, Object> inputs) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            ExecutionStatus status = new ExecutionStatus(processName, executionId,
-                    ProcessState.QUEUED, 0);
-
-            ProcessDescriptor process = new ProcessDescriptor();
-            process.setClusterId(clusterId);
-            process.setExecutionId(executionId);
-            process.setStatus(marshaller.toXML(status));
-            process.setProgress(0.0f);
-            process.setPhase(ProcessState.QUEUED);
-            processDescriptorDAO.persist(process);
-        }
-    }
 
     /**
      * Store result.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param result the result
      */
     @Override
-    public void storeResult(String clusterId, String executionId, Object result, Boolean silently) {
-        Search search = new Search(ProcessDescriptor.class);
-        search.addFilterEqual("clusterId", clusterId);
-        search.addFilterEqual("executionId", executionId);
-        search.addSortDesc("id");
-        List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
-
-        if (processes == null || processes.isEmpty()) {
-            if (!silently)
-                throw new ProcessException("Could not find any process [" + executionId + "]");
+    public void storeResult(String executionId, Object result, Boolean silently) {
+        ProcessDescriptor process = getProcess( executionId, silently);
+        process.setFinishTime(new Date());
+        process.setLastUpdateTime(new Date());
+        process.setProgress(100.0f);
+        if (result instanceof File) {
+            final File outputFile = (File) result;
+            process.setResult(outputFile.getAbsolutePath());
+            
         } else {
-            ProcessDescriptor process = processDescriptorDAO.find(processes.get(0).getId());
-            if (result instanceof File) {
-                List<ClusterFilePublisherURLMangler> filePublishers = getFilePublisherURLManglers();
-                if (filePublishers != null && filePublishers.size() > 0)
-                    try {
-                        process.setResult(filePublishers.get(0).getPublishingURL(((File) result)));
-                    } catch (Exception e) {
-                        throw new ProcessException(
-                                "Could not publish the output file for process [" + executionId
-                                        + "]");
-                    }
-                else
-                    process.setResult(((File) result).getAbsolutePath());
-            } else {
-                process.setResult(result.toString());
-            }
-
-            processDescriptorDAO.merge(process);
+            process.setResult(result.toString());
         }
-    }
 
-    /**
-     * Gets the file publisher url manglers.
-     * 
-     * @return the file publisher url manglers
-     */
-    public static List<ClusterFilePublisherURLMangler> getFilePublisherURLManglers() {
-        return GeoServerExtensions.extensions(ClusterFilePublisherURLMangler.class);
+        processDescriptorDAO.merge(process);
     }
 
 }

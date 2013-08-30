@@ -97,6 +97,17 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
     public boolean removeById(Long id) {
         return super.removeById(id);
     }
+    
+    /**
+     * Removes the by id.
+     *
+     * @param id the id
+     * @return true, if successful
+     */
+    @Override
+    public void removeByIds(Long ...ids) {
+        super.removeByIds(ids);
+    }
 
     /*
      * (non-Javadoc)

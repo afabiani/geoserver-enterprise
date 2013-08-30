@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
-<beans>     
+<beans default-init-method="init">     
 
     <import resource="applicationContext-processStorageDatasource.xml"/>
 
-	<bean id="enterpriseClusterManagerProcess" class="org.geoserver.wps.gs.ClusterManagerProcess">
-		<constructor-arg index="0" ref="geoServer"/>
+	<bean id="clusterManagerProcess" class="org.geoserver.wps.gs.ClusterManagerProcess">
+		<constructor-arg index="0" ref="clusteredProcessStorage"/>
 	</bean>
 
 	<!-- The PPIO that need to be registered into SPI because of their dependencies -->
-	<bean id="executionStatusListPPIO" class="org.geoserver.wps.ppio.ExecutionStatusListPPIO">
+	<bean id="executionStatusPPIO" class="org.geoserver.wps.ppio.ExecutionStatusPPIO">
 	  <constructor-arg index="0" ref="geoServer"/>
       <constructor-arg index="1" ref="wpsResourceManager"/>
     </bean>
@@ -18,6 +18,8 @@
 		<constructor-arg ref="dataDirectory" />
 		<property name="location" value="file:wps-cluster/wpsCluster.properties" />
 		<property name="ignoreUnresolvablePlaceholders" value="true"/>
+		<property name="searchSystemEnvironment" value="true" />
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />		
 		<!-- property name="properties">
 			<props>
 				<prop key="prop1">value1</prop> 
@@ -51,14 +53,18 @@
     <!-- WPS Cluster initializers -->
     <!--=====================================================================-->
     <!-- The clustered process runner -->
-    <bean id="clusteredProcessManager" class="org.geoserver.wps.executor.ClusterProcessManager">
+    <bean id="clusteredProcessManager" class="org.geoserver.wps.executor.ClusterProcessManager" init-method="init">
+      <constructor-arg ref="geoServer"/>
       <constructor-arg ref="wpsResourceManager"/>
-      <constructor-arg ref="wpsClusterStorageCleaner"/>
+      <constructor-arg ref="clusteredProcessStorage"/>
       <constructor-arg>
         <list>
             <value>ClusterManager</value>
         </list>
       </constructor-arg>
+      <constructor-arg ref="defaultClusterFilePublisherURLMangler"/>
+      <constructor-arg ref="sendMail"/>
+       <constructor-arg value="${CLUSTER_PROCESS_MANAGER_ID}"/>
     </bean>
 
     <!-- Configures some WPS subsystems with the current config values and keeps them up to date -->
@@ -71,7 +77,7 @@
     <!--=====================================================================-->
     <!-- Process Storages -->
     <!--=====================================================================-->
-	<bean id="defaultClusteredProcessStorage" class="org.geoserver.wps.executor.storage.DefaultProcessStorage">
+	<bean id="clusteredProcessStorage" class="org.geoserver.wps.executor.storage.DefaultProcessStorage">
 		<constructor-arg index="0" ref="processStorageDAO" />
 	</bean>
 
@@ -79,7 +85,7 @@
     <!-- Cluster File-Publisher URL Manglers -->
     <!--=====================================================================-->
 	<bean id="defaultClusterFilePublisherURLMangler" class="org.geoserver.wps.executor.util.DefaultClusterFilePublisherURLMangler">
-		<constructor-arg index="0" ref="geoServer"/>
+		<constructor-arg index="0" ref="wpsResourceManager"/>
 	</bean>
 
     <!--=====================================================================-->
@@ -87,7 +93,9 @@
     <!--=====================================================================-->
     <!-- Temp storage cleanup -->
     <bean id="wpsClusterStorageCleaner" class="org.geoserver.wps.WPSClusterStorageCleaner">
-      <constructor-arg ref="dataDirectory" />
+      <constructor-arg index="0" ref="wpsResourceManager" />
+      <constructor-arg index="1" ref="clusteredProcessStorage" />
+      <constructor-arg index="2" value="${CLUSTER_PROCESS_MANAGER_ID}"/>
       <property name="enabled" value="${wpsClusterStorageCleaner.enabled}" />
     </bean>
   
@@ -113,4 +121,8 @@
       <property name="daemon" value="true" />
     </bean>
 
+	<!-- WPS SendMail bean -->
+	<bean id="sendMail" class="org.geoserver.wps.mail.SendMail">
+    </bean>
+    
 </beans>

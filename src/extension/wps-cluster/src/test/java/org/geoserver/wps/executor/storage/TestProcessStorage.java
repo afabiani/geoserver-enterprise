@@ -4,15 +4,15 @@
  */
 package org.geoserver.wps.executor.storage;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.geoserver.platform.ExtensionPriority;
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
-import org.geoserver.wps.executor.ProcessStorage;
+import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
 import org.geotools.feature.NameImpl;
 import org.opengis.feature.type.Name;
 import org.springframework.context.ApplicationEvent;
@@ -48,11 +48,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put status.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param status the status
      */
-    public void putStatus(String clusterId, String executionId, ExecutionStatus status,
+    public void putStatus( String executionId, ExecutionStatus status,
             Boolean silently) {
         // TODO Auto-generated method stub
 
@@ -61,39 +61,23 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Gets the status.
      * 
-     * @param clusterId the cluster id
      * @param executionId the execution id
      * @return the status
      */
-    public ExecutionStatus getStatus(String clusterId, String executionId, Boolean silently) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+    public ExecutionStatusEx getStatus(String executionId, Boolean silently) {
 
-    /**
-     * Gets the status.
-     * 
-     * @param executionId the execution id
-     * @return the status
-     */
-    public List<ExecutionStatusEx> getStatus(String executionId, Boolean silently) {
-        List<ExecutionStatusEx> status = new ArrayList<ExecutionStatusEx>();
-
-        ExecutionStatusEx exStatus = new ExecutionStatusEx(new ExecutionStatus(new NameImpl("gs",
+        return new ExecutionStatusEx(new ExecutionStatus(new NameImpl("gs",
                 "TestProcess"), executionId, ProcessState.COMPLETED, 100.0f));
-        status.add(exStatus);
-
-        return status;
     }
 
     /**
      * Removes the status.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @return the execution status
      */
-    public ExecutionStatus removeStatus(String clusterId, String executionId, Boolean silently) {
+    public ExecutionStatus removeProcess( String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -103,7 +87,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @return the all
      */
-    public Collection<ExecutionStatus> getAll() {
+    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterId,Date finishedDateTimeLimit) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -111,11 +95,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Update phase.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param phase the phase
      */
-    public void updatePhase(String clusterId, String executionId, ProcessState phase,
+    public void updatePhase( String executionId, ProcessState phase,
             Boolean silently) {
         // TODO Auto-generated method stub
 
@@ -124,11 +108,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Update progress.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param progress the progress
      */
-    public void updateProgress(String clusterId, String executionId, float progress,
+    public void updateProgress( String executionId, float progress,
             Boolean silently) {
         // TODO Auto-generated method stub
 
@@ -137,12 +121,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Gets the output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
-     * @param timeout the timeout
      * @return the output
      */
-    public Map<String, Object> getOutput(String clusterId, String executionId, long timeout,
+    public Map<String, Object> getOutput( String executionId, 
             Boolean silently) {
         // TODO Auto-generated method stub
         return null;
@@ -162,11 +145,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param status the status
      */
-    public void putOutput(String clusterId, String executionId, ExecutionStatus status,
+    public void putOutput( String executionId, ExecutionStatus status,
             Boolean silently) {
         // TODO Auto-generated method stub
 
@@ -175,11 +158,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Put output.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param e the e
      */
-    public void putOutput(String clusterId, String executionId, Exception e, Boolean silently) {
+    public void putOutput( String executionId, Exception e, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -187,14 +170,14 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Submit.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param processName the process name
      * @param inputs the inputs
      * @param background the background
      */
-    public void submit(String clusterId, String executionId, Name processName,
-            Map<String, Object> inputs, boolean background) {
+    public ProcessDescriptor createOrFindProcess(String clusterId, String executionId, Name processName,boolean background,String email) {
+        return null;
         // TODO Auto-generated method stub
 
     }
@@ -202,12 +185,12 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Submit chained.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param processName the process name
      * @param inputs the inputs
      */
-    public void submitChained(String clusterId, String executionId, Name processName,
+    public void submitChained( String executionId, Name processName,
             Map<String, Object> inputs) {
         // TODO Auto-generated method stub
 
@@ -216,11 +199,11 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     /**
      * Store result.
      * 
-     * @param clusterId the cluster id
+     * 
      * @param executionId the execution id
      * @param value the value
      */
-    public void storeResult(String clusterId, String executionId, Object value, Boolean silently) {
+    public void storeResult( String executionId, Object value, Boolean silently) {
         // TODO Auto-generated method stub
 
     }

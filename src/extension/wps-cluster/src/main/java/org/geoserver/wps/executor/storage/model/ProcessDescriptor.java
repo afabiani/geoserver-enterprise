@@ -5,6 +5,7 @@
 package org.geoserver.wps.executor.storage.model;
 
 import java.io.Serializable;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -51,7 +52,7 @@ public class ProcessDescriptor implements Serializable {
     private String executionId;
 
     /** The phase. */
-    @Enumerated(EnumType.ORDINAL)
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = true)
     private ProcessState phase;
 
@@ -68,6 +69,19 @@ public class ProcessDescriptor implements Serializable {
     @Lob
     @Column(nullable = true, updatable = true)
     private String result;
+    
+    @Column(nullable = true, updatable = true)
+    private Date startTime;
+    
+    @Column(nullable = true, updatable = true)
+    private Date finishTime;
+    
+    @Column(nullable = true, updatable = true)
+    private Date lastUpdateTime;
+    
+    /** The email of the caller. */
+    @Column(nullable = false, updatable = true)
+    private String email;
 
     /**
      * Instantiates a new instance.
@@ -203,29 +217,139 @@ public class ProcessDescriptor implements Serializable {
     }
 
     /**
-     * Hash code.
-     *
-     * @return the int
+     * @return the startTime
      */
+    public Date getStartTime() {
+        return startTime;
+    }
+
+    /**
+     * @return the finishTime
+     */
+    public Date getFinishTime() {
+        return finishTime;
+    }
+
+    /**
+     * @param startTime the startTime to set
+     */
+    public void setStartTime(Date startTime) {
+        this.startTime = startTime;
+    }
+
+    /**
+     * @param finishTime the finishTime to set
+     */
+    public void setFinishTime(Date finishTime) {
+        this.finishTime = finishTime;
+    }
+
+    /**
+     * @return the lastUpdateTime
+     */
+    public Date getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    /**
+     * @param lastUpdateTime the lastUpdateTime to set
+     */
+    public void setLastUpdateTime(Date lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
+    }
+
+    /**
+     * @return the email
+     */
+    public String getEmail() {
+        return email;
+    }
+
+    /**
+     * @param email the email to set
+     */
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ProcessDescriptor [");
+        if (id != null) {
+            builder.append("id=");
+            builder.append(id);
+            builder.append(", ");
+        }
+        if (clusterId != null) {
+            builder.append("clusterId=");
+            builder.append(clusterId);
+            builder.append(", ");
+        }
+        if (executionId != null) {
+            builder.append("executionId=");
+            builder.append(executionId);
+            builder.append(", ");
+        }
+        if (phase != null) {
+            builder.append("phase=");
+            builder.append(phase);
+            builder.append(", ");
+        }
+        if (status != null) {
+            builder.append("status=");
+            builder.append(status);
+            builder.append(", ");
+        }
+        builder.append("progress=");
+        builder.append(progress);
+        builder.append(", ");
+        if (result != null) {
+            builder.append("result=");
+            builder.append(result);
+            builder.append(", ");
+        }
+        if (startTime != null) {
+            builder.append("startTime=");
+            builder.append(startTime);
+            builder.append(", ");
+        }
+        if (finishTime != null) {
+            builder.append("finishTime=");
+            builder.append(finishTime);
+            builder.append(", ");
+        }
+        if (lastUpdateTime != null) {
+            builder.append("lastUpdateTime=");
+            builder.append(lastUpdateTime);
+            builder.append(", ");
+        }
+        if (email != null) {
+            builder.append("email=");
+            builder.append(email);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((clusterId == null) ? 0 : clusterId.hashCode());
+        result = prime * result + ((email == null) ? 0 : email.hashCode());
         result = prime * result + ((executionId == null) ? 0 : executionId.hashCode());
+        result = prime * result + ((finishTime == null) ? 0 : finishTime.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
+        result = prime * result + ((lastUpdateTime == null) ? 0 : lastUpdateTime.hashCode());
         result = prime * result + ((phase == null) ? 0 : phase.hashCode());
         result = prime * result + Float.floatToIntBits(progress);
+        result = prime * result + ((this.result == null) ? 0 : this.result.hashCode());
+        result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
         result = prime * result + ((status == null) ? 0 : status.hashCode());
         return result;
     }
 
-    /**
-     * Equals.
-     *
-     * @param obj the obj
-     * @return true, if successful
-     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -245,11 +369,25 @@ public class ProcessDescriptor implements Serializable {
         } else if (!clusterId.equals(other.clusterId)) {
             return false;
         }
+        if (email == null) {
+            if (other.email != null) {
+                return false;
+            }
+        } else if (!email.equals(other.email)) {
+            return false;
+        }
         if (executionId == null) {
             if (other.executionId != null) {
                 return false;
             }
         } else if (!executionId.equals(other.executionId)) {
+            return false;
+        }
+        if (finishTime == null) {
+            if (other.finishTime != null) {
+                return false;
+            }
+        } else if (!finishTime.equals(other.finishTime)) {
             return false;
         }
         if (id == null) {
@@ -259,10 +397,31 @@ public class ProcessDescriptor implements Serializable {
         } else if (!id.equals(other.id)) {
             return false;
         }
+        if (lastUpdateTime == null) {
+            if (other.lastUpdateTime != null) {
+                return false;
+            }
+        } else if (!lastUpdateTime.equals(other.lastUpdateTime)) {
+            return false;
+        }
         if (phase != other.phase) {
             return false;
         }
         if (Float.floatToIntBits(progress) != Float.floatToIntBits(other.progress)) {
+            return false;
+        }
+        if (result == null) {
+            if (other.result != null) {
+                return false;
+            }
+        } else if (!result.equals(other.result)) {
+            return false;
+        }
+        if (startTime == null) {
+            if (other.startTime != null) {
+                return false;
+            }
+        } else if (!startTime.equals(other.startTime)) {
             return false;
         }
         if (status == null) {
@@ -273,30 +432,6 @@ public class ProcessDescriptor implements Serializable {
             return false;
         }
         return true;
-    }
-
-    /**
-     * To string.
-     *
-     * @return the string
-     */
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ProcessDescriptor [");
-        if (id != null)
-            builder.append("id=").append(id).append(", ");
-        if (clusterId != null)
-            builder.append("clusterId=").append(clusterId).append(", ");
-        if (executionId != null)
-            builder.append("executionId=").append(executionId).append(", ");
-        if (phase != null)
-            builder.append("phase=").append(phase).append(", ");
-        if (status != null)
-            builder.append("status=").append(status).append(", ");
-        builder.append("progress=").append(progress);
-        builder.append("]");
-        return builder.toString();
     }
 
 }
