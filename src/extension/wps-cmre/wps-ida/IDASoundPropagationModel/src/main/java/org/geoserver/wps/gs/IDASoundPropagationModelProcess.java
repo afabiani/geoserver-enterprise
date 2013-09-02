@@ -167,7 +167,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("wsName", wsName));
 		attributes.add(new FeatureAttribute("storeName", (storeName != null ? storeName : "")));
 		attributes.add(new FeatureAttribute("layerName", (layerName != null ? layerName : "")));
-		attributes.add(new FeatureAttribute("srcPath", (srcPath != null ? srcPath : "")));
+		attributes.add(new FeatureAttribute("srcPath", (srcPath != null ? srcPath.replaceAll("\\\\", "/").replace('\\', '/') : "")));
 		attributes.add(new FeatureAttribute("season", (season != null ? season : "")));
 		attributes.add(new FeatureAttribute("sourceDepth", (sourceDepth != null ? sourceDepth : 0.0)));
 		attributes.add(new FeatureAttribute("sourceFrequency", (sourceFrequency != null ? sourceFrequency : 0.0)));
@@ -284,21 +284,22 @@ public class IDASoundPropagationModelProcess implements GSProcess {
             	if(sndProfilePath.exists() && sndProfilePath.isFile() && !sndProfilePath.isDirectory() && sndProfilePath.canWrite())
             	{
             		File sndProfDest = new File(idaExecProperties.getProperty("input.profiles.folder"), FilenameUtils.getBaseName(soundVelocityProfile));
-					if(sndProfilePath.renameTo(sndProfDest))
+            		
+					if((sndProfDest.exists() && sndProfDest.isFile() && sndProfDest.canRead()) || sndProfilePath.renameTo(sndProfDest))
 					{
 						data.put("soundVelocityProfile", sndProfDest.getAbsolutePath());
-						soundVelocityProfile = sndProfDest.getAbsolutePath();
+						soundVelocityProfile = sndProfDest.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/');
 					}
 					else
 					{
 						data.put("soundVelocityProfile", "<-- ERROR occurred while processing the input sound velocity profile file -->");
-						soundVelocityProfile = "<-- ERROR occurred while processing the input sound velocity profile file -->";
+						soundVelocityProfile = "<-- ERROR occurred while uploading the input sound velocity profile file -->";
 					}
             	}
             	else
             	{
-            		data.put("soundVelocityProfile", "<-- ERROR occurred while processing the input sound velocity profile file -->");
-					soundVelocityProfile = "<-- ERROR occurred while processing the input sound velocity profile file -->";
+            		data.put("soundVelocityProfile", "");
+    				soundVelocityProfile = "";
             	}
             }
             else
@@ -334,7 +335,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
             data.put("sourcePressureLevel", sourcePressureLevel);
             data.put("modelName", name);
             data.put("advancedParams", advancedParams);
-            data.put("outputPath", f.getAbsolutePath().replaceAll("\\\\", "/"));
+            data.put("outputPath", f.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/'));
             
             // File output
             File inputFile = null;
@@ -535,7 +536,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
 	        feature.setAttribute("layerName", spmRasterLayerName);
 	        feature.setAttribute("runEnd", new Date());
 	        feature.setAttribute("itemStatus", "COMPLETED");
-	        feature.setAttribute("srcPath", f.getAbsolutePath());
+	        feature.setAttribute("srcPath", f.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/'));
 	        feature.setAttribute("soundVelocityProfile", soundVelocityProfile);
 	        
 	        ListFeatureCollection output = new ListFeatureCollection(features.getSchema());
