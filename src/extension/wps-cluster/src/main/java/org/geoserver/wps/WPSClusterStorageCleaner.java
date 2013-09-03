@@ -90,13 +90,12 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner{
                     new Date(now-expirationDelay)
                     );
             for (ProcessDescriptor process : processes) {
-                final String executionId = process.getExecutionId();
                 final ProcessState phase = process.getPhase();
                 if(phase==ProcessState.CANCELLED||
                         phase==ProcessState.COMPLETED||
                         phase==ProcessState.FAILED){
                     // get process
-                    processStorage.removeProcess(executionId, true);
+                    processStorage.remove(process);
                 }
             }
         }

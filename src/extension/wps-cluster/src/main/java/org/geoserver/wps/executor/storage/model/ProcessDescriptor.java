@@ -28,7 +28,7 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 @Entity(name = "ProcessDescriptor")
-@Table(name = "gs_processdescriptor")
+@Table(name = "processdescriptor")
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "processdescriptor")
 @XmlRootElement(name = "ProcessDescriptor")
 @XmlType(propOrder = { "id", "clusterId", "executionId", "status", "phase", "progress", "result" })
@@ -56,11 +56,6 @@ public class ProcessDescriptor implements Serializable {
     @Column(nullable = false, updatable = true)
     private ProcessState phase;
 
-    /** The status. */
-    @Lob
-    @Column(nullable = false, updatable = true)
-    private String status;
-
     /** The progress. */
     @Column(nullable = false, updatable = true)
     private float progress;
@@ -83,6 +78,16 @@ public class ProcessDescriptor implements Serializable {
     @Column(nullable = false, updatable = true)
     private String email;
 
+    @Column(nullable = false, updatable = false)
+    private String name;
+    
+    @Column(nullable = false, updatable = false)
+    private String nameSpace;
+    
+    @Lob
+    @Column(nullable = true, updatable = true)
+    private String output;
+    
     /**
      * Instantiates a new instance.
      */
@@ -160,24 +165,6 @@ public class ProcessDescriptor implements Serializable {
      */
     public ProcessState getPhase() {
         return phase;
-    }
-
-    /**
-     * Sets the status.
-     *
-     * @param status the new status
-     */
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    /**
-     * Gets the status.
-     *
-     * @return the status
-     */
-    public String getStatus() {
-        return status;
     }
 
     /**
@@ -272,6 +259,48 @@ public class ProcessDescriptor implements Serializable {
         this.email = email;
     }
 
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @return the nameSpace
+     */
+    public String getNameSpace() {
+        return nameSpace;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String processName) {
+        this.name = processName;
+    }
+
+    /**
+     * @param nameSpace the nameSpace to set
+     */
+    public void setNameSpace(String processNameSpace) {
+        this.nameSpace = processNameSpace;
+    }
+
+    /**
+     * @return the output
+     */
+    public String getOutput() {
+        return output;
+    }
+
+    /**
+     * @param output the output to set
+     */
+    public void setOutput(String output) {
+        this.output = output;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -294,11 +323,6 @@ public class ProcessDescriptor implements Serializable {
         if (phase != null) {
             builder.append("phase=");
             builder.append(phase);
-            builder.append(", ");
-        }
-        if (status != null) {
-            builder.append("status=");
-            builder.append(status);
             builder.append(", ");
         }
         builder.append("progress=");
@@ -327,6 +351,21 @@ public class ProcessDescriptor implements Serializable {
         if (email != null) {
             builder.append("email=");
             builder.append(email);
+            builder.append(", ");
+        }
+        if (name != null) {
+            builder.append("name=");
+            builder.append(name);
+            builder.append(", ");
+        }
+        if (nameSpace != null) {
+            builder.append("nameSpace=");
+            builder.append(nameSpace);
+            builder.append(", ");
+        }
+        if (output != null) {
+            builder.append("output=");
+            builder.append(output);
         }
         builder.append("]");
         return builder.toString();
@@ -342,11 +381,13 @@ public class ProcessDescriptor implements Serializable {
         result = prime * result + ((finishTime == null) ? 0 : finishTime.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
         result = prime * result + ((lastUpdateTime == null) ? 0 : lastUpdateTime.hashCode());
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((nameSpace == null) ? 0 : nameSpace.hashCode());
+        result = prime * result + ((output == null) ? 0 : output.hashCode());
         result = prime * result + ((phase == null) ? 0 : phase.hashCode());
         result = prime * result + Float.floatToIntBits(progress);
         result = prime * result + ((this.result == null) ? 0 : this.result.hashCode());
         result = prime * result + ((startTime == null) ? 0 : startTime.hashCode());
-        result = prime * result + ((status == null) ? 0 : status.hashCode());
         return result;
     }
 
@@ -404,6 +445,27 @@ public class ProcessDescriptor implements Serializable {
         } else if (!lastUpdateTime.equals(other.lastUpdateTime)) {
             return false;
         }
+        if (name == null) {
+            if (other.name != null) {
+                return false;
+            }
+        } else if (!name.equals(other.name)) {
+            return false;
+        }
+        if (nameSpace == null) {
+            if (other.nameSpace != null) {
+                return false;
+            }
+        } else if (!nameSpace.equals(other.nameSpace)) {
+            return false;
+        }
+        if (output == null) {
+            if (other.output != null) {
+                return false;
+            }
+        } else if (!output.equals(other.output)) {
+            return false;
+        }
         if (phase != other.phase) {
             return false;
         }
@@ -422,13 +484,6 @@ public class ProcessDescriptor implements Serializable {
                 return false;
             }
         } else if (!startTime.equals(other.startTime)) {
-            return false;
-        }
-        if (status == null) {
-            if (other.status != null) {
-                return false;
-            }
-        } else if (!status.equals(other.status)) {
             return false;
         }
         return true;

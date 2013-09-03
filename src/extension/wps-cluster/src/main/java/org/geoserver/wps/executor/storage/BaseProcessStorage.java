@@ -20,12 +20,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
-import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
-import org.opengis.feature.type.Name;
 
 /**
  * Basic Implementation for a {@link ProcessStorage} that actually does nothing
@@ -35,58 +32,34 @@ import org.opengis.feature.type.Name;
 public class BaseProcessStorage implements ProcessStorage {
 
     @Override
-    public void putStatus(String executionId, ExecutionStatus status,
-            Boolean silently) {
-
-    }
-
-    @Override
-    public ExecutionStatus getStatus( String executionId, Boolean silently) {
-        return null;
-    }
-
-    @Override
-    public ExecutionStatus removeProcess(String executionId, Boolean silently) {
-        return null;
-    }
-
-    @Override
     public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterID,Date finishedDateTimeLimit) {
         return Collections.emptyList();
     }
 
     @Override
-    public void updatePhase(String executionId, ProcessState phase,
-            Boolean silently) {
+    public void update(ProcessDescriptor process) {
     }
 
-    @Override
-    public void updateProgress(String executionId, float progress,
-            Boolean silently) {
-    }
 
     @Override
-    public Map<String, Object> getOutput(String executionId, 
-            Boolean silently) {
-        return Collections.emptyMap();
+    public boolean remove(ProcessDescriptor process) {
+        return false;
     }
 
-    @Override
-    public void putOutput(String executionId, ExecutionStatus status,
-            Boolean silently) {
-    }
 
     @Override
-    public void putOutput(String executionId, Exception e, Boolean silently) {
+    public void create(ProcessDescriptor process) {
     }
 
+
     @Override
-    public ProcessDescriptor createOrFindProcess(String clusterId, String executionId, Name processName, boolean background,String email) {
+    public ProcessDescriptor findByExecutionId(String executionId, Boolean silently) {
         return null;
     }
 
     @Override
-    public void storeResult(String executionId, Object value, Boolean silently) {
-
+    public void storeResult(ProcessDescriptor process, Object result) {
+        // TODO Auto-generated method stub
+        
     }
 }

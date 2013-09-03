@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.storage.ProcessStorage;
+import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
+import org.geotools.feature.NameImpl;
 import org.geotools.process.ProcessException;
 import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
@@ -63,7 +65,15 @@ public class ClusterManagerProcess implements GSProcess {
             if(LOGGER.isLoggable(Level.FINE)){
                 LOGGER.fine("Requested status for execution ID: "+executionId);
             }
-            return storage.getStatus(executionId, true);
+            ProcessDescriptor process = storage.findByExecutionId(executionId, true);
+            if(process!=null){
+                return new ExecutionStatus(
+                       new NameImpl(process.getNameSpace(),process.getName()),
+                       process.getExecutionId(),
+                       process.getPhase(),
+                       process.getProgress());
+            }
+            throw new ProcessException("Unable to find process with executionId: "+executionId);
 
         
     }

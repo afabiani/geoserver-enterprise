@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -90,8 +91,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
         if (listener.exception != null) {
             final boolean isProcessFilteredOut = processNamesEsclusionList.contains(processName.getLocalPart());
             if (!isProcessFilteredOut) {
-                processStorage.putStatus( executionId, new ExecutionStatus(processName,executionId, ProcessState.FAILED, 100), false);
-                processStorage.storeResult( executionId, listener.exception.getMessage(),false);
+//                processStorage.putStatus( executionId, new ExecutionStatus(processName,executionId, ProcessState.FAILED, 100), false);
+//                processStorage.storeResult( executionId, listener.exception.getMessage(),false);
             }
             throw new ProcessException("Process failed: " + listener.exception.getMessage(), listener.exception);
         }
@@ -291,10 +292,10 @@ public class ClusterProcessManager extends DefaultProcessManager {
         private Object output;
         
         private String baseURL;
-        
-        private String email;
 
         private int expirationDelay=-1;
+
+        private ProcessDescriptor process;
 
         /**
          * Instantiates a new cluster execution status.
@@ -304,13 +305,28 @@ public class ClusterProcessManager extends DefaultProcessManager {
          * @param executionId the execution id
          * @param inputs 
          */
-        public ClusterExecutionStatus(Name processName, String clusterId, String executionId,
-                boolean background, Map<String, Object> inputs) {
+        public ClusterExecutionStatus(
+                Name processName, 
+                String clusterId, 
+                String executionId,
+                boolean background, 
+                Map<String, Object> inputs) {
             super(processName, executionId);
             this.clusterId = clusterId;
             this.background = background;
-            this.email=extractEmail(inputs);
-            processStorage.createOrFindProcess(clusterId, executionId, processName, background,email);
+            
+            // create process
+            this.process= new ProcessDescriptor();
+            process.setClusterId(clusterId);
+            process.setExecutionId(executionId);
+            process.setEmail(extractEmail(inputs));
+            process.setStartTime(new Date());
+            process.setName(processName.getLocalPart());
+            process.setNameSpace(processName.getNamespaceURI());
+            process.setProgress(0.0f);
+            process.setPhase(ProcessState.QUEUED);    
+            processStorage.create(process);
+            
             // initialize default value for testing
             baseURL = "http://geoserver/fakeroot";
             if (Dispatcher.REQUEST.get() != null) {
@@ -364,41 +380,57 @@ public class ClusterProcessManager extends DefaultProcessManager {
         @Override
         public void setPhase(ProcessState phase) {
             try {
+                
+                // update super class
                 super.setPhase(phase);
+                
                 // update phase
-                processStorage.updatePhase( executionId, phase, true);
+                process.setPhase(phase);
+                
+                if ( phase == ProcessState.COMPLETED) {
+                    
+                    // DO NOTHING we use the setOutput to signal the completion
+                    return;
+//                    super.setProgress(100.0f); // completed
+//                    process.setProgress(100.f);
+////                        processStorage.putOutput( executionId, this, true);
+                } 
+
+                
+                final String email = process.getEmail();
                 if (phase == ProcessState.RUNNING){
+                    
+                    // update
+                    processStorage.update(process);
+                    
+                    // email for running state
                     if(email!=null){
                         sendMail.sendStartedNotification(email, executionId);
                     }
-                } else {
-                    if ( phase == ProcessState.COMPLETED) {
-                    
-                        super.setProgress(100.0f); // completed
-                        try {
-                            
-                            processStorage.putOutput( executionId, this, true);
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    } 
-                    if (phase == ProcessState.FAILED) {
-                        
-                        super.setProgress(100.0f); // failed
-                            
-                            final String localizedMessage;
-                            final Throwable cause = exception.getCause();
-                            if(cause!=null){
-                                localizedMessage = cause.getLocalizedMessage();
-                            } else {
-                                localizedMessage = exception.getLocalizedMessage();
-                            }
-                            processStorage.storeResult(executionId, localizedMessage, false    );
-                            if(email!=null){
-                                sendMail.sendFailedNotification(email, executionId, localizedMessage);
-                            }
-                    }                
                 }
+
+                if (phase == ProcessState.FAILED) {
+                    
+                    super.setProgress(100.0f); // failed
+
+                    
+                    // update
+                    final String localizedMessage;
+                    final Throwable cause = exception.getCause();
+                    if(cause!=null){
+                        localizedMessage = cause.getLocalizedMessage();
+                    } else {
+                        localizedMessage = exception.getLocalizedMessage();
+                    }
+                    processStorage.storeResult(process,localizedMessage);
+                    
+                    // email
+                    if(email!=null){
+                        sendMail.sendFailedNotification(email, executionId, localizedMessage);
+                    }
+                }                
+                
+                
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -422,7 +454,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
         @Override
         public void setProgress(float progress) {
             super.setProgress(progress);
-            processStorage.updateProgress( executionId, progress, true);
+            process.setProgress(progress);
+            processStorage.update(process);
         }
 
         /**
@@ -469,16 +502,17 @@ public class ClusterProcessManager extends DefaultProcessManager {
          */
         public void setOutput(Object output) {
             this.output = output;
+            final String email = process.getEmail();
             try {
                 if(output instanceof File){
                     final File file = (File) output;
                     final String publishingURL = mangler.getPublishingURL(file, baseURL);
-                    processStorage.storeResult( executionId,publishingURL , false);
+                    processStorage.storeResult( process,publishingURL);
                     if(email!=null){
                         sendMail.sendFinishedNotification(email, executionId, publishingURL, expirationDelay);
                     }
                 } else {
-                    processStorage.storeResult( executionId, output, false);
+                    processStorage.storeResult( process, output);
                     if(email!=null){
                         sendMail.sendFinishedNotification(email, executionId, output.toString(), expirationDelay);
                     }
@@ -539,12 +573,11 @@ public class ClusterProcessManager extends DefaultProcessManager {
             final String localizedMessage="Process has failed due to unknown reason";
             
             // change status to failed with result
-            processStorage.updatePhase( 
-                    executionId, 
-                    ProcessState.FAILED, 
-                    true);
+            process.setPhase(ProcessState.FAILED);
+            process.setProgress(100.f);
+            processStorage.update( process);
             
-            processStorage.storeResult(executionId,localizedMessage , false    );
+            processStorage.storeResult(process,localizedMessage);
             
 
             // email

@@ -13,7 +13,6 @@ import org.geoserver.platform.ExtensionPriority;
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
-import org.geotools.feature.NameImpl;
 import org.opengis.feature.type.Name;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -56,18 +55,6 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
             Boolean silently) {
         // TODO Auto-generated method stub
 
-    }
-
-    /**
-     * Gets the status.
-     * 
-     * @param executionId the execution id
-     * @return the status
-     */
-    public ExecutionStatusEx getStatus(String executionId, Boolean silently) {
-
-        return new ExecutionStatusEx(new ExecutionStatus(new NameImpl("gs",
-                "TestProcess"), executionId, ProcessState.COMPLETED, 100.0f));
     }
 
     /**
@@ -206,6 +193,36 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     public void storeResult( String executionId, Object value, Boolean silently) {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    public void update(ProcessDescriptor process) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public boolean remove(ProcessDescriptor process) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public void create(ProcessDescriptor process) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public ProcessDescriptor findByExecutionId(String executionId, Boolean silently) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void storeResult(ProcessDescriptor process, Object result) {
+        // TODO Auto-generated method stub
+        
     }
 
 }
