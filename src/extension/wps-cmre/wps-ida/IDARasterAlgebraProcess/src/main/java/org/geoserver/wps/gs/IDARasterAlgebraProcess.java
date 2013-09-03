@@ -525,7 +525,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 			feature.setAttribute("layerName", rstAlgebraRasterLayerName);
 			feature.setAttribute("runEnd", new Date());
 			feature.setAttribute("itemStatus", "COMPLETED");
-			feature.setAttribute("srcPath", f.getAbsolutePath());
+			feature.setAttribute("srcPath", f.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/'));
 
 			// store coverages and stats
 			List<String> coverageNames = new ArrayList<String>();

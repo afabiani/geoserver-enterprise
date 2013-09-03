@@ -277,7 +277,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
             data.put("soundSourceUnitX", nff.format(soundSourceUnit.getX()));
             data.put("soundSourceUnitY", nff.format(soundSourceUnit.getY()));
             data.put("season", season);
-            if(soundVelocityProfile!=null && !soundVelocityProfile.isEmpty())
+            if(season.equalsIgnoreCase("user input") && soundVelocityProfile!=null && !soundVelocityProfile.isEmpty())
             {
             	File sndProfilePath = new File(idaExecProperties.getProperty("input.profiles.upload.folder"), soundVelocityProfile);
             	
@@ -287,7 +287,7 @@ public class IDASoundPropagationModelProcess implements GSProcess {
             		
 					if((sndProfDest.exists() && sndProfDest.isFile() && sndProfDest.canRead()) || sndProfilePath.renameTo(sndProfDest))
 					{
-						data.put("soundVelocityProfile", sndProfDest.getAbsolutePath());
+						data.put("soundVelocityProfile", sndProfDest.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/'));
 						soundVelocityProfile = sndProfDest.getAbsolutePath().replaceAll("\\\\", "/").replace('\\', '/');
 					}
 					else

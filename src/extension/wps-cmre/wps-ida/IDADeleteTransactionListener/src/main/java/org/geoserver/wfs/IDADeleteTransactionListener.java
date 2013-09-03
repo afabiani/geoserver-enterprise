@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.StoreInfo;
@@ -101,12 +102,11 @@ public class IDADeleteTransactionListener implements TransactionListener {
 
 							if (ws != null) {
 								// being sure the store exists in the catalog
-								storeInfo = catalog.getDataStoreByName(ws.getName(), storeName.trim());
-								storeInfo = (storeInfo == null ? catalog.getCoverageStoreByName(ws.getName(), storeName.trim()) : storeInfo);
+								storeInfo = catalog.getDataStoreByName(storeName.trim()) != null ? catalog.getDataStoreByName(storeName.trim()) : catalog.getDataStoreByName(ws.getName(), storeName.trim());
+								storeInfo = (storeInfo == null ? (catalog.getCoverageStoreByName(storeName.trim()) != null ? catalog.getCoverageStoreByName(storeName.trim()) : catalog.getCoverageStoreByName(ws.getName(), storeName.trim())) : storeInfo);
 
 								if (storeInfo == null) {
-									LOGGER.severe("Could not retrive DataStore "
-											+ storeName + " into the Catalog");
+									LOGGER.severe("Could not retrive Store " + storeName + " into the Catalog");
 								}
 								else
 								{
@@ -117,7 +117,7 @@ public class IDADeleteTransactionListener implements TransactionListener {
 								        List<ResourceInfo> resources = catalog.getResourcesByStore(storeInfo, ResourceInfo.class);
 								        for (ResourceInfo ri : resources) {
 								            List<LayerInfo> layers = catalog.getLayers(ri);
-								            if (!layers.isEmpty()){ 
+								            if (!layers.isEmpty()){
 								                for (LayerInfo li : layers) {
 								                	// counting the store layers, if 0 we can remove the whole store too ...
 								                	layersInStore++;
@@ -141,6 +141,57 @@ public class IDADeleteTransactionListener implements TransactionListener {
 								                	}
 								                }
 								            }
+								            
+								            // //
+								            // Going to remove the resource geotiff and its parent folder
+								            // //
+								            try {
+								            	File storeResource = null;
+								            	LOGGER.info("IDATxLIstener - ConnectionParameters URL: " + ((CoverageInfo)ri).getStore().getURL());
+								            	String urlTxt = ((CoverageInfo)ri).getStore().getURL();
+								            	if (urlTxt.startsWith("file:") && !urlTxt.startsWith("file:///")) {
+								            		urlTxt = urlTxt.substring("file:".length());
+								            		storeResource = new File(urlTxt);
+								            	}
+
+								            	// try to delete the file several times since it may be locked by catalog for some reason
+								            	if (storeResource != null && storeResource.exists() && storeResource.isFile() && storeResource.canWrite()) {
+								            		final int retries = 10;
+								            		int tryDelete = 0;
+								            		for (; tryDelete < 5; tryDelete++)
+								            		{
+								            			if (storeResource.delete())
+								            			{
+								            				if (LOGGER.isLoggable(Level.FINE))
+								            				{
+								            					LOGGER.fine("IDATxLIstener - deleted storeResource: " + storeResource.getAbsolutePath());
+								            				}
+
+								            				// removing also the parent folder if empty.
+								            				storeResource.getParentFile().delete();
+								            				
+								            				break;
+								            			}
+								            			else
+								            			{
+								            				if (LOGGER.isLoggable(Level.FINE))
+								            				{
+								            					LOGGER.fine("IDATxLIstener - could not delete storeResource: " + storeResource.getAbsolutePath() + " ... wait 5 secs and retry...");
+								            				}
+
+								            				// wait 5 seconds and try again...
+								            				Thread.sleep(5000);
+								            			}
+								            		}
+
+								            		if (tryDelete > retries)
+								            		{
+								            			LOGGER.severe("IDATxLIstener - Could not delete file "+storeResource.getAbsolutePath()+" from the FileSystem");
+								            		}
+								            	}
+								            } catch (Exception e) {
+												LOGGER.warning("IDATxLIstener - Could not cleanup store and layer resource from the FileSystem: " + e.getLocalizedMessage());
+											}
 								        }
 								        
 								        // the store does not contain layers anymore, lets remove it from the catalog then
@@ -163,13 +214,15 @@ public class IDADeleteTransactionListener implements TransactionListener {
 									}
 									catch (Exception e)
 									{
-										LOGGER.severe("Could not remove store and layer from catalog: " + e.getLocalizedMessage());
-										
+										LOGGER.severe("IDATxLIstener - Could not remove store and layer from catalog: " + e.getLocalizedMessage());
 									}
 								}
 							}
 						}
 
+			            // //
+			            // Going to remove the Octave source file used to generate the layer
+			            // //
 						String srcPath = (String) next.getAttribute("srcPath");
 						
 				        if (LOGGER.isLoggable(Level.FINE))
@@ -209,12 +262,59 @@ public class IDADeleteTransactionListener implements TransactionListener {
 								
 								if (tryDelete > retries)
 								{
-									LOGGER.severe("Could not delete file "+srcPath+" from the FileSystem");
+									LOGGER.severe("IDATxLIstener - Could not delete file "+srcPath+" from the FileSystem");
+								}
+							}
+						}
+						
+			            // //
+			            // Going to remove the Octave sound velocity profile file uploaded and used to generate the layer
+			            // //
+						String soundVelocityProfile = (String) next.getAttribute("soundVelocityProfile");
+						
+				        if (LOGGER.isLoggable(Level.FINE))
+						{
+							LOGGER.fine("IDATxLIstener - going to delete file: " + soundVelocityProfile);
+						}
+
+						if (soundVelocityProfile != null && soundVelocityProfile.length() > 0) {
+							File file = new File(soundVelocityProfile);
+
+							// try to delete the file several times since it may be locked by catalog for some reason
+							if (file.exists() && file.isFile() && file.canWrite()) {
+								final int retries = 10;
+								int tryDelete = 0;
+								for (; tryDelete < 5; tryDelete++)
+								{
+									if (file.delete())
+									{
+								        if (LOGGER.isLoggable(Level.FINE))
+										{
+											LOGGER.fine("IDATxLIstener - deleted file: " + soundVelocityProfile);
+										}
+
+								        break;
+									}
+									else
+									{
+								        if (LOGGER.isLoggable(Level.FINE))
+										{
+											LOGGER.fine("IDATxLIstener - could not delete file: " + soundVelocityProfile + " ... wait 5 secs and retry...");
+										}
+
+								        // wait 5 seconds and try again...
+										Thread.sleep(5000);
+									}
+								}
+								
+								if (tryDelete > retries)
+								{
+									LOGGER.severe("IDATxLIstener - Could not delete file "+soundVelocityProfile+" from the FileSystem");
 								}
 							}
 						}
 					} catch (Exception e) {
-						LOGGER.severe("Exception occurred during Deletion: "+e.getLocalizedMessage());
+						LOGGER.severe("IDATxLIstener - Exception occurred during Deletion: "+e.getLocalizedMessage());
 						throw new WFSException(e);
 					} finally {
 					}

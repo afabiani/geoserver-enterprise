@@ -7,6 +7,10 @@
 		<constructor-arg index="0" ref="geoServer"/>
 	</bean>
 
+	<bean id="nurcIDACleanupProcess" class="org.geoserver.wps.gs.IDACleanupProcess">
+		<constructor-arg index="0" ref="geoServer"/>
+	</bean>
+
 	<!-- The PPIO that need to be registered into SPI because of their dependencies -->
 	
 </beans>
