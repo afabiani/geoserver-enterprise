@@ -75,7 +75,7 @@ public class ProcessDescriptor implements Serializable {
     private Date lastUpdateTime;
 
     /** The email of the caller. */
-    @Column(nullable = false, updatable = true)
+    @Column(nullable = true, updatable = true)
     private String email;
 
     @Column(nullable = false, updatable = false)
