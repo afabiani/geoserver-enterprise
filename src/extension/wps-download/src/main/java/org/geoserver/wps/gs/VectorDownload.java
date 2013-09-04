@@ -43,18 +43,12 @@ class VectorDownload {
     }
 
     static final Logger LOGGER = Logging.getLogger(VectorDownload.class);
-    
+
     /** The estimator. */
     private DownloadEstimatorProcess estimator;
-    
 
-    public File execute(
-            FeatureTypeInfo resourceInfo,
-            String mimeType,
-            Geometry roi,
-            boolean clip,
-            Filter filter,
-            CoordinateReferenceSystem targetCRS,
+    public File execute(FeatureTypeInfo resourceInfo, String mimeType, Geometry roi, boolean clip,
+            Filter filter, CoordinateReferenceSystem targetCRS,
             final ProgressListener progressListener) throws Exception {
 
         // prepare native CRS
@@ -98,7 +92,8 @@ class VectorDownload {
         //
 
         // access feature source and collection of features
-        final SimpleFeatureSource featureSource = (SimpleFeatureSource) resourceInfo.getFeatureSource(null, null); // TODO hints!!!
+        final SimpleFeatureSource featureSource = (SimpleFeatureSource) resourceInfo
+                .getFeatureSource(null, null); // TODO hints!!!
 
         // basic filter preparation
         Filter ra = Filter.INCLUDE;
@@ -126,7 +121,7 @@ class VectorDownload {
         // STEP 2 - Clip
         //
         SimpleFeatureCollection clippedFeatures;
-        if (clip&&roi!=null) {
+        if (clip && roi != null) {
             final ClipProcess clipProcess = new ClipProcess();// TODO avoid unnecessary creation
             clippedFeatures = clipProcess.execute(originalFeatures, roiInNativeCRS);
 
@@ -160,8 +155,8 @@ class VectorDownload {
         // STEP 4 - Write down respecting limits in bytes
         //
         // writing the output, making sure it is a zip
-        return writeVectorOutput(progressListener, reprojectedFeatures,resourceInfo.getName(), mimeType);
-
+        return writeVectorOutput(progressListener, reprojectedFeatures, resourceInfo.getName(),
+                mimeType);
 
     }
 
@@ -178,7 +173,7 @@ class VectorDownload {
     private File writeVectorOutput(final ProgressListener progressListener,
             final SimpleFeatureCollection features, final String name, final String mimeType)
             throws Exception {
-    
+
         // Search a proper PPIO
         ProcessParameterIO ppio_ = DownloadUtilities.find(new Parameter<SimpleFeatureCollection>(
                 "fakeParam", SimpleFeatureCollection.class), null, mimeType, false);
@@ -187,13 +182,13 @@ class VectorDownload {
         } else if (!(ppio_ instanceof ComplexPPIO)) {
             throw new ProcessException("Invalid PPIO found " + ppio_.getIdentifer());
         }
-    
+
         // limits
         long limit = DownloadEstimatorProcess.NO_LIMIT;
         if (estimator.getHardOutputLimit() > 0) {
             limit = estimator.getHardOutputLimit();
-        } 
-    
+        }
+
         //
         // Get fileName
         //
@@ -201,44 +196,45 @@ class VectorDownload {
         if (ppio_ instanceof ComplexPPIO) {
             extension = "." + ((ComplexPPIO) ppio_).getFileExtension();
         }
-    
+
         // create output file
         final File output = File.createTempFile(name, extension,
                 GeoserverDataDirectory.findCreateConfigDir("temp"));
-    
+
         // write checking limits
         OutputStream os = null;
         try {
-    
+
             // create OutputStream that checks limits
-            final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(output));
-            if(limit>DownloadEstimatorProcess.NO_LIMIT){
+            final BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(
+                    new FileOutputStream(output));
+            if (limit > DownloadEstimatorProcess.NO_LIMIT) {
                 os = new LimitedOutputStream(bufferedOutputStream, limit) {
-        
+
                     @Override
                     protected void raiseError(long pSizeMax, long pCount) throws IOException {
                         throw new IOException("Download Exceeded the maximum HARD allowed size!");
                     }
-        
+
                 };
-                
+
             } else {
-                os= bufferedOutputStream;
+                os = bufferedOutputStream;
             }
-            
+
             // write with PPIO
             if (ppio_ instanceof ComplexPPIO) {
                 ((ComplexPPIO) ppio_).encode(features, os);
             }
-    
+
         } finally {
             if (os != null) {
                 IOUtils.closeQuietly(os);
             }
         }
-    
+
         // return
         return output;
-    
+
     }
 }

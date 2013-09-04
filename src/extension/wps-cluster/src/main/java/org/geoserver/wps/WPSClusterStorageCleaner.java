@@ -1,9 +1,9 @@
 package org.geoserver.wps;
+
 /* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
-
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -21,18 +21,16 @@ import org.geoserver.wps.resource.WPSResourceManager;
 import org.geotools.util.logging.Logging;
 
 /**
- * Cleans up the temporary storage directory for WPS.
- * Extends the wps core WPSStorageCleaner looking for old storage records.
- * Moreover if a file has been associated to an event, it will be removed 
- * on file expiration.
+ * Cleans up the temporary storage directory for WPS. Extends the wps core WPSStorageCleaner looking for old storage records. Moreover if a file has
+ * been associated to an event, it will be removed on file expiration.
  * 
  * Expiration time taken from WPS Service.
  * 
  * @author Andrea Aime - GeoSolutions
  * @author Alessio Fabiani - GeoSolutions
  */
-public class WPSClusterStorageCleaner extends WPSStorageCleaner{
-    
+public class WPSClusterStorageCleaner extends WPSStorageCleaner {
+
     private final static Logger LOGGER = Logging.getLogger(WPSClusterStorageCleaner.class);
 
     /** The available storages. */
@@ -43,12 +41,12 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner{
 
     private String clusterId;
 
-    public WPSClusterStorageCleaner(WPSResourceManager resourceManager, ProcessStorage processStorage, 
-            String clusterid) throws IOException,
+    public WPSClusterStorageCleaner(WPSResourceManager resourceManager,
+            ProcessStorage processStorage, String clusterid) throws IOException,
             ConfigurationException {
         super(resourceManager.getWpsOutputStorage());
-        this.processStorage= processStorage;
-        this.clusterId=clusterid;
+        this.processStorage = processStorage;
+        this.clusterId = clusterid;
 
         // if no storage is available just initialize with the stub one
         if (processStorage == null) {
@@ -82,21 +80,12 @@ public class WPSClusterStorageCleaner extends WPSStorageCleaner{
      */
     private void cleanupStorage(long now) throws IOException {
         if (enabled) {
-            final Collection<ProcessDescriptor> processes = processStorage.getAll(
-                    Arrays.asList(ProcessState.COMPLETED,
-                            ProcessState.CANCELLED,
-                            ProcessState.FAILED),
-                            clusterId,
-                    new Date(now-expirationDelay)
-                    );
+            final Collection<ProcessDescriptor> processes = processStorage.getAll(Arrays.asList(
+                    ProcessState.COMPLETED, ProcessState.CANCELLED, ProcessState.FAILED),
+                    clusterId, new Date(now - expirationDelay));
             for (ProcessDescriptor process : processes) {
-                final ProcessState phase = process.getPhase();
-                if(phase==ProcessState.CANCELLED||
-                        phase==ProcessState.COMPLETED||
-                        phase==ProcessState.FAILED){
-                    // get process
-                    processStorage.remove(process);
-                }
+                // get process
+                processStorage.remove(process);
             }
         }
     }

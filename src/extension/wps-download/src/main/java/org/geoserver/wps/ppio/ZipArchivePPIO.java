@@ -33,27 +33,28 @@ public class ZipArchivePPIO extends BinaryPPIO {
     /** The catalog. */
     private Catalog catalog;
 
-    private int compressionLevel=ZipOutputStream.STORED;
+    private int compressionLevel = ZipOutputStream.STORED;
 
     /**
      * Instantiates a new zip archive ppio.
-     *
+     * 
      * @param geoServer the geo server
      * @param resources the resources
      */
     public ZipArchivePPIO(GeoServer geoServer, int compressionLevel) {
         super(File.class, File.class, "application/zip");
         Utilities.ensureNonNull("geoserver", geoServer);
-        if(compressionLevel<ZipOutputStream.STORED||compressionLevel>ZipOutputStream.DEFLATED){
-            throw new IllegalArgumentException("Invalid Compression Level: "+compressionLevel);
+        if (compressionLevel < ZipOutputStream.STORED
+                || compressionLevel > ZipOutputStream.DEFLATED) {
+            throw new IllegalArgumentException("Invalid Compression Level: " + compressionLevel);
         }
         this.catalog = geoServer.getCatalog();
-        this.compressionLevel=compressionLevel;
+        this.compressionLevel = compressionLevel;
     }
 
     /**
      * Encode.
-     *
+     * 
      * @param output the output
      * @param os the os
      * @throws Exception the exception
@@ -61,39 +62,41 @@ public class ZipArchivePPIO extends BinaryPPIO {
     @Override
     public void encode(final Object output, OutputStream os) throws Exception {
         ZipOutputStream zipout = new ZipOutputStream(os);
-        zipout.setLevel(compressionLevel); 
-        
+        zipout.setLevel(compressionLevel);
+
         // directory
-        if(output instanceof File){
-            final File file= ((File)output);
-            if(file.isDirectory()){
-                IOUtils.zipDirectory(file, zipout,FileFilterUtils.trueFileFilter());
+        if (output instanceof File) {
+            final File file = ((File) output);
+            if (file.isDirectory()) {
+                IOUtils.zipDirectory(file, zipout, FileFilterUtils.trueFileFilter());
             } else {
                 // check if is a zip file already
+
                 IOUtils.zipFile(file, zipout);
             }
         } else {
             // list of files
-            if(output instanceof Collection){
+            if (output instanceof Collection) {
                 // create temp dir
-                final Collection collection=(Collection) output;
-                for(Object obj:collection){
-                    if(obj instanceof File){
+                final Collection collection = (Collection) output;
+                for (Object obj : collection) {
+                    if (obj instanceof File) {
                         // convert to file and add to zip
-                        final File file= ((File)obj);
-                        if(file.isDirectory()){
-                            IOUtils.zipDirectory(file, zipout,FileFilterUtils.trueFileFilter());
+                        final File file = ((File) obj);
+                        if (file.isDirectory()) {
+                            IOUtils.zipDirectory(file, zipout, FileFilterUtils.trueFileFilter());
                         } else {
                             // check if is a zip file already
                             IOUtils.zipFile(file, zipout);
                         }
                     } else {
-                        LOGGER.info("Skipping object -->"+obj.toString());
+                        LOGGER.info("Skipping object -->" + obj.toString());
                     }
                 }
             } else {
                 // error
-                throw new IllegalArgumentException("Unable to zip provided output. Output-->"+output!=null?output.getClass().getCanonicalName():"null");
+                throw new IllegalArgumentException("Unable to zip provided output. Output-->"
+                        + output != null ? output.getClass().getCanonicalName() : "null");
             }
         }
         zipout.finish();
@@ -101,11 +104,10 @@ public class ZipArchivePPIO extends BinaryPPIO {
 
     /**
      * Decode.
-     *
+     * 
      * @param input the input
      * @return the object
-     * @throws Exception the exception
-     * TODO review
+     * @throws Exception the exception TODO review
      */
     @Override
     public Object decode(InputStream input) throws Exception {
@@ -152,7 +154,7 @@ public class ZipArchivePPIO extends BinaryPPIO {
 
     /**
      * Gets the file extension.
-     *
+     * 
      * @return the file extension
      */
     @Override

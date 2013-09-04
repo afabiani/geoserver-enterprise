@@ -51,8 +51,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param status the status
      */
-    public void putStatus( String executionId, ExecutionStatus status,
-            Boolean silently) {
+    public void putStatus(String executionId, ExecutionStatus status, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -64,7 +63,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @return the execution status
      */
-    public ExecutionStatus removeProcess( String executionId, Boolean silently) {
+    public ExecutionStatus removeProcess(String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -74,7 +73,8 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * 
      * @return the all
      */
-    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterId,Date finishedDateTimeLimit) {
+    public Collection<ProcessDescriptor> getAll(List<ProcessState> status, String clusterId,
+            Date finishedDateTimeLimit) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -86,8 +86,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param phase the phase
      */
-    public void updatePhase( String executionId, ProcessState phase,
-            Boolean silently) {
+    public void updatePhase(String executionId, ProcessState phase, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -99,8 +98,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param progress the progress
      */
-    public void updateProgress( String executionId, float progress,
-            Boolean silently) {
+    public void updateProgress(String executionId, float progress, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -112,8 +110,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @return the output
      */
-    public Map<String, Object> getOutput( String executionId, 
-            Boolean silently) {
+    public Map<String, Object> getOutput(String executionId, Boolean silently) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -136,8 +133,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param status the status
      */
-    public void putOutput( String executionId, ExecutionStatus status,
-            Boolean silently) {
+    public void putOutput(String executionId, ExecutionStatus status, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -149,7 +145,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param e the e
      */
-    public void putOutput( String executionId, Exception e, Boolean silently) {
+    public void putOutput(String executionId, Exception e, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -163,7 +159,8 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param inputs the inputs
      * @param background the background
      */
-    public ProcessDescriptor createOrFindProcess(String clusterId, String executionId, Name processName,boolean background,String email) {
+    public ProcessDescriptor createOrFindProcess(String clusterId, String executionId,
+            Name processName, boolean background, String email) {
         return null;
         // TODO Auto-generated method stub
 
@@ -177,8 +174,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param processName the process name
      * @param inputs the inputs
      */
-    public void submitChained( String executionId, Name processName,
-            Map<String, Object> inputs) {
+    public void submitChained(String executionId, Name processName, Map<String, Object> inputs) {
         // TODO Auto-generated method stub
 
     }
@@ -190,7 +186,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
      * @param executionId the execution id
      * @param value the value
      */
-    public void storeResult( String executionId, Object value, Boolean silently) {
+    public void storeResult(String executionId, Object value, Boolean silently) {
         // TODO Auto-generated method stub
 
     }
@@ -198,7 +194,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     @Override
     public void update(ProcessDescriptor process) {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
@@ -210,7 +206,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     @Override
     public void create(ProcessDescriptor process) {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
@@ -222,7 +218,7 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     @Override
     public void storeResult(ProcessDescriptor process, Object result) {
         // TODO Auto-generated method stub
-        
+
     }
 
 }

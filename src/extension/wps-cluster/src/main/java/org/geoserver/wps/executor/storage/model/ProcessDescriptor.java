@@ -64,30 +64,30 @@ public class ProcessDescriptor implements Serializable {
     @Lob
     @Column(nullable = true, updatable = true)
     private String result;
-    
+
     @Column(nullable = true, updatable = true)
     private Date startTime;
-    
+
     @Column(nullable = true, updatable = true)
     private Date finishTime;
-    
+
     @Column(nullable = true, updatable = true)
     private Date lastUpdateTime;
-    
+
     /** The email of the caller. */
     @Column(nullable = false, updatable = true)
     private String email;
 
     @Column(nullable = false, updatable = false)
     private String name;
-    
+
     @Column(nullable = false, updatable = false)
     private String nameSpace;
-    
+
     @Lob
     @Column(nullable = true, updatable = true)
     private String output;
-    
+
     /**
      * Instantiates a new instance.
      */
@@ -97,7 +97,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the id.
-     *
+     * 
      * @return the id
      */
     public Long getId() {
@@ -106,7 +106,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the id.
-     *
+     * 
      * @param id the new id
      */
     public void setId(Long id) {
@@ -115,7 +115,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the cluster id.
-     *
+     * 
      * @param clusterId the new cluster id
      */
     public void setClusterId(String clusterId) {
@@ -124,7 +124,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the cluster id.
-     *
+     * 
      * @return the cluster id
      */
     public String getClusterId() {
@@ -133,7 +133,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the execution id.
-     *
+     * 
      * @param executionId the new execution id
      */
     public void setExecutionId(String executionId) {
@@ -142,7 +142,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the execution id.
-     *
+     * 
      * @return the execution id
      */
     public String getExecutionId() {
@@ -151,7 +151,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the phase.
-     *
+     * 
      * @param phase the new phase
      */
     public void setPhase(ProcessState phase) {
@@ -160,7 +160,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the phase.
-     *
+     * 
      * @return the phase
      */
     public ProcessState getPhase() {
@@ -169,7 +169,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the progress.
-     *
+     * 
      * @param progress the new progress
      */
     public void setProgress(float progress) {
@@ -178,7 +178,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the progress.
-     *
+     * 
      * @return the progress
      */
     public float getProgress() {
@@ -187,7 +187,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Sets the result.
-     *
+     * 
      * @param result the new result
      */
     public void setResult(String result) {
@@ -196,7 +196,7 @@ public class ProcessDescriptor implements Serializable {
 
     /**
      * Gets the result.
-     *
+     * 
      * @return the result
      */
     public String getResult() {

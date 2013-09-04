@@ -20,23 +20,24 @@ import com.googlecode.genericdao.search.jpa.JPASearchProcessor;
 
 /**
  * Public implementation of the ProcessDescriptorDAO interface that relies on GenericDAO
- *
+ * 
  * @author Emanuele Tajariol (etj at geo-solutions.it)
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 @Transactional(value = "processStorageTransactionManager")
-public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, Long> implements ProcessDescriptorDAO {
+public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, Long> implements
+        ProcessDescriptorDAO {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logger.getLogger(ProcessDescriptorDAOImpl.class);
-    
+
     /** The entity manager. */
     @PersistenceContext(unitName = "processStorageEntityManagerFactory")
     private EntityManager entityManager;
 
     /**
      * Persist.
-     *
+     * 
      * @param entities the entities
      */
     @Override
@@ -46,7 +47,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * Find all.
-     *
+     * 
      * @return the list
      */
     @Override
@@ -56,7 +57,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * Search.
-     *
+     * 
      * @param search the search
      * @return the list
      */
@@ -67,7 +68,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * Merge.
-     *
+     * 
      * @param entity the entity
      * @return the process descriptor
      */
@@ -78,7 +79,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * Removes the.
-     *
+     * 
      * @param entity the entity
      * @return true, if successful
      */
@@ -89,7 +90,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * Removes the by id.
-     *
+     * 
      * @param id the id
      * @return true, if successful
      */
@@ -97,15 +98,15 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
     public boolean removeById(Long id) {
         return super.removeById(id);
     }
-    
+
     /**
      * Removes the by id.
-     *
+     * 
      * @param id the id
      * @return true, if successful
      */
     @Override
-    public void removeByIds(Long ...ids) {
+    public void removeByIds(Long... ids) {
         super.removeByIds(ids);
     }
 
@@ -116,7 +117,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
      */
     /**
      * Em.
-     *
+     * 
      * @return the entity manager
      */
     @Override
@@ -126,7 +127,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * EntityManager setting.
-     *
+     * 
      * @param entityManager the entity manager to set
      */
     @Override
@@ -137,7 +138,7 @@ public class ProcessDescriptorDAOImpl extends GenericDAOImpl<ProcessDescriptor, 
 
     /**
      * JPASearchProcessor setting.
-     *
+     * 
      * @param searchProcessor the search processor to set
      */
     @Override

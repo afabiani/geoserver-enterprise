@@ -107,26 +107,26 @@ public abstract class BaseDAOTest extends GeoServerTestSupport {
         ProcessDescriptor process = new ProcessDescriptor();
         process.setClusterId(clusterId);
         process.setExecutionId(executionId);
-//        process.setStatus(marshaller.toXML(createStatus(clusterId, executionId,
-//                ProcessState.QUEUED, 0.0f)));
+        // process.setStatus(marshaller.toXML(createStatus(clusterId, executionId,
+        // ProcessState.QUEUED, 0.0f)));
         process.setProgress(0.0f);
         process.setPhase(ProcessState.QUEUED);
 
         return process;
     }
 
-//    /**
-//     * Creates the status.
-//     *
-//     * @param clusterId the cluster id
-//     * @param executionId the execution id
-//     * @param phase the phase
-//     * @param progress the progress
-//     * @return the object
-//     */
-//    private Object createStatus(String clusterId, String executionId, ProcessState phase,
-//            float progress) {
-//        return new ExecutionStatus(Ows11Util.name(clusterId), executionId, phase, progress);
-//    }
+    // /**
+    // * Creates the status.
+    // *
+    // * @param clusterId the cluster id
+    // * @param executionId the execution id
+    // * @param phase the phase
+    // * @param progress the progress
+    // * @return the object
+    // */
+    // private Object createStatus(String clusterId, String executionId, ProcessState phase,
+    // float progress) {
+    // return new ExecutionStatus(Ows11Util.name(clusterId), executionId, phase, progress);
+    // }
 
 }

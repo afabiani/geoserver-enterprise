@@ -66,7 +66,7 @@ abstract class LimitedOutputStream extends FilterOutputStream {
      * blocks until input data is available, the end of the stream is detected, or an exception is thrown.
      * <p>
      * This method simply performs <code>in.read()</code> and returns the result.
-     *
+     * 
      * @param b the b
      * @return the next byte of data, or <code>-1</code> if the end of the stream is reached.
      * @throws IOException if an I/O error occurs.
@@ -83,12 +83,12 @@ abstract class LimitedOutputStream extends FilterOutputStream {
      * until some input is available; otherwise, no bytes are read and <code>0</code> is returned.
      * <p>
      * This method simply performs <code>in.read(b, off, len)</code> and returns the result.
-     *
+     * 
      * @param b the buffer into which the data is read.
      * @param off The start offset in the destination array <code>b</code>.
      * @param len the maximum number of bytes read.
      * @return the total number of bytes read into the buffer, or <code>-1</code> if there is no more data because the end of the stream has been
-     * reached.
+     *         reached.
      * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */
@@ -112,7 +112,7 @@ abstract class LimitedOutputStream extends FilterOutputStream {
 
     /**
      * Closes this input stream and releases any system resources associated with the stream. This method simply performs <code>in.close()</code>.
-     *
+     * 
      * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */

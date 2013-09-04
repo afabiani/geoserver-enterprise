@@ -59,14 +59,12 @@ public class DownloadProcess implements GSProcess {
      * @param sendMail the send mail
      * @param estimator the estimator
      */
-    public DownloadProcess(
-            GeoServer geoServer, 
-            DownloadEstimatorProcess estimator,
+    public DownloadProcess(GeoServer geoServer, DownloadEstimatorProcess estimator,
             ZipArchivePPIO zipPPIO) {
         Utilities.ensureNonNull("geoServer", geoServer);
         this.catalog = geoServer.getCatalog();
         this.estimator = estimator;
-        this.zipPPIO=zipPPIO;
+        this.zipPPIO = zipPPIO;
     }
 
     /**
@@ -96,7 +94,7 @@ public class DownloadProcess implements GSProcess {
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean clip,
             final ProgressListener progressListener) throws ProcessException {
 
-        try{
+        try {
             //
             // initial checks on mandatory params
             //
@@ -114,14 +112,15 @@ public class DownloadProcess implements GSProcess {
                 }
                 roi.setUserData(roiCRS);
             }
-    
+
             //
             // do we respect limits?
             //
-            if(!estimator.execute(layerName, filter, targetCRS, roiCRS, roi, clip, progressListener)){
+            if (!estimator.execute(layerName, filter, targetCRS, roiCRS, roi, clip,
+                    progressListener)) {
                 throw new IllegalArgumentException("Download Limits Exceeded. Unable to proceed!");
             }
-    
+
             //
             // Move on with the real code
             //
@@ -129,18 +128,17 @@ public class DownloadProcess implements GSProcess {
             LayerInfo layerInfo = catalog.getLayerByName(layerName);
             if (layerInfo == null) {
                 // could not find any layer ... abruptly interrupt the process
-                throw new IllegalArgumentException(
-                            "Unable to locate layer: " + layerName);
-        
+                throw new IllegalArgumentException("Unable to locate layer: " + layerName);
+
             }
             ResourceInfo resourceInfo = layerInfo.getResource();
             if (resourceInfo == null) {
                 // could not find any data store associated to the specified layer ... abruptly interrupt the process
-                throw new IllegalArgumentException(
-                        "Unable to locate ResourceInfo for layer:" + layerName);
-    
+                throw new IllegalArgumentException("Unable to locate ResourceInfo for layer:"
+                        + layerName);
+
             }
-    
+
             // CORE CODE
             File output;
             if (resourceInfo instanceof FeatureTypeInfo) {
@@ -148,84 +146,72 @@ public class DownloadProcess implements GSProcess {
                 // VECTOR
                 //
                 // perform the actual download of vectorial data accordingly to the request inputs
-                output=new VectorDownload(estimator).execute(
-                        (FeatureTypeInfo)resourceInfo, 
-                        mimeType, 
-                        roi, 
-                        clip, 
-                        filter, 
-                        targetCRS, 
-                        progressListener);
-    
+                output = new VectorDownload(estimator).execute((FeatureTypeInfo) resourceInfo,
+                        mimeType, roi, clip, filter, targetCRS, progressListener);
+
             } else if (resourceInfo instanceof CoverageInfo) {
                 //
                 // RASTER
                 //
-                CoverageInfo cInfo=(CoverageInfo) resourceInfo;
-                  // convert/reproject/crop if needed the coverage
-                output= new RasterDownload(estimator).execute(
-                        mimeType, 
-                        progressListener, 
-                        cInfo, 
-                        roi, 
-                        targetCRS, 
-                        clip,
-                        filter);
+                CoverageInfo cInfo = (CoverageInfo) resourceInfo;
+                // convert/reproject/crop if needed the coverage
+                output = new RasterDownload(estimator).execute(mimeType, progressListener, cInfo,
+                        roi, targetCRS, clip, filter);
             } else {
-            
+
                 // wrong type
-                throw new IllegalArgumentException("Could not complete the Download Process, requested layer was of wrong type-->"+resourceInfo.getClass());
-                       
+                throw new IllegalArgumentException(
+                        "Could not complete the Download Process, requested layer was of wrong type-->"
+                                + resourceInfo.getClass());
+
             }
-            
-            // 
+
+            //
             // Work on result
             //
             // checks
-            if(output==null){
+            if (output == null) {
                 // wrong type
-               throw new IllegalStateException("Could not complete the Download Process, output file is null");           
+                throw new IllegalStateException(
+                        "Could not complete the Download Process, output file is null");
             }
-            if(!output.exists()||!output.canRead()){
+            if (!output.exists() || !output.canRead()) {
                 // wrong type
-                throw new IllegalStateException("Could not complete the Download Process, output file invalid! --> "+output.getAbsolutePath());
-           
-            }      
-            
+                throw new IllegalStateException(
+                        "Could not complete the Download Process, output file invalid! --> "
+                                + output.getAbsolutePath());
+
+            }
+
             // zipping and adding the style
-            
+
             // build destination zip
-            final File newOutput = File.createTempFile(
-                    FilenameUtils.getBaseName(output.getName()), 
-                    ".zip",
-                    output.getParentFile());
-    
+            final File newOutput = File.createTempFile(FilenameUtils.getBaseName(output.getName()),
+                    ".zip", output.getParentFile());
+
             FileOutputStream os1 = null;
             try {
                 os1 = new FileOutputStream(newOutput);
-                
+
                 // add old output and default SLD to zip
-                zipPPIO.encode(
-                        Arrays.asList(
-                            GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename()),
-                            output), 
-                        os1); 
-                
+                zipPPIO.encode(Arrays.asList(GeoserverDataDirectory.findStyleFile(layerInfo
+                        .getDefaultStyle().getFilename()), output), os1);
+
             } finally {
                 if (os1 != null) {
                     IOUtils.closeQuietly(os1);
                 }
-                
+
                 // delete original
-                if(output.isDirectory()){
+                if (output.isDirectory()) {
                     org.geoserver.data.util.IOUtils.delete(output);
                 } else {
                     FileUtils.deleteQuietly(output);
                 }
             }
 
-            output= newOutput; // reassign 
-            
+            output = newOutput; // reassign
+
             //
             // finishing
             //
@@ -233,10 +219,10 @@ public class DownloadProcess implements GSProcess {
             if (progressListener != null) {
                 progressListener.complete();
             }
-            
+
             // return
-            return output;       
-        }catch (Exception e) {
+            return output;
+        } catch (Exception e) {
             // catch and rethrow
             final ProcessException processException = new ProcessException(e);
             if (progressListener != null) {

@@ -17,14 +17,15 @@ public class ProcessDescriptorDAOTest extends BaseDAOTest {
 
     /**
      * Test persist process.
-     *
+     * 
      * @throws Exception the exception
      */
     public void testPersistProcess() throws Exception {
 
         long id;
         {
-            ProcessDescriptor process = createProcessDescriptor(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+            ProcessDescriptor process = createProcessDescriptor(UUID.randomUUID().toString(), UUID
+                    .randomUUID().toString());
             processDAO.persist(process);
             id = process.getId();
         }

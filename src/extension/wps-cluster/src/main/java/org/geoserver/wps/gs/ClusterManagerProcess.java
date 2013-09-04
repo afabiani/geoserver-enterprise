@@ -23,8 +23,7 @@ import org.opengis.util.ProgressListener;
  * The Class ClusterManagerProcess.
  * 
  * <p>
- * In the future this process could be used to stop ongoing processes.
- * For the time being it simply access the executiong logs
+ * In the future this process could be used to stop ongoing processes. For the time being it simply access the executiong logs
  * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
@@ -33,9 +32,8 @@ public class ClusterManagerProcess implements GSProcess {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(ClusterManagerProcess.class);
-    
-    private final ProcessStorage storage;
 
+    private final ProcessStorage storage;
 
     /**
      * Instantiates a new cluster manager process.
@@ -44,7 +42,7 @@ public class ClusterManagerProcess implements GSProcess {
      */
     public ClusterManagerProcess(ProcessStorage storage) {
         this.storage = storage;
-        if (storage == null ) {
+        if (storage == null) {
             throw new RuntimeException("Provided null ProcessStorage");
         }
     }
@@ -61,21 +59,17 @@ public class ClusterManagerProcess implements GSProcess {
     public ExecutionStatus execute(
             @DescribeParameter(name = "executionId", min = 1, description = "The requested WPS ExecutionId") String executionId,
             ProgressListener progressListener) throws ProcessException {
-        
-            if(LOGGER.isLoggable(Level.FINE)){
-                LOGGER.fine("Requested status for execution ID: "+executionId);
-            }
-            ProcessDescriptor process = storage.findByExecutionId(executionId, true);
-            if(process!=null){
-                return new ExecutionStatus(
-                       new NameImpl(process.getNameSpace(),process.getName()),
-                       process.getExecutionId(),
-                       process.getPhase(),
-                       process.getProgress());
-            }
-            throw new ProcessException("Unable to find process with executionId: "+executionId);
 
-        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine("Requested status for execution ID: " + executionId);
+        }
+        ProcessDescriptor process = storage.findByExecutionId(executionId, true);
+        if (process != null) {
+            return new ExecutionStatus(new NameImpl(process.getNameSpace(), process.getName()),
+                    process.getExecutionId(), process.getPhase(), process.getProgress());
+        }
+        throw new ProcessException("Unable to find process with executionId: " + executionId);
+
     }
 
 }

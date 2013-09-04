@@ -26,7 +26,7 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
 
     /**
      * Populate data directory.
-     *
+     * 
      * @param dataDirectory the data directory
      * @throws Exception the exception
      */
@@ -39,17 +39,18 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
 
     /**
      * PPIO Test.
-     *
+     * 
      * @throws Exception the exception
      */
     public void testEncodeStatus() throws Exception {
-        ProcessStorage storage=null;
-        List<ProcessStorage> availableStorages = GeoServerExtensions.extensions(ProcessStorage.class);
+        ProcessStorage storage = null;
+        List<ProcessStorage> availableStorages = GeoServerExtensions
+                .extensions(ProcessStorage.class);
         if (availableStorages == null || availableStorages.size() == 0) {
             throw new RuntimeException("No available Process Storage registered on GeoServer!");
         }
-        storage=availableStorages.get(0);
-        
+        storage = availableStorages.get(0);
+
         final String executionId = UUID.randomUUID().toString();
         ExecutionStatus status = new ClusterManagerProcess(storage).execute(executionId,
                 new NullProgressListener() // progressListener
@@ -57,8 +58,7 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
 
         assertNotNull(status);
 
-        ExecutionStatusPPIO ppio = new ExecutionStatusPPIO(getGeoServer(),
-                null);
+        ExecutionStatusPPIO ppio = new ExecutionStatusPPIO(getGeoServer(), null);
         StringWriter writer = new StringWriter();
         ppio.encode(status, new WriterOutputStream(writer));
 

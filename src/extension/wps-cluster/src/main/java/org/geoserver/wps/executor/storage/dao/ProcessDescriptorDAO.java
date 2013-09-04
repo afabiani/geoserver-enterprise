@@ -12,22 +12,22 @@ import com.googlecode.genericdao.search.ISearch;
 
 /**
  * Public interface to define operations on ProcessDescriptor.
- *
+ * 
  * @author Emanuele Tajariol (etj at geo-solutions.it)
  */
 
-public interface ProcessDescriptorDAO{
+public interface ProcessDescriptorDAO {
 
     /**
      * Find all.
-     *
+     * 
      * @return the list
      */
     public List<ProcessDescriptor> findAll();
 
     /**
      * Find.
-     *
+     * 
      * @param id the id
      * @return the ProcessDescriptor
      */
@@ -35,14 +35,14 @@ public interface ProcessDescriptorDAO{
 
     /**
      * Persist.
-     *
+     * 
      * @param entities the entities
      */
     public void persist(ProcessDescriptor... entities);
 
     /**
      * Merge.
-     *
+     * 
      * @param ProcessDescriptor the ProcessDescriptor
      * @return the ProcessDescriptor
      */
@@ -50,7 +50,7 @@ public interface ProcessDescriptorDAO{
 
     /**
      * Removes the.
-     *
+     * 
      * @param ProcessDescriptor the ProcessDescriptor
      * @return true, if successful
      */
@@ -58,22 +58,22 @@ public interface ProcessDescriptorDAO{
 
     /**
      * Removes the by id.
-     *
+     * 
      * @param id the id
      * @return true, if successful
      */
     public boolean removeById(Long id);
-    
+
     /**
      * Removes the by id.
-     *
+     * 
      * @param id the ids
      */
     public void removeByIds(Long... id);
 
     /**
      * Search.
-     *
+     * 
      * @param search the search
      * @return the list
      */
@@ -81,7 +81,7 @@ public interface ProcessDescriptorDAO{
 
     /**
      * Count.
-     *
+     * 
      * @param search the search
      * @return the int
      */

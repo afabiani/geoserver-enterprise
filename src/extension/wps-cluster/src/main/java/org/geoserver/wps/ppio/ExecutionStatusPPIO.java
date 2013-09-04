@@ -22,7 +22,7 @@ import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
 
 /**
  * Handles input and output of feature collections as zipped files.
- *
+ * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
  */
 public class ExecutionStatusPPIO extends BinaryPPIO {
@@ -43,7 +43,7 @@ public class ExecutionStatusPPIO extends BinaryPPIO {
 
     /**
      * Instantiates a new execution status list ppio.
-     *
+     * 
      * @param geoServer the geo server
      * @param resources the resources
      */
@@ -56,7 +56,7 @@ public class ExecutionStatusPPIO extends BinaryPPIO {
 
     /**
      * Encode.
-     *
+     * 
      * @param output the output
      * @param os the os
      * @throws Exception the exception
@@ -66,17 +66,19 @@ public class ExecutionStatusPPIO extends BinaryPPIO {
         try {
             ExecutionStatus status = (ExecutionStatus) output;
             marshaller.toXML(status, os);
-            if(LOGGER.isLoggable(Level.FINEST)){
+            if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.finest(marshaller.toXML(status));
             }
         } catch (Exception e) {
-            throw new ProcessException("Could not encode output" + output!=null?(" :"+output.getClass()):": null",e);
+            throw new ProcessException(
+                    "Could not encode output" + output != null ? (" :" + output.getClass())
+                            : ": null", e);
         }
     }
 
     /**
      * Decode.
-     *
+     * 
      * @param input the input
      * @return the object
      * @throws Exception the exception
@@ -92,7 +94,7 @@ public class ExecutionStatusPPIO extends BinaryPPIO {
 
     /**
      * Decode.
-     *
+     * 
      * @param input the input
      * @return the object
      * @throws Exception the exception
@@ -103,18 +105,18 @@ public class ExecutionStatusPPIO extends BinaryPPIO {
             Object object = marshaller.fromXML(input);
             if (object instanceof List) {
                 return (ExecutionStatus) object;
-            } 
+            }
             // object of wrong type
             throw new IllegalArgumentException("Object of wrong type");
         } catch (Exception e) {
-            throw new ProcessException("Could not decode the provided input" , e);
+            throw new ProcessException("Could not decode the provided input", e);
         }
 
     }
 
     /**
      * Gets the file extension.
-     *
+     * 
      * @return the file extension
      */
     @Override

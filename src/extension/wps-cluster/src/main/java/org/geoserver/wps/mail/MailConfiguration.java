@@ -177,16 +177,17 @@ public class MailConfiguration {
         // InputStream inputStream = this.getClass().getClassLoader()
         // .getResourceAsStream("mail.properties");
 
-        InputStream inputStream =null;
+        InputStream inputStream = null;
         // load the inputStream using the Properties
         try {
             inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath()
                     .getParentFile(), "mail.properties"));
 
-            Properties properties = new Properties();            
+            Properties properties = new Properties();
             properties.load(inputStream);
             this.setMailSmtpHost(properties.getProperty("mail.smtp.host"));
-            this.setMailSmtpSocketFactoryPort(properties.getProperty("mail.smtp.socketFactory.port"));
+            this.setMailSmtpSocketFactoryPort(properties
+                    .getProperty("mail.smtp.socketFactory.port"));
             this.setMailSmtpFactoryClass(properties.getProperty("mail.smtp.socketFactory.class"));
             this.setMailSmtpAuth(properties.getProperty("mail.smtp.auth"));
             this.setMailSmtpPort(properties.getProperty("mail.smtp.port"));
@@ -197,13 +198,12 @@ public class MailConfiguration {
             this.setSubjet(properties.getProperty("subject"));
             this.setBody(properties.getProperty("body"));
             // get the value of the property
-            return properties;            
+            return properties;
         } finally {
-            if(inputStream==null){
+            if (inputStream == null) {
                 IOUtils.closeQuietly(inputStream);
             }
         }
-   
 
     }
 

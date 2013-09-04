@@ -48,7 +48,7 @@ import org.opengis.feature.type.Name;
 public class ClusterProcessManager extends DefaultProcessManager {
 
     private final static Logger LOGGER = Logging.getLogger(ClusterExecutionStatus.class);
-    
+
     /** The cluster id. */
     private String clusterId;
 
@@ -56,7 +56,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
     private ProcessStorage processStorage;
 
     /** The list of excluded proces names. */
-    private List<String> processNamesEsclusionList= new ArrayList<String>();
+    private List<String> processNamesEsclusionList = new ArrayList<String>();
 
     private ClusterFilePublisherURLMangler mangler;
 
@@ -77,7 +77,8 @@ public class ClusterProcessManager extends DefaultProcessManager {
     public Map<String, Object> submitChained(String executionId, Name processName,
             Map<String, Object> inputs) throws ProcessException {
         // straight execution, no thread pooling, we're already running in the parent process thread
-        final ProcessListener listener = new ProcessListener(new ExecutionStatus( processName, executionId, ProcessState.RUNNING, 0));
+        final ProcessListener listener = new ProcessListener(new ExecutionStatus(processName,
+                executionId, ProcessState.RUNNING, 0));
         final ProcessFactory pf = Processors.createProcessFactory(processName);
         if (pf == null) {
             throw new WPSException("No such process: " + processName);
@@ -86,15 +87,17 @@ public class ClusterProcessManager extends DefaultProcessManager {
         // execute the process in the same thread as the caller
         final Process p = pf.create(processName);
         Map<String, Object> result = p.execute(inputs, listener);
-        
+
         // analyse result
         if (listener.exception != null) {
-            final boolean isProcessFilteredOut = processNamesEsclusionList.contains(processName.getLocalPart());
+            final boolean isProcessFilteredOut = processNamesEsclusionList.contains(processName
+                    .getLocalPart());
             if (!isProcessFilteredOut) {
-//                processStorage.putStatus( executionId, new ExecutionStatus(processName,executionId, ProcessState.FAILED, 100), false);
-//                processStorage.storeResult( executionId, listener.exception.getMessage(),false);
+                // processStorage.putStatus( executionId, new ExecutionStatus(processName,executionId, ProcessState.FAILED, 100), false);
+                // processStorage.storeResult( executionId, listener.exception.getMessage(),false);
             }
-            throw new ProcessException("Process failed: " + listener.exception.getMessage(), listener.exception);
+            throw new ProcessException("Process failed: " + listener.exception.getMessage(),
+                    listener.exception);
         }
         return result;
     }
@@ -111,23 +114,16 @@ public class ClusterProcessManager extends DefaultProcessManager {
     @Override
     public void submit(String executionId, Name processName, Map<String, Object> inputs,
             boolean background) throws ProcessException {
-        
+
         // is this a process to NOT log?
-        final boolean isProcessFiltered = (processNamesEsclusionList.contains(processName.getLocalPart()));
-        
-        final ExecutionStatusEx status = 
-            isProcessFiltered?
-                    createExecutionStatus(processName, executionId):
-                        new ClusterExecutionStatus(
-                                processName, 
-                                clusterId, 
-                                executionId, 
-                                background,
-                                inputs);
-        final ProcessListener listener = 
-            isProcessFiltered?
-                    new ProcessListener(status):
-                        new ClusterProcessListener((ClusterExecutionStatus)status);
+        final boolean isProcessFiltered = (processNamesEsclusionList.contains(processName
+                .getLocalPart()));
+
+        final ExecutionStatusEx status = isProcessFiltered ? createExecutionStatus(processName,
+                executionId) : new ClusterExecutionStatus(processName, clusterId, executionId,
+                background, inputs);
+        final ProcessListener listener = isProcessFiltered ? new ProcessListener(status)
+                : new ClusterProcessListener((ClusterExecutionStatus) status);
         status.listener = listener;
         final ClusterProcessCallable callable = new ClusterProcessCallable(inputs, status, listener);
         Future<Map<String, Object>> future;
@@ -136,12 +132,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
         } else {
             future = synchService.submit(callable);
         }
-        
+
         status.future = future;
         executions.put(executionId, status);
     }
 
-    class ClusterProcessListener extends ProcessListener{
+    class ClusterProcessListener extends ProcessListener {
 
         /**
          * @param status
@@ -159,13 +155,14 @@ public class ClusterProcessManager extends DefaultProcessManager {
         @Override
         public void exceptionOccurred(Throwable exception) {
             super.exceptionOccurred(exception);
-            
+
             // log the exception
-            ((ClusterExecutionStatus)status).setException(exception);
-            
+            ((ClusterExecutionStatus) status).setException(exception);
+
         }
-        
+
     }
+
     /**
      * The Class ClusterProcessCallable.
      */
@@ -208,7 +205,6 @@ public class ClusterProcessManager extends DefaultProcessManager {
                 // start execution
                 resourceManager.setCurrentExecutionId(status.getExecutionId());
 
-                
                 ProcessFactory pf = Processors.createProcessFactory(processName);
                 if (pf == null) {
                     throw new WPSException("No such process: " + processName);
@@ -216,10 +212,9 @@ public class ClusterProcessManager extends DefaultProcessManager {
 
                 // execute the process
                 Process p = pf.create(processName);
-                if(p==null){
+                if (p == null) {
                     throw new WPSException("Unabe to create process: " + processName);
                 }
-
 
                 // execute and get the output
                 status.setPhase(ProcessState.RUNNING);
@@ -230,40 +225,44 @@ public class ClusterProcessManager extends DefaultProcessManager {
                 if (listener.exception != null) {
                     // FAILED rethrow and then catch below
                     throw listener.exception;
-                } else  {
+                } else {
                     // SUCCESS
 
                     for (Entry<String, Object> entry : result.entrySet()) {
-                        if (entry.getKey().equalsIgnoreCase("result")){
+                        if (entry.getKey().equalsIgnoreCase("result")) {
                             // move to WPS directory if needed
                             Object value = entry.getValue();
                             if (value instanceof File) {
                                 final File outputFile = (File) value;
-                                
+
                                 // target file
-                                final File resultFile=resourceManager.getStoredResponseFile(executionId);
+                                final File resultFile = resourceManager
+                                        .getStoredResponseFile(executionId);
                                 final String parentDir = resultFile.getParent();
-                                final File targetFile= new File(parentDir,FilenameUtils.getBaseName(resultFile.getAbsolutePath())+".zip");
-                                if(!outputFile.getCanonicalPath().equals(targetFile.getCanonicalPath())){
+                                final File targetFile = new File(parentDir,
+                                        FilenameUtils.getBaseName(resultFile.getAbsolutePath())
+                                                + ".zip");
+                                if (!outputFile.getCanonicalPath().equals(
+                                        targetFile.getCanonicalPath())) {
                                     // move while renaming
                                     FileUtils.moveFile(outputFile, targetFile);
                                     entry.setValue(targetFile);// replace value for this key
-                                    value=targetFile;
-                                }                       
+                                    value = targetFile;
+                                }
                             }
 
                             // set real output
-                            if(status instanceof ClusterExecutionStatus){
-                                ((ClusterExecutionStatus)status).setOutput(value);
+                            if (status instanceof ClusterExecutionStatus) {
+                                ((ClusterExecutionStatus) status).setOutput(value);
                             }
-                            break;  
+                            break;
                         }
                     }
-                    
+
                 }
                 return result;
             } catch (Throwable e) {
-
+                listener.exceptionOccurred(e);
                 status.setPhase(ProcessState.FAILED);
                 throw new WPSException("Process failed", e);
             } finally {
@@ -280,7 +279,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
      * The Class ClusterExecutionStatus.
      */
     class ClusterExecutionStatus extends ExecutionStatusEx {
-        
+
         /** The cluster id. */
         private String clusterId;
 
@@ -288,12 +287,12 @@ public class ClusterProcessManager extends DefaultProcessManager {
         private boolean background;
 
         private Throwable exception;
-        
+
         private Object output;
-        
+
         private String baseURL;
 
-        private int expirationDelay=-1;
+        private int expirationDelay = -1;
 
         private ProcessDescriptor process;
 
@@ -303,20 +302,16 @@ public class ClusterProcessManager extends DefaultProcessManager {
          * @param processName the process name
          * @param clusterId the cluster id
          * @param executionId the execution id
-         * @param inputs 
+         * @param inputs
          */
-        public ClusterExecutionStatus(
-                Name processName, 
-                String clusterId, 
-                String executionId,
-                boolean background, 
-                Map<String, Object> inputs) {
+        public ClusterExecutionStatus(Name processName, String clusterId, String executionId,
+                boolean background, Map<String, Object> inputs) {
             super(processName, executionId);
             this.clusterId = clusterId;
             this.background = background;
-            
+
             // create process
-            this.process= new ProcessDescriptor();
+            this.process = new ProcessDescriptor();
             process.setClusterId(clusterId);
             process.setExecutionId(executionId);
             process.setEmail(extractEmail(inputs));
@@ -324,17 +319,17 @@ public class ClusterProcessManager extends DefaultProcessManager {
             process.setName(processName.getLocalPart());
             process.setNameSpace(processName.getNamespaceURI());
             process.setProgress(0.0f);
-            process.setPhase(ProcessState.QUEUED);    
+            process.setPhase(ProcessState.QUEUED);
             processStorage.create(process);
-            
+
             // initialize default value for testing
             baseURL = "http://geoserver/fakeroot";
             if (Dispatcher.REQUEST.get() != null) {
                 baseURL = ResponseUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest());
             }
-            
+
             // handle the resource expiration timeout
-            WPSInfo info =geoserver.getService(WPSInfo.class);
+            WPSInfo info = geoserver.getService(WPSInfo.class);
             double timeout = info.getResourceExpirationTimeout();
             if (timeout > 0) {
                 expirationDelay = ((int) timeout * 1000);
@@ -349,18 +344,18 @@ public class ClusterProcessManager extends DefaultProcessManager {
          * @return
          */
         private String extractEmail(Map<String, Object> inputs) {
-           if(inputs!=null&&!inputs.isEmpty()){
-               for(Entry<String,Object>entry:inputs.entrySet()){
-                   final String key=entry.getKey();
-                   if(key.equalsIgnoreCase("email")){
-                       Object value=entry.getValue();
-                       if(value!=null&& value instanceof String){
-                           return (String) value;
-                       }
-                   }
-               }
-           }
-           return null;
+            if (inputs != null && !inputs.isEmpty()) {
+                for (Entry<String, Object> entry : inputs.entrySet()) {
+                    final String key = entry.getKey();
+                    if (key.equalsIgnoreCase("email")) {
+                        Object value = entry.getValue();
+                        if (value != null && value instanceof String) {
+                            return (String) value;
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         /**
@@ -380,57 +375,54 @@ public class ClusterProcessManager extends DefaultProcessManager {
         @Override
         public void setPhase(ProcessState phase) {
             try {
-                
+
                 // update super class
                 super.setPhase(phase);
-                
+
                 // update phase
                 process.setPhase(phase);
-                
-                if ( phase == ProcessState.COMPLETED) {
-                    
+
+                if (phase == ProcessState.COMPLETED) {
+
                     // DO NOTHING we use the setOutput to signal the completion
                     return;
-//                    super.setProgress(100.0f); // completed
-//                    process.setProgress(100.f);
-////                        processStorage.putOutput( executionId, this, true);
-                } 
+                    // super.setProgress(100.0f); // completed
+                    // process.setProgress(100.f);
+                    // // processStorage.putOutput( executionId, this, true);
+                }
 
-                
                 final String email = process.getEmail();
-                if (phase == ProcessState.RUNNING){
-                    
+                if (phase == ProcessState.RUNNING) {
+
                     // update
                     processStorage.update(process);
-                    
+
                     // email for running state
-                    if(email!=null){
+                    if (email != null) {
                         sendMail.sendStartedNotification(email, executionId);
                     }
                 }
 
                 if (phase == ProcessState.FAILED) {
-                    
+
                     super.setProgress(100.0f); // failed
 
-                    
                     // update
                     final String localizedMessage;
                     final Throwable cause = exception.getCause();
-                    if(cause!=null){
+                    if (cause != null) {
                         localizedMessage = cause.getLocalizedMessage();
                     } else {
                         localizedMessage = exception.getLocalizedMessage();
                     }
-                    processStorage.storeResult(process,localizedMessage);
-                    
+                    processStorage.storeResult(process, localizedMessage);
+
                     // email
-                    if(email!=null){
+                    if (email != null) {
                         sendMail.sendFailedNotification(email, executionId, localizedMessage);
                     }
-                }                
-                
-                
+                }
+
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -471,9 +463,9 @@ public class ClusterProcessManager extends DefaultProcessManager {
         public boolean isBackground() {
             return background;
         }
-        
+
         public void warningOccurred(String source, String location, String warning) {
-            
+
         }
 
         /**
@@ -504,20 +496,22 @@ public class ClusterProcessManager extends DefaultProcessManager {
             this.output = output;
             final String email = process.getEmail();
             try {
-                if(output instanceof File){
+                if (output instanceof File) {
                     final File file = (File) output;
                     final String publishingURL = mangler.getPublishingURL(file, baseURL);
-                    processStorage.storeResult( process,publishingURL);
-                    if(email!=null){
-                        sendMail.sendFinishedNotification(email, executionId, publishingURL, expirationDelay);
+                    processStorage.storeResult(process, publishingURL);
+                    if (email != null) {
+                        sendMail.sendFinishedNotification(email, executionId, publishingURL,
+                                expirationDelay);
                     }
                 } else {
-                    processStorage.storeResult( process, output);
-                    if(email!=null){
-                        sendMail.sendFinishedNotification(email, executionId, output.toString(), expirationDelay);
+                    processStorage.storeResult(process, output);
+                    if (email != null) {
+                        sendMail.sendFinishedNotification(email, executionId, output.toString(),
+                                expirationDelay);
                     }
                 }
-            
+
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -535,59 +529,51 @@ public class ClusterProcessManager extends DefaultProcessManager {
      * Instantiates a new cluster process manager using a list of excluded processes.
      * 
      * @param resourceManager
-     * @param clusterid 
+     * @param clusterid
      * @param clusterId
      * @param localProcesses
      * @param availableStorages
      */
-    public ClusterProcessManager(
-            GeoServer geoserver,
-            WPSResourceManager resourceManager, 
-            ProcessStorage processStorage,
-            List<String> processNamesEsclusionList,
-            ClusterFilePublisherURLMangler urlMangler,
-            SendMail sendMail, 
-            String clusterid) {
+    public ClusterProcessManager(GeoServer geoserver, WPSResourceManager resourceManager,
+            ProcessStorage processStorage, List<String> processNamesEsclusionList,
+            ClusterFilePublisherURLMangler urlMangler, SendMail sendMail, String clusterid) {
         super(resourceManager);
 
         // if no storage is available just initialize an empty list
-        this.processStorage=processStorage;
-        this.clusterId =clusterid; 
-        this.mangler=urlMangler;
+        this.processStorage = processStorage;
+        this.clusterId = clusterid;
+        this.mangler = urlMangler;
         this.processNamesEsclusionList.addAll(processNamesEsclusionList);
-        this.sendMail=sendMail;
-        this.geoserver=geoserver;
+        this.sendMail = sendMail;
+        this.geoserver = geoserver;
     }
-    
-    public void init(){
-        
+
+    public void init() {
+
         // look for zombies
         Collection<ProcessDescriptor> processes = processStorage.getAll(
-                Arrays.asList(ProcessState.QUEUED,ProcessState.RUNNING), 
-                clusterId, 
-                null);
-        
+                Arrays.asList(ProcessState.QUEUED, ProcessState.RUNNING), clusterId, null);
+
         // move them to failed sending an email
-        for(ProcessDescriptor process:processes){
+        for (ProcessDescriptor process : processes) {
             final String executionId = process.getExecutionId();
-            final String localizedMessage="Process has failed due to unknown reason";
-            
+            final String localizedMessage = "Process has failed due to unknown reason";
+
             // change status to failed with result
             process.setPhase(ProcessState.FAILED);
             process.setProgress(100.f);
-            processStorage.update( process);
-            
-            processStorage.storeResult(process,localizedMessage);
-            
+            processStorage.update(process);
+
+            processStorage.storeResult(process, localizedMessage);
 
             // email
-            String email= process.getEmail();
-            if(email!=null){
+            String email = process.getEmail();
+            if (email != null) {
                 try {
                     sendMail.sendFailedNotification(email, executionId, localizedMessage);
                 } catch (IOException e) {
                     LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                    //chew the exception this is ok albeit not desirable
+                    // chew the exception this is ok albeit not desirable
                 }
             }
         }

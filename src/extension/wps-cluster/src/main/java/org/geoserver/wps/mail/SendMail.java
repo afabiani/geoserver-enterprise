@@ -104,7 +104,7 @@ public class SendMail {
 
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
-        } 
+        }
 
     }
 
@@ -117,12 +117,14 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendFinishedNotification(String toAddress, String executiondId, String result, int expirationDelay) throws IOException, MessagingException {
+    public void sendFinishedNotification(String toAddress, String executiondId, String result,
+            int expirationDelay) throws IOException, MessagingException {
 
         // load template for the password reset email
         Template mailTemplate = TEMPLATES.getTemplate("FinishedNotificationMail.ftl");
 
-        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay, mailTemplate);
+        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
+                mailTemplate);
 
         send(toAddress, conf.getSubjet(), body.toString());
     }
@@ -147,16 +149,17 @@ public class SendMail {
         templateContext.put("toAddress", toAddress);
         templateContext.put("executiondId", executiondId);
 
-        String millis = String.format("%d min, %d sec", 
+        String millis = String.format(
+                "%d min, %d sec",
                 TimeUnit.MILLISECONDS.toMinutes(expirationDelay),
-                TimeUnit.MILLISECONDS.toSeconds(expirationDelay) - 
-                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(expirationDelay))
-            );
-        
+                TimeUnit.MILLISECONDS.toSeconds(expirationDelay)
+                        - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS
+                                .toMinutes(expirationDelay)));
+
         if (expirationDelay > 0) {
             templateContext.put("expirationDelay", millis);
         }
-        if(result!=null){
+        if (result != null) {
             templateContext.put("result", result.toString());
         }
 
@@ -187,7 +190,7 @@ public class SendMail {
 
         send(toAddress, conf.getSubjet(), body.toString());
     }
-    
+
     /**
      * Send started notification.
      * 
@@ -196,10 +199,10 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendFailedNotification(String toAddress, String executiondId, String reason) throws IOException {
+    public void sendFailedNotification(String toAddress, String executiondId, String reason)
+            throws IOException {
         // load template for failed error
         Template mailTemplate = TEMPLATES.getTemplate("FailedNotificationMail.ftl");
-
 
         // create template context
         StringWriter body = new StringWriter();
@@ -207,7 +210,6 @@ public class SendMail {
         templateContext.put("toAddress", toAddress);
         templateContext.put("executiondId", executiondId);
         templateContext.put("reason", reason);
-        
 
         // create message string
         try {
@@ -227,13 +229,7 @@ public class SendMail {
     public static File getSendMailTemplatesPath() throws IOException {
         // get the temporary storage for WPS
         try {
-            String wpsClusterDataDir = GeoServerExtensions.getProperty("WPS_CLUSTER_DATA_DIR");
-            File storage = null;
-            if (wpsClusterDataDir == null || !new File(wpsClusterDataDir).exists())
-                storage = GeoserverDataDirectory.findCreateConfigDir("wps-cluster/TEMPLATES");
-            else {
-                storage = new File(wpsClusterDataDir, "TEMPLATES");
-            }
+            File storage = GeoserverDataDirectory.findCreateConfigDir("wps-cluster/templates");
             return storage;
         } catch (Exception e) {
             throw new IOException("Could not find the data directory for WPS CLUSTER");

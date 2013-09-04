@@ -46,7 +46,8 @@ class KmlEncoder {
             throws XMLStreamException, NoSuchAuthorityCodeException, FactoryException {
 
         // reproject to wgs84 if needed
-        final CoordinateReferenceSystem sourceCoordinateReferenceSystem = collection.getSchema().getCoordinateReferenceSystem();
+        final CoordinateReferenceSystem sourceCoordinateReferenceSystem = collection.getSchema()
+                .getCoordinateReferenceSystem();
         if (!CRS.equalsIgnoreMetadata(sourceCoordinateReferenceSystem, DefaultGeographicCRS.WGS84)) {
             collection = new ReprojectingFeatureCollection(collection, DefaultGeographicCRS.WGS84);
         }

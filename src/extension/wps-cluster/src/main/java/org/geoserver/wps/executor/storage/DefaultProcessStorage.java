@@ -24,8 +24,8 @@ import com.googlecode.genericdao.search.Search;
  */
 public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority {
 
-//    /** The marshaller. */
-//    private XStream marshaller = new XStream();
+    // /** The marshaller. */
+    // private XStream marshaller = new XStream();
 
     /** The process descriptor dao. */
     private ProcessDescriptorDAO processDescriptorDAO;
@@ -39,33 +39,33 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
         this.processDescriptorDAO = processDescriptorDAO;
     }
 
-//    /*
-//     * (non-Javadoc)
-//     * 
-//     * @see org.geoserver.wps.executor.ProcessStorage#putStatus(java.lang.String, java.lang.String, org.geoserver.wps.executor.ExecutionStatus)
-//     */
-//    /**
-//     * Put status.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @param status the status
-//     */
-//    @Override
-//    public void putStatus(String executionId, ExecutionStatus status,
-//            Boolean silently) {
-//        ProcessDescriptor process= getProcess( executionId, silently);
-//        if(process!=null){
-//            ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
-//                    status.getPhase(), status.getProgress());
-//
-//            process.setPhase(status.getPhase());
-//            process.setProgress(status.getProgress());
-////            process.setStatus(marshaller.toXML(newStatus));
-//            process.setLastUpdateTime(new Date());
-//            processDescriptorDAO.merge(process);
-//        }
-//    }
+    // /*
+    // * (non-Javadoc)
+    // *
+    // * @see org.geoserver.wps.executor.ProcessStorage#putStatus(java.lang.String, java.lang.String, org.geoserver.wps.executor.ExecutionStatus)
+    // */
+    // /**
+    // * Put status.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @param status the status
+    // */
+    // @Override
+    // public void putStatus(String executionId, ExecutionStatus status,
+    // Boolean silently) {
+    // ProcessDescriptor process= getProcess( executionId, silently);
+    // if(process!=null){
+    // ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,
+    // status.getPhase(), status.getProgress());
+    //
+    // process.setPhase(status.getPhase());
+    // process.setProgress(status.getProgress());
+    // // process.setStatus(marshaller.toXML(newStatus));
+    // process.setLastUpdateTime(new Date());
+    // processDescriptorDAO.merge(process);
+    // }
+    // }
 
     /*
      * (non-Javadoc)
@@ -83,30 +83,30 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
         return getProcess(executionId, silently);
     }
 
-//    /*
-//     * (non-Javadoc)
-//     * 
-//     * @see org.geoserver.wps.executor.ProcessStorage#removeStatus(java.lang.String)
-//     */
-//    /**
-//     * Removes the status.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @return the execution status
-//     */
-//    @Override
-//    public ExecutionStatus removeProcess(String executionId, Boolean silently) {
-//        ProcessDescriptor process = getProcess( executionId, true);
-//        if(process==null){
-//            return null;
-//        }
-//        ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
-//        if (processDescriptorDAO.remove(process)) {
-//            return status;
-//        }
-//        return null;
-//    }
+    // /*
+    // * (non-Javadoc)
+    // *
+    // * @see org.geoserver.wps.executor.ProcessStorage#removeStatus(java.lang.String)
+    // */
+    // /**
+    // * Removes the status.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @return the execution status
+    // */
+    // @Override
+    // public ExecutionStatus removeProcess(String executionId, Boolean silently) {
+    // ProcessDescriptor process = getProcess( executionId, true);
+    // if(process==null){
+    // return null;
+    // }
+    // ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+    // if (processDescriptorDAO.remove(process)) {
+    // return status;
+    // }
+    // return null;
+    // }
 
     /*
      * (non-Javadoc)
@@ -119,18 +119,17 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
      * @return the all
      */
     @Override
-    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterId,Date finishedDateTimeLimit) {
+    public Collection<ProcessDescriptor> getAll(List<ProcessState> status, String clusterId,
+            Date finishedDateTimeLimit) {
         Search search = new Search(ProcessDescriptor.class);
-        search =search.addFilterEqual("clusterId", clusterId);
-        search =search.addFilterIn("phase", status);
-        if(finishedDateTimeLimit!=null){
-            search =search.addFilterLessOrEqual("finishTime", finishedDateTimeLimit);
+        search = search.addFilterEqual("clusterId", clusterId);
+        search = search.addFilterIn("phase", status);
+        if (finishedDateTimeLimit != null) {
+            search = search.addFilterLessOrEqual("finishTime", finishedDateTimeLimit);
         }
         return processDescriptorDAO.search(search);
 
     }
-
-
 
     /**
      * @param clusterId
@@ -147,84 +146,86 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
         List<ProcessDescriptor> processes = processDescriptorDAO.search(search);
 
         if (processes == null || processes.isEmpty()) {
-            if (!silently){                
-                throw new ProcessException("Could not retrieve the progress of process ["+ executionId + "]");
+            if (!silently) {
+                throw new ProcessException("Could not retrieve the progress of process ["
+                        + executionId + "]");
             }
             return null;
-        } 
-        
-        ProcessDescriptor process = processes.get(0);//processDescriptorDAO.find(processes.get(0).getId());
+        }
+
+        ProcessDescriptor process = processes.get(0);// processDescriptorDAO.find(processes.get(0).getId());
         return process;
     }
-//
-//    /*
-//     * (non-Javadoc)
-//     * 
-//     * @see org.geoserver.wps.executor.ProcessStorage#getOutput(java.lang.String, long)
-//     */
-//    /**
-//     * Gets the output.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @param timeout the timeout
-//     * @return the output
-//     */
-//    @Override
-//    public Map<String, Object> getOutput(String executionId,Boolean silently) {
-//        ProcessDescriptor process = getProcess( executionId, silently);
-//        ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
-//        try {
-//            return status.getOutput(0);
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//        
-//    }
 
-//    /**
-//     * Put output.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @param status the status
-//     */
-//    @Override
-//    public void putOutput(String executionId, ExecutionStatus status,
-//            Boolean silently) {
-//        ProcessDescriptor process = getProcess( executionId, silently);
-//        ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,status.getPhase(), status.getProgress());
-//        process.setPhase(status.getPhase());
-//        process.setProgress(status.getProgress());
-////        process.setStatus(marshaller.toXML(newStatus));
-//        process.setLastUpdateTime(new Date());
-//        processDescriptorDAO.merge(process);
-//        
-//    }
+    //
+    // /*
+    // * (non-Javadoc)
+    // *
+    // * @see org.geoserver.wps.executor.ProcessStorage#getOutput(java.lang.String, long)
+    // */
+    // /**
+    // * Gets the output.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @param timeout the timeout
+    // * @return the output
+    // */
+    // @Override
+    // public Map<String, Object> getOutput(String executionId,Boolean silently) {
+    // ProcessDescriptor process = getProcess( executionId, silently);
+    // ExecutionStatus status = (ExecutionStatus) marshaller.fromXML(process.getStatus());
+    // try {
+    // return status.getOutput(0);
+    // } catch (Exception e) {
+    // throw new RuntimeException(e);
+    // }
+    //
+    // }
 
-//    /*
-//     * (non-Javadoc)
-//     * 
-//     * @see org.geoserver.wps.executor.ProcessStorage#putOutput(java.lang.String, java.lang.Exception)
-//     */
-//    /**
-//     * Put output.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @param e the e
-//     */
-//    @Override
-//    public void putOutput(String executionId, Exception e, Boolean silently) {
-//        ProcessDescriptor process = getProcess( executionId, silently);
-//        Writer out = new StringWriter();
-//        PrintWriter pw = new PrintWriter(out);
-//        e.printStackTrace(pw);
-//        process.setStatus(pw.toString());
-//        process.setLastUpdateTime(new Date());
-//        processDescriptorDAO.merge(process);
-//        
-//    }
+    // /**
+    // * Put output.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @param status the status
+    // */
+    // @Override
+    // public void putOutput(String executionId, ExecutionStatus status,
+    // Boolean silently) {
+    // ProcessDescriptor process = getProcess( executionId, silently);
+    // ExecutionStatus newStatus = new ExecutionStatus(status.getProcessName(), executionId,status.getPhase(), status.getProgress());
+    // process.setPhase(status.getPhase());
+    // process.setProgress(status.getProgress());
+    // // process.setStatus(marshaller.toXML(newStatus));
+    // process.setLastUpdateTime(new Date());
+    // processDescriptorDAO.merge(process);
+    //
+    // }
+
+    // /*
+    // * (non-Javadoc)
+    // *
+    // * @see org.geoserver.wps.executor.ProcessStorage#putOutput(java.lang.String, java.lang.Exception)
+    // */
+    // /**
+    // * Put output.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @param e the e
+    // */
+    // @Override
+    // public void putOutput(String executionId, Exception e, Boolean silently) {
+    // ProcessDescriptor process = getProcess( executionId, silently);
+    // Writer out = new StringWriter();
+    // PrintWriter pw = new PrintWriter(out);
+    // e.printStackTrace(pw);
+    // process.setStatus(pw.toString());
+    // process.setLastUpdateTime(new Date());
+    // processDescriptorDAO.merge(process);
+    //
+    // }
 
     /**
      * Gets the priority.
@@ -235,41 +236,41 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
     public int getPriority() {
         return ExtensionPriority.LOWEST;
     }
-//
-//    /**
-//     * Submit.
-//     * 
-//     * 
-//     * @param executionId the execution id
-//     * @param processName the process name
-//     * @param inputs the inputs
-//     * @param background the background
-//     */
-//    @Override
-//    public ProcessDescriptor createOrFindProcess(String clusterId,String executionId, Name processName, boolean background,String email) {
-//
-//        // look for an existing process (should not happen!)
-//        ProcessDescriptor process=getProcess( executionId, true);
-//        if (process==null) {
-//            // create
-//            ExecutionStatus status = new ExecutionStatus(processName, executionId, ProcessState.QUEUED, 0);
-//            process = new ProcessDescriptor();
-//            if(clusterId!=null&&clusterId.length()>0){
-//                process.setClusterId(clusterId);
-//            }
-//            process.setExecutionId(executionId);
-////            process.setStatus(marshaller.toXML(status));
-//            process.setProgress(0.0f);
-//            process.setPhase(ProcessState.QUEUED);
-//            process.setStartTime(new Date());
-//            if(email!=null){
-//                process.setEmail(email);
-//            }
-//            processDescriptorDAO.persist(process);
-//        }
-//        return process;
-//    }
 
+    //
+    // /**
+    // * Submit.
+    // *
+    // *
+    // * @param executionId the execution id
+    // * @param processName the process name
+    // * @param inputs the inputs
+    // * @param background the background
+    // */
+    // @Override
+    // public ProcessDescriptor createOrFindProcess(String clusterId,String executionId, Name processName, boolean background,String email) {
+    //
+    // // look for an existing process (should not happen!)
+    // ProcessDescriptor process=getProcess( executionId, true);
+    // if (process==null) {
+    // // create
+    // ExecutionStatus status = new ExecutionStatus(processName, executionId, ProcessState.QUEUED, 0);
+    // process = new ProcessDescriptor();
+    // if(clusterId!=null&&clusterId.length()>0){
+    // process.setClusterId(clusterId);
+    // }
+    // process.setExecutionId(executionId);
+    // // process.setStatus(marshaller.toXML(status));
+    // process.setProgress(0.0f);
+    // process.setPhase(ProcessState.QUEUED);
+    // process.setStartTime(new Date());
+    // if(email!=null){
+    // process.setEmail(email);
+    // }
+    // processDescriptorDAO.persist(process);
+    // }
+    // return process;
+    // }
 
     /**
      * Store result.
@@ -287,7 +288,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
         if (result instanceof File) {
             final File outputFile = (File) result;
             process.setResult(outputFile.getAbsolutePath());
-            
+
         } else {
             process.setResult(result.toString());
         }
@@ -309,6 +310,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
     @Override
     public void create(ProcessDescriptor process) {
         // create
+        process.setStartTime(new Date());
         processDescriptorDAO.persist(process);
     }
 

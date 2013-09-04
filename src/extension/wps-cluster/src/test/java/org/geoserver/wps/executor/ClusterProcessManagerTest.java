@@ -44,16 +44,17 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
                 BaseDAOTest.class.getClassLoader().getResourceAsStream(
                         "wps-cluster/wpsCluster.properties"), "wps-cluster/wpsCluster.properties");
     }
-    
+
     /**
      * Test serialization.
-     *
+     * 
      * @throws Exception the exception
      */
     public void testSerialization() throws Exception {
 
-        if (skipTest) return;
-        
+        if (skipTest)
+            return;
+
         ExecutionStatusExTest statusSrc = new ExecutionStatusExTest(Ows11Util.name("test_process"),
                 "0");
 
@@ -99,13 +100,13 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
      * The Class MyClass.
      */
     class MyClass {
-        
+
         /** The value. */
         private BigDecimal value;
 
         /**
          * Sets the value.
-         *
+         * 
          * @param value the new value
          */
         public void setValue(BigDecimal value) {
@@ -114,7 +115,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Gets the value.
-         *
+         * 
          * @return the value
          */
         public BigDecimal getValue() {
@@ -124,7 +125,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
     /**
      * A pimped up test execution status.
-     *
+     * 
      * @author Alessio Fabiani - GeoSolutions
      */
     static class ExecutionStatusExTest extends ExecutionStatus {
@@ -137,7 +138,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Instantiates a new execution status ex test.
-         *
+         * 
          * @param processName the process name
          * @param executionId the execution id
          */
@@ -147,7 +148,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Gets the status.
-         *
+         * 
          * @return the status
          */
         public ExecutionStatus getStatus() {
@@ -156,7 +157,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Sets the phase.
-         *
+         * 
          * @param phase the new phase
          */
         @Override
@@ -167,7 +168,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Gets the output.
-         *
+         * 
          * @param timeout the timeout
          * @return the output
          * @throws Exception the exception
@@ -181,7 +182,7 @@ public class ClusterProcessManagerTest extends WPSTestSupport {
 
         /**
          * Sets the output.
-         *
+         * 
          * @param output the output
          */
         public void setOutput(Map<String, Object> output) {

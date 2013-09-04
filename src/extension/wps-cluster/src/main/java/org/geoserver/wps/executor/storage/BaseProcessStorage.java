@@ -26,13 +26,15 @@ import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
 
 /**
  * Basic Implementation for a {@link ProcessStorage} that actually does nothing
+ * 
  * @author Simone Giannecchini, GeoSolutions SAS
- *
+ * 
  */
 public class BaseProcessStorage implements ProcessStorage {
 
     @Override
-    public Collection<ProcessDescriptor> getAll(List<ProcessState>status,String clusterID,Date finishedDateTimeLimit) {
+    public Collection<ProcessDescriptor> getAll(List<ProcessState> status, String clusterID,
+            Date finishedDateTimeLimit) {
         return Collections.emptyList();
     }
 
@@ -40,17 +42,14 @@ public class BaseProcessStorage implements ProcessStorage {
     public void update(ProcessDescriptor process) {
     }
 
-
     @Override
     public boolean remove(ProcessDescriptor process) {
         return false;
     }
 
-
     @Override
     public void create(ProcessDescriptor process) {
     }
-
 
     @Override
     public ProcessDescriptor findByExecutionId(String executionId, Boolean silently) {
@@ -60,6 +59,6 @@ public class BaseProcessStorage implements ProcessStorage {
     @Override
     public void storeResult(ProcessDescriptor process, Object result) {
         // TODO Auto-generated method stub
-        
+
     }
 }

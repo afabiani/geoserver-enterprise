@@ -30,25 +30,20 @@ class VectorEstimator {
     }
 
     static final Logger LOGGER = Logging.getLogger(VectorEstimator.class);
-    
+
     /** The estimator. */
     private DownloadEstimatorProcess estimator;
-    
 
-    public boolean execute(
-            FeatureTypeInfo resourceInfo,
-            Geometry roi,
-            boolean clip,
-            Filter filter,
-            CoordinateReferenceSystem targetCRS,
-            final ProgressListener progressListener) throws Exception {
-        // 
+    public boolean execute(FeatureTypeInfo resourceInfo, Geometry roi, boolean clip, Filter filter,
+            CoordinateReferenceSystem targetCRS, final ProgressListener progressListener)
+            throws Exception {
+        //
         // Do we need to do anything?
-        // 
-        if(estimator.getMaxFeatures()<=0){
+        //
+        if (estimator.getMaxFeatures() <= 0) {
             return true;
         }
-        
+
         // prepare native CRS
         CoordinateReferenceSystem nativeCRS = resourceInfo.getNativeCRS();
         if (nativeCRS == null) {
@@ -90,7 +85,8 @@ class VectorEstimator {
         //
 
         // access feature source and collection of features
-        final SimpleFeatureSource featureSource = (SimpleFeatureSource) resourceInfo.getFeatureSource(null, null); // TODO hints!!!
+        final SimpleFeatureSource featureSource = (SimpleFeatureSource) resourceInfo
+                .getFeatureSource(null, null); // TODO hints!!!
 
         // basic filter preparation
         Filter ra = Filter.INCLUDE;
@@ -118,11 +114,11 @@ class VectorEstimator {
         }
         // finally checking the number of features accordingly to the "maxfeatures" limit
         final long maxFeatures = estimator.getMaxFeatures();
-        if (maxFeatures>0&&count > maxFeatures) {
-            LOGGER.severe("MaxFeatures limit exceeded. "+ count+ " > "+maxFeatures);
+        if (maxFeatures > 0 && count > maxFeatures) {
+            LOGGER.severe("MaxFeatures limit exceeded. " + count + " > " + maxFeatures);
             return false;
         }
-       
+
         // limits were not exceeded
         return true;
     }

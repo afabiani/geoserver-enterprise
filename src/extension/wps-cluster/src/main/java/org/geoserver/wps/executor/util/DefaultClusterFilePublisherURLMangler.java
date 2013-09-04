@@ -45,7 +45,8 @@ public class DefaultClusterFilePublisherURLMangler implements ClusterFilePublish
     public String getPublishingURL(File file, String baseURL) throws Exception {
 
         // relativize to temp dir directory
-        String path =  GeoserverDataDirectory.getGeoserverDataDirectory().toURI().relativize(file.toURI()).getPath();
+        String path = GeoserverDataDirectory.getGeoserverDataDirectory().toURI()
+                .relativize(file.toURI()).getPath();
         return ResponseUtils.buildURL(baseURL, path, null, URLType.RESOURCE);
     }
 

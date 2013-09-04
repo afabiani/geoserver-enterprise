@@ -74,7 +74,7 @@ abstract class LimitedImageOutputStream extends FilterImageOutputStream {
 
     /**
      * Closes this input stream and releases any system resources associated with the stream. This method simply performs <code>in.close()</code>.
-     *
+     * 
      * @throws IOException if an I/O error occurs.
      * @see java.io.FilterInputStream#in
      */
@@ -85,7 +85,7 @@ abstract class LimitedImageOutputStream extends FilterImageOutputStream {
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        count+=len;
+        count += len;
         checkLimit();
         super.write(b, off, len);
     }

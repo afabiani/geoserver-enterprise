@@ -32,15 +32,14 @@ import com.vividsolutions.jts.geom.Geometry;
 @DescribeProcess(title = "Enterprise Download Process", description = "Downloads Layer Stream and provides a ZIP.")
 public class DownloadEstimatorProcess implements GSProcess {
 
-
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(DownloadEstimatorProcess.class);
 
     /** The Constant DEFAULT_MAX_FEATURES. */
     public static final long DEFAULT_MAX_FEATURES = 1000000;
-    
-    /** Value used to indicate no limits*/
-    public static final long NO_LIMIT=0;
+
+    /** Value used to indicate no limits */
+    public static final long NO_LIMIT = 0;
 
     /** The max features. */
     private final long maxFeatures;
@@ -57,34 +56,29 @@ public class DownloadEstimatorProcess implements GSProcess {
     /** The catalog. */
     private final Catalog catalog;
 
-
     /**
      * @param readLimits
      * @param writeLimits
      * @param hardOutputLimit
      * @param geoserver
      */
-    public DownloadEstimatorProcess(
-            long readLimits, 
-            long writeLimits, 
-            long maxFeatures,
-            long hardOutputLimit,
-            GeoServer geoserver) {
+    public DownloadEstimatorProcess(long readLimits, long writeLimits, long maxFeatures,
+            long hardOutputLimit, GeoServer geoserver) {
         this.readLimits = readLimits;
-        this.maxFeatures=maxFeatures;
+        this.maxFeatures = maxFeatures;
         this.writeLimits = writeLimits;
         this.hardOutputLimit = hardOutputLimit;
         this.catalog = geoserver.getCatalog();
     }
-//
-//    /**
-//     * @param geoserver
-//     */
-//    public DownloadEstimatorProcess(GeoServer geoserver) {
-//        this(NO_LIMIT, NO_LIMIT, NO_LIMIT, NO_LIMIT, geoserver);
-//    }
 
-    
+    //
+    // /**
+    // * @param geoserver
+    // */
+    // public DownloadEstimatorProcess(GeoServer geoserver) {
+    // this(NO_LIMIT, NO_LIMIT, NO_LIMIT, NO_LIMIT, geoserver);
+    // }
+
     /**
      * Execute.
      * 
@@ -98,7 +92,7 @@ public class DownloadEstimatorProcess implements GSProcess {
      * @param clip the crop to geometry
      * @param progressListener the progress listener
      * @return the boolean
-     * @throws Exception 
+     * @throws Exception
      */
     @DescribeResult(name = "result", description = "Download Limits are respected or not!")
     public Boolean execute(
@@ -127,7 +121,7 @@ public class DownloadEstimatorProcess implements GSProcess {
             }
             roi.setUserData(roiCRS);
         }
-        
+
         //
         // Move on with the real code
         //
@@ -135,15 +129,14 @@ public class DownloadEstimatorProcess implements GSProcess {
         LayerInfo layerInfo = catalog.getLayerByName(layerName);
         if (layerInfo == null) {
             // could not find any layer ... abruptly interrupt the process
-            throw new IllegalArgumentException(
-                        "Unable to locate layer: " + layerName);
-    
+            throw new IllegalArgumentException("Unable to locate layer: " + layerName);
+
         }
         ResourceInfo resourceInfo = layerInfo.getResource();
         if (resourceInfo == null) {
             // could not find any data store associated to the specified layer ... abruptly interrupt the process
-            throw new IllegalArgumentException(
-                    "Unable to locate ResourceInfo for layer:" + layerName);
+            throw new IllegalArgumentException("Unable to locate ResourceInfo for layer:"
+                    + layerName);
 
         }
 
@@ -152,35 +145,26 @@ public class DownloadEstimatorProcess implements GSProcess {
         // 2. CoverageStore -> look for raster data download
         // ////
         if (resourceInfo instanceof FeatureTypeInfo) {
-            final FeatureTypeInfo featureTypeInfo= (FeatureTypeInfo) resourceInfo;
+            final FeatureTypeInfo featureTypeInfo = (FeatureTypeInfo) resourceInfo;
 
-            return new VectorEstimator(this).execute(
-                    featureTypeInfo, 
-                    roi, 
-                    clip, 
-                    filter, 
-                    targetCRS, 
+            return new VectorEstimator(this).execute(featureTypeInfo, roi, clip, filter, targetCRS,
                     progressListener);
 
         } else if (resourceInfo instanceof CoverageInfo) {
             final CoverageInfo coverage = (CoverageInfo) resourceInfo;
-            return new RasterEstimator(this).execute(
-                    progressListener,
-                    coverage,
-                    roi,
-                    targetCRS,
-                    clip,
-                    filter);
+            return new RasterEstimator(this).execute(progressListener, coverage, roi, targetCRS,
+                    clip, filter);
         }
 
         // the requeste layer is neither a featuretype nor a coverage --> error
         final ProcessException ex = new ProcessException(
-                "Could not complete the Download Process: target resource is of Illegal type --> "+ resourceInfo!=null?resourceInfo.getClass().getCanonicalName():"null");        
+                "Could not complete the Download Process: target resource is of Illegal type --> "
+                        + resourceInfo != null ? resourceInfo.getClass().getCanonicalName()
+                        : "null");
         if (progressListener != null) {
             progressListener.exceptionOccurred(ex);
         }
         throw ex;
-
 
     }
 

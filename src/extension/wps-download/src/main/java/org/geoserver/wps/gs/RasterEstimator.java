@@ -24,21 +24,18 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 class RasterEstimator {
 
     static final Logger LOGGER = Logging.getLogger(RasterEstimator.class);
-    
+
     /** The estimator. */
     private DownloadEstimatorProcess estimator;
-    
 
-    
     /**
      * @param estimator
      * @param geoServer
      */
-    public RasterEstimator(DownloadEstimatorProcess estimator ) {
+    public RasterEstimator(DownloadEstimatorProcess estimator) {
         this.estimator = estimator;
     }
-    
-    
+
     /**
      * 
      * @param coverage
@@ -47,26 +44,21 @@ class RasterEstimator {
      * @param targetCRS
      * @return
      */
-    public boolean execute(
-            final ProgressListener progressListener,
-            CoverageInfo coverageInfo,
-            Geometry roi, 
-            CoordinateReferenceSystem targetCRS, 
-            boolean clip,
-            Filter filter) throws Exception {
-    
-        // 
+    public boolean execute(final ProgressListener progressListener, CoverageInfo coverageInfo,
+            Geometry roi, CoordinateReferenceSystem targetCRS, boolean clip, Filter filter)
+            throws Exception {
+
+        //
         // Do we need to do anything?
-        // 
-        if(estimator.getReadLimits()<=0){
+        //
+        if (estimator.getReadLimits() <= 0) {
             return true;
         }
-    
+
         //
         // ---> READ FROM NATIVE RESOLUTION <--
         //
-        
-        
+
         // prepare native CRS
         CoordinateReferenceSystem nativeCRS = coverageInfo.getNativeCRS();
         if (nativeCRS == null) {
@@ -76,7 +68,6 @@ class RasterEstimator {
             throw new NullPointerException(
                     "Unable to find a valid CRS for the requested feature type");
         }
-        
 
         //
         // STEP 0 - Push ROI back to native CRS (if ROI is provided)
@@ -105,32 +96,35 @@ class RasterEstimator {
 
         }
         // get a reader for this CoverageInfo
-        final AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) coverageInfo.getGridCoverageReader(null, null);
-        
+        final AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) coverageInfo
+                .getGridCoverageReader(null, null);
 
         // read GridGeometry preparation
         final double areaRead;
-        if(roi!=null){
-            Geometry roiInNativeCRS_ = roiInNativeCRS.intersection(FeatureUtilities.getPolygon(reader.getOriginalEnvelope(),new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING))));
-            if(roiInNativeCRS_.isEmpty()){
+        if (roi != null) {
+            Geometry roiInNativeCRS_ = roiInNativeCRS.intersection(FeatureUtilities.getPolygon(
+                    reader.getOriginalEnvelope(), new GeometryFactory(new PrecisionModel(
+                            PrecisionModel.FLOATING))));
+            if (roiInNativeCRS_.isEmpty()) {
                 return true; // EMPTY Intersection
             }
-            final AffineTransform2D w2G = (AffineTransform2D) reader.getOriginalGridToWorld(PixelInCell.CELL_CORNER).inverse();
+            final AffineTransform2D w2G = (AffineTransform2D) reader.getOriginalGridToWorld(
+                    PixelInCell.CELL_CORNER).inverse();
             Geometry rasterGeometry = JTS.transform(roiInNativeCRS_, w2G);
-            areaRead=rasterGeometry.getEnvelope().getArea();
+            areaRead = rasterGeometry.getEnvelope().getArea();
             // TODO improve precision taking into account tiling on raster geometry
-            
+
         } else {
             // No ROI, we are trying to read the entire coverage
             final Rectangle2D originalGridRange = (GridEnvelope2D) reader.getOriginalGridRange();
-            areaRead=originalGridRange.getWidth()*originalGridRange.getHeight();
+            areaRead = originalGridRange.getWidth() * originalGridRange.getHeight();
 
         }
         // checks on the area we want to download
         final long readLimits = estimator.getReadLimits();
-        if(readLimits>0&&areaRead>readLimits){
+        if (readLimits > 0 && areaRead > readLimits) {
             return false;
-        }     
+        }
         return true;
 
     }
