@@ -94,6 +94,11 @@ public class GPXPPIOTest extends GeoServerTestSupport {
         assertEquals("http://www.geoserver.org", xpath.evaluate("/gpx:gpx/gpx:metadata/gpx:link/@href", dom));
         assertEquals(1, xpath.getMatchingNodes("/gpx:gpx/gpx:rte", dom).getLength());
         assertEquals("t0001 ", xpath.evaluate("/gpx:gpx/gpx:rte[1]/gpx:extensions/att:id", dom));
+        // check the data was reprojected to wgs84
+        assertEquals("4.523789", xpath.evaluate("//gpx:rte/gpx:rtept[1]/@lat", dom));
+        assertEquals("-92.998873", xpath.evaluate("//gpx:rte/gpx:rtept[1]/@lon", dom));
+        assertEquals("4.524241", xpath.evaluate("//gpx:rte/gpx:rtept[2]/@lat", dom));
+        assertEquals("-92.998422", xpath.evaluate("//gpx:rte/gpx:rtept[2]/@lon", dom));
     }
     
     public void testEncodePoints() throws Exception {

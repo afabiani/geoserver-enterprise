@@ -12,9 +12,13 @@ import java.util.logging.Logger;
 import org.geoserver.config.ContactInfo;
 import org.geoserver.config.GeoServer;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.store.ReprojectingFeatureCollection;
 import org.geotools.feature.FeatureCollection;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
 import org.hsqldb.lib.StringInputStream;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Inputs and outputs feature collections in GPX format using gt-gpx
@@ -32,7 +36,7 @@ public class GPXPPIO extends CDataPPIO {
     }
 
     @Override
-    public void encode(Object fc, OutputStream os) throws IOException {
+    public void encode(Object input, OutputStream os) throws IOException {
 
         ContactInfo contact = geoServer.getSettings().getContact();
         GpxEncoder encoder = new GpxEncoder(true);
@@ -40,7 +44,13 @@ public class GPXPPIO extends CDataPPIO {
         encoder.setLink(contact.getOnlineResource());
 
         try {
-            encoder.encode(os, (SimpleFeatureCollection) fc);
+            SimpleFeatureCollection fc = (SimpleFeatureCollection) input;
+            CoordinateReferenceSystem crs = fc.getSchema().getCoordinateReferenceSystem();
+            // gpx is defined only in wgs84
+            if(crs != null && !CRS.equalsIgnoreMetadata(crs, DefaultGeographicCRS.WGS84)) {
+                fc = new ReprojectingFeatureCollection(fc, DefaultGeographicCRS.WGS84);
+            }
+            encoder.encode(os, fc);
         } catch (Exception e) {
             throw new IOException("Unable to encode in GPX", e);
 

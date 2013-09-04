@@ -55,7 +55,7 @@ public class GpxEncoder {
 
     public GpxEncoder(boolean writeExtendedData) {
         this.writeExtendedData = writeExtendedData;
-        this.format = new DecimalFormat();
+        this.format = new DecimalFormat("#.######");
         this.format.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
         trkAttributes.put("name", String.class);
         trkAttributes.put("desc", String.class);
@@ -88,7 +88,9 @@ public class GpxEncoder {
         writer.writeStartDocument();
         writer.writeStartElement("gpx");
         writer.writeAttribute("xmlns", "http://www.topografix.com/GPX/1/1");
-        writer.writeAttribute("xmlns:att", link);
+        if(link != null) {
+            writer.writeAttribute("xmlns:att", link);
+        }
         writer.writeAttribute("version", "1.1");
         
         if(creator != null) {
