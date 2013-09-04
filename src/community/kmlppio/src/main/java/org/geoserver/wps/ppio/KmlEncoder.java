@@ -56,7 +56,7 @@ class KmlEncoder {
         XMLStreamWriter writer = xmlFactory.createXMLStreamWriter(lFileOutputStream);
         writer.writeStartDocument();
         writer.writeStartElement("kml");
-        writer.writeNamespace("kml", "http://www.opengis.net/kml/2.2");
+        writer.writeNamespace("", "http://www.opengis.net/kml/2.2");
         writer.writeStartElement("Document");
 
         writeStyles(writer);
@@ -78,8 +78,18 @@ class KmlEncoder {
                 writer.writeCharacters(f.getID());
                 writer.writeEndElement();
 
-                Geometry g = (Geometry) f.getDefaultGeometry();
                 String styleId = "#apbz_pab";
+                writer.writeStartElement("styleUrl");
+                writer.writeCharacters(styleId);
+                writer.writeEndElement();
+                
+                if (useSchema) {
+                    writeExtendedData(writer, f, schemaName);
+                } else {
+                    writeData(writer, f);
+                }
+
+                Geometry g = (Geometry) f.getDefaultGeometry();
                 if (g instanceof MultiPolygon) {
                     MultiPolygon mp = (MultiPolygon) g;
                     int numGeometries = mp.getNumGeometries();
@@ -116,16 +126,8 @@ class KmlEncoder {
                 } else if (g instanceof Point) {
                     writePoint(writer, (Point) g);
                 } else {
-                    System.out.println(g.getClass().getName() + "not implemented");
+                    throw new IllegalArgumentException("Output for geomtries of type " + g.getClass().getSimpleName() + " is not supported");
                 }
-                if (useSchema) {
-                    writeExtendedData(writer, f, schemaName);
-                } else {
-                    writeData(writer, f);
-                }
-                writer.writeStartElement("styleUrl");
-                writer.writeCharacters(styleId);
-                writer.writeEndElement();
 
                 // PlaceMark
                 writer.writeEndElement();
@@ -164,11 +166,11 @@ class KmlEncoder {
         writer.writeStartElement("color");
         writer.writeCharacters("ff83fff8");
         writer.writeEndElement();
-        writer.writeStartElement("scale");
-        writer.writeCharacters("0.8");
-        writer.writeEndElement();
         writer.writeStartElement("colorMode");
         writer.writeCharacters("normal");
+        writer.writeEndElement();
+        writer.writeStartElement("scale");
+        writer.writeCharacters("0.8");
         writer.writeEndElement();
         writer.writeEndElement();
 
@@ -252,11 +254,13 @@ class KmlEncoder {
 
     private void writeCoordinates(XMLStreamWriter writer, LineString ls) throws XMLStreamException {
         writer.writeStartElement("coordinates");
-        writer.writeCharacters("\n");
         Coordinate[] coordinates = ls.getCoordinates();
         StringBuffer coordString = new StringBuffer();
         for (int ic = 0; ic < coordinates.length; ic++) {
-            coordString.append(coordinates[ic].x + "," + coordinates[ic].y + ",0\n");
+            coordString.append(coordinates[ic].x + "," + coordinates[ic].y + ",0 ");
+        }
+        if(coordinates.length > 0) {
+            coordString.setLength(coordString.length() - 1);
         }
         writer.writeCharacters(coordString.toString());
         writer.writeEndElement();
@@ -278,9 +282,8 @@ class KmlEncoder {
     private void writePoint(XMLStreamWriter writer, Point pt) throws XMLStreamException {
         writer.writeStartElement("Point");
         writer.writeStartElement("coordinates");
-        writer.writeCharacters("\n");
         StringBuffer coordString = new StringBuffer();
-        coordString.append(pt.getX() + "," + pt.getY() + ",0\n");
+        coordString.append(pt.getX() + "," + pt.getY() + ",0");
         writer.writeCharacters(coordString.toString());
         writer.writeEndElement();
         writer.writeCharacters("\n");

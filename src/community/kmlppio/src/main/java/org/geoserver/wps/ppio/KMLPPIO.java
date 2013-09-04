@@ -10,11 +10,13 @@ import java.util.logging.Logger;
 
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.store.ReprojectingFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.kml.KML;
 import org.geotools.kml.KMLConfiguration;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.util.logging.Logging;
 import org.geotools.xml.Configuration;
@@ -23,6 +25,7 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -114,7 +117,14 @@ public class KMLPPIO extends CDataPPIO {
         LOGGER.info("KMLPPIO::encode: obj is of class " + obj.getClass().getName()
                 + ", handler is of class " + os.getClass().getName());
         KmlEncoder kmlEncoder = new KmlEncoder();
-        kmlEncoder.encode(os, (SimpleFeatureCollection) obj);
+        SimpleFeatureCollection fc = (SimpleFeatureCollection) obj;
+        CoordinateReferenceSystem crs = fc.getSchema().getCoordinateReferenceSystem();
+        // gpx is defined only in wgs84
+        if(crs != null && !CRS.equalsIgnoreMetadata(crs, DefaultGeographicCRS.WGS84)) {
+            fc = new ReprojectingFeatureCollection(fc, DefaultGeographicCRS.WGS84);
+        }
+
+        kmlEncoder.encode(os, fc);
         os.flush();
 
     }
