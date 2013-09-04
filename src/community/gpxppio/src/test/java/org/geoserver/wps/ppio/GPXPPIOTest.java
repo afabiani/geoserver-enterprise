@@ -63,7 +63,7 @@ public class GPXPPIOTest extends GeoServerTestSupport {
         }
     }
     
-    public void testEncodeLinestring() throws Exception {
+    public void testEncodeMultiLinestring() throws Exception {
         FeatureTypeInfo fti = getCatalog().getFeatureTypeByName(getLayerId(MockData.ROAD_SEGMENTS));
         SimpleFeatureCollection fc = (SimpleFeatureCollection) fti.getFeatureSource(null, null).getFeatures();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -78,6 +78,22 @@ public class GPXPPIOTest extends GeoServerTestSupport {
         assertEquals(5, xpath.getMatchingNodes("/gpx:gpx/gpx:trk", dom).getLength());
         assertEquals("102", xpath.evaluate("/gpx:gpx/gpx:trk[1]/gpx:extensions/att:FID", dom));
         assertEquals("Route 5", xpath.evaluate("/gpx:gpx/gpx:trk[1]/gpx:extensions/att:NAME", dom));
+    }
+    
+    public void testEncodeLinestring() throws Exception {
+        FeatureTypeInfo fti = getCatalog().getFeatureTypeByName(getLayerId(MockData.LINES));
+        SimpleFeatureCollection fc = (SimpleFeatureCollection) fti.getFeatureSource(null, null).getFeatures();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ppio.encode(fc, bos);
+        Document dom = dom(new ByteArrayInputStream(bos.toByteArray()));
+        // print(dom);
+        checkValidationErorrs(dom, "./src/test/resources/org/geoserver/wps/ppio/gpx.xsd");
+        
+        assertEquals("GeoServer", xpath.evaluate("/gpx:gpx/@creator", dom));
+        assertEquals("GeoServer", xpath.evaluate("/gpx:gpx/gpx:metadata/gpx:link/gpx:text", dom));
+        assertEquals("http://www.geoserver.org", xpath.evaluate("/gpx:gpx/gpx:metadata/gpx:link/@href", dom));
+        assertEquals(1, xpath.getMatchingNodes("/gpx:gpx/gpx:rte", dom).getLength());
+        assertEquals("t0001 ", xpath.evaluate("/gpx:gpx/gpx:rte[1]/gpx:extensions/att:id", dom));
     }
     
     public void testEncodePoints() throws Exception {

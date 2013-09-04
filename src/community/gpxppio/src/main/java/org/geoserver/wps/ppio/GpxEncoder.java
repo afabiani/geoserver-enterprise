@@ -187,10 +187,10 @@ public class GpxEncoder {
 
     private void writeRte(XMLStreamWriter writer, LineString ls, SimpleFeature f) throws XMLStreamException {
         writer.writeStartElement("rte");
-        writeCoordinates(writer, "rtept", ls);
         if (writeExtendedData) {
             writeData(writer, f);
         }
+        writeCoordinates(writer, "rtept", ls);
         writer.writeEndElement();
     }
 
