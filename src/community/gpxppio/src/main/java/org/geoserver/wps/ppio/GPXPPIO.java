@@ -9,11 +9,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.logging.Logger;
 
+import org.geoserver.config.ContactInfo;
+import org.geoserver.config.GeoServer;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.util.logging.Logging;
 import org.hsqldb.lib.StringInputStream;
-
 
 /**
  * Inputs and outputs feature collections in GPX format using gt-gpx
@@ -23,16 +24,20 @@ import org.hsqldb.lib.StringInputStream;
  */
 public class GPXPPIO extends CDataPPIO {
     private static final Logger LOGGER = Logging.getLogger(GPXPPIO.class);
+    private GeoServer geoServer;
 
-    protected GPXPPIO() {
+    protected GPXPPIO(GeoServer geoServer) {
         super(FeatureCollection.class, FeatureCollection.class, "application/gpx+xml");
+        this.geoServer = geoServer;
     }
 
     @Override
     public void encode(Object fc, OutputStream os) throws IOException {
-        
 
-        GpxEncoder encoder = new GpxEncoder();
+        ContactInfo contact = geoServer.getSettings().getContact();
+        GpxEncoder encoder = new GpxEncoder(true);
+        encoder.setCreator(contact.getContactOrganization());
+        encoder.setLink(contact.getOnlineResource());
 
         try {
             encoder.encode(os, (SimpleFeatureCollection) fc);

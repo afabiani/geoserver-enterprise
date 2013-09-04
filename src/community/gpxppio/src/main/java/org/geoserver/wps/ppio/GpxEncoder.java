@@ -1,9 +1,12 @@
 package org.geoserver.wps.ppio;
 
 import java.io.OutputStream;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -11,6 +14,8 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.geoserver.config.GeoServer;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.store.ReprojectingFeatureCollection;
 import org.geotools.feature.FeatureIterator;
@@ -31,174 +36,189 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.Point;
 
 /**
- * Encoder class to encode SimpleFeatureCollection to GPX
- * The encoder uses only a XMLStreamWriter for simplicity and
- * performance sake.
- *   
+ * Encoder class to encode SimpleFeatureCollection to GPX The encoder uses only a XMLStreamWriter for simplicity and performance sake.
+ * 
  * @author Peter Hopfgartner (R3 GIS)
  */
 public class GpxEncoder {
-	boolean writeExtendedData = false;
+    boolean writeExtendedData = false;
 
-	Map<String, Class> trkAttributes = new HashMap<String, Class>();
-	Map<String, Class> wptAttributes = new HashMap<String, Class>();
-	Map<String, Class> rteAttributes = new HashMap<String, Class>();
-	
-	public GpxEncoder() {
-		trkAttributes.put("name", String.class);
-		trkAttributes.put("desc", String.class);
-		
-		trkAttributes.put("name", String.class);
-		trkAttributes.put("desc", String.class);
-		
-	}
-	
-	private Map<String, String> types = new HashMap<String, String>();
+    Map<String, Class> trkAttributes = new HashMap<String, Class>();
 
-	public void encode(OutputStream lFileOutputStream,
-			SimpleFeatureCollection collection) throws XMLStreamException,
-			NoSuchAuthorityCodeException, FactoryException {
+    Map<String, Class> wptAttributes = new HashMap<String, Class>();
 
-		CRSAuthorityFactory crsFactory = CRS.getAuthorityFactory(true);
+    Map<String, Class> rteAttributes = new HashMap<String, Class>();
+    
+    String creator = "GeoServer";
+    String link = "http://www.geoserver.org";
+    DecimalFormat format;
 
-		CoordinateReferenceSystem targetCRS = crsFactory
-				.createCoordinateReferenceSystem("EPSG:4326");
-		collection = new ReprojectingFeatureCollection(collection, targetCRS);
+    public GpxEncoder(boolean writeExtendedData) {
+        this.writeExtendedData = writeExtendedData;
+        this.format = new DecimalFormat();
+        this.format.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.ENGLISH));
+        trkAttributes.put("name", String.class);
+        trkAttributes.put("desc", String.class);
 
-		XMLOutputFactory xmlFactory = XMLOutputFactory.newInstance();
-		XMLStreamWriter writer = xmlFactory
-				.createXMLStreamWriter(lFileOutputStream);
-		writer.writeStartDocument();
-		writer.writeStartElement("gpx");
-		writer.writeAttribute("xmlns", "http://www.topografix.com/GPX/1/1");
-		writer.writeAttribute("version", "1.1");
-		writer.writeAttribute("creator", "Autonome Provinz Bozen - Provincia Autonoma di Bolzano");
-		
-		writer.writeStartElement("metadata");
-		
-		writer.writeStartElement("link");
-		writer.writeAttribute("href", "http://sdi.provinz.bz.it");
-		writer.writeStartElement("text");
-		writer.writeCharacters("SDI Autonome Provinz Bozen - Provincia Autonoma di Bolzano");		
-		writer.writeEndElement();
-		writer.writeEndElement();
-		
-		writer.writeStartElement("time");
-		Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-		writer.writeCharacters(sdf.format(calendar.getTime()));		
-		writer.writeEndElement();
-		
-		writer.writeEndElement(); // metadata
-		
-		String schemaName = "";
+        trkAttributes.put("name", String.class);
+        trkAttributes.put("desc", String.class);
+    }
+    
+    public void setCreator(String creator) {
+        this.creator = creator;
+    }
 
-		FeatureIterator<SimpleFeature> iter = collection.features();
+    public void setLink(String link) {
+        this.link = link;
+    }
 
-		try {
-			while (iter.hasNext()) {
-				SimpleFeature f = iter.next();
-				
-				Geometry g = (Geometry) f.getDefaultGeometry();
-				if (g instanceof MultiLineString) {
-					MultiLineString mls = (MultiLineString) g;
-					int numGeometries = mls.getNumGeometries();
-					writer.writeStartElement("trk");
-					for (int i = 0; i < numGeometries; i++) {
-						LineString ls = (LineString) mls.getGeometryN(i);
-						writeTrkSeg(writer, ls);
-					}
-					writer.writeEndElement();
-				} else if (g instanceof LineString) {
-					writeRte(writer, (LineString) g);
-				} else if (g instanceof MultiPoint) {
-					MultiPoint mpt = (MultiPoint) g;
-					int numGeometries = mpt.getNumGeometries();
-					for (int i = 0; i < numGeometries; i++) {
-						Point pt = (Point) mpt.getGeometryN(i);
-						writeWpt(writer, pt);
-					}
-				} else if (g instanceof Point) {
-					writeWpt(writer, (Point) g);
-				} else {
-					System.out.println(g.getClass().getName()
-							+ "not implemented");
-					continue;
-				}
-				if (writeExtendedData) {
-					writeData(writer, f);
-				}
-			}
-		} finally {
-			collection.close(iter);
-		}
+    private Map<String, String> types = new HashMap<String, String>();
 
-		writer.writeEndDocument(); // </kml>
-		return;
-		/*
+    public void encode(OutputStream lFileOutputStream, SimpleFeatureCollection collection)
+            throws XMLStreamException, NoSuchAuthorityCodeException, FactoryException {
+
+        CRSAuthorityFactory crsFactory = CRS.getAuthorityFactory(true);
+
+        CoordinateReferenceSystem targetCRS = crsFactory
+                .createCoordinateReferenceSystem("EPSG:4326");
+        collection = new ReprojectingFeatureCollection(collection, targetCRS);
+
+        XMLOutputFactory xmlFactory = XMLOutputFactory.newInstance();
+        XMLStreamWriter writer = xmlFactory.createXMLStreamWriter(lFileOutputStream);
+        writer.writeStartDocument();
+        writer.writeStartElement("gpx");
+        writer.writeAttribute("xmlns", "http://www.topografix.com/GPX/1/1");
+        writer.writeAttribute("xmlns:att", link);
+        writer.writeAttribute("version", "1.1");
+        
+        if(creator != null) {
+            writer.writeAttribute("creator", creator);
+        }
+
+        writer.writeStartElement("metadata");
+
+        if(link != null && creator != null) {
+            writer.writeStartElement("link");
+            writer.writeAttribute("href", link);
+            writer.writeStartElement("text");
+            writer.writeCharacters(creator);
+            writer.writeEndElement();
+            writer.writeEndElement();
+        }
+
+        writer.writeStartElement("time");
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        writer.writeCharacters(sdf.format(calendar.getTime()));
+        writer.writeEndElement();
+
+        writer.writeEndElement(); // metadata
+
+        String schemaName = "";
+
+        FeatureIterator<SimpleFeature> iter = collection.features();
+
+        try {
+            while (iter.hasNext()) {
+                SimpleFeature f = iter.next();
+
+                Geometry g = (Geometry) f.getDefaultGeometry();
+                if (g instanceof MultiLineString) {
+                    MultiLineString mls = (MultiLineString) g;
+                    int numGeometries = mls.getNumGeometries();
+                    writer.writeStartElement("trk");
+                    if (writeExtendedData) {
+                        writeData(writer, f);
+                    }
+                    for (int i = 0; i < numGeometries; i++) {
+                        LineString ls = (LineString) mls.getGeometryN(i);
+                        writeTrkSeg(writer, ls);
+                    }
+                    writer.writeEndElement();
+                } else if (g instanceof LineString) {
+                    writeRte(writer, (LineString) g, f);
+                } else if (g instanceof MultiPoint) {
+                    MultiPoint mpt = (MultiPoint) g;
+                    int numGeometries = mpt.getNumGeometries();
+                    for (int i = 0; i < numGeometries; i++) {
+                        Point pt = (Point) mpt.getGeometryN(i);
+                        writeWpt(writer, pt, f);
+                    }
+                } else if (g instanceof Point) {
+                    writeWpt(writer, (Point) g, f);
+                } else {
+                    throw new IllegalArgumentException("Unsupported geometry type: " + g.getClass().getSimpleName());
+                }
+            }
+        } finally {
+            iter.close();
+        }
+
+        writer.writeEndDocument(); 
+        return;
+        /*
 		*/
-	}
+    }
 
-	private void writeCoordinates(XMLStreamWriter writer, String ptElementName, LineString ls)
-			throws XMLStreamException {
-		Coordinate[] coordinates = ls.getCoordinates();
-		for (int ic = 0; ic < coordinates.length; ic++) {
-			writeWpt(writer, ptElementName, coordinates[ic].x, coordinates[ic].y, coordinates[ic].z);
-		}
-	}
-	
-	private void writeWpt(XMLStreamWriter writer, String ptElementName, double x, double y, double z)
-			throws XMLStreamException {
-		writer.writeStartElement(ptElementName);
-		writer.writeAttribute("lat", Double.toString(y));
-		writer.writeAttribute("lon", Double.toString(x));
-		if (!Double.isNaN(z)) {
-			writer.writeAttribute("ele", Double.toString(z));
-		}
-		writer.writeEndElement();
-	}
-	
-	private void writeTrkSeg(XMLStreamWriter writer, LineString ls)
-			throws XMLStreamException {
-		writer.writeStartElement("trkseg");
-		writeCoordinates(writer, "trkpt", ls);
-		writer.writeEndElement();
-	}
-	
-	private void writeRte(XMLStreamWriter writer, LineString ls)
-			throws XMLStreamException {
-		writer.writeStartElement("rte");
-		writeCoordinates(writer, "rtept", ls);
-		writer.writeEndElement();
-	}
-	
-	private void writeWpt(XMLStreamWriter writer, Point pt)
-			throws XMLStreamException {
-		writer.writeStartElement("wpt");
-		Coordinate c = pt.getCoordinate();
-		writer.writeAttribute("lon", Double.toString(c.x));
-		writer.writeAttribute("lat", Double.toString(c.y));
-		if (!Double.isNaN(c.z)) {
-			writer.writeAttribute("ele", Double.toString(c.z));
-		}
-		writer.writeEndElement();
-	}
+    private void writeCoordinates(XMLStreamWriter writer, String ptElementName, LineString ls)
+            throws XMLStreamException {
+        Coordinate[] coordinates = ls.getCoordinates();
+        for (int ic = 0; ic < coordinates.length; ic++) {
+            writeWpt(writer, ptElementName, coordinates[ic].x, coordinates[ic].y, coordinates[ic].z);
+        }
+    }
 
-	private void writeData(XMLStreamWriter writer, SimpleFeature f)
-			throws XMLStreamException {
-		writer.writeStartElement("ExtendedData");
-		for (Property p : f.getProperties()) {
-			Name name = p.getName();
-			if (!(p.getValue() instanceof Geometry) && p.getValue() != null) {
-				writer.writeStartElement("Data");
-				writer.writeAttribute("name", name.getLocalPart());
-				writer.writeStartElement("value");
-				writer.writeCharacters(p.getValue().toString());
-				writer.writeEndElement();
-				writer.writeEndElement();
-			}
-		}
-		writer.writeEndElement();
-	}
+    private void writeWpt(XMLStreamWriter writer, String ptElementName, double x, double y, double z)
+            throws XMLStreamException {
+        writer.writeStartElement(ptElementName);
+        writer.writeAttribute("lat", format.format(y));
+        writer.writeAttribute("lon", format.format(x));
+        if (!Double.isNaN(z)) {
+            writer.writeAttribute("ele", format.format(z));
+        }
+        writer.writeEndElement();
+    }
+
+    private void writeTrkSeg(XMLStreamWriter writer, LineString ls) throws XMLStreamException {
+        writer.writeStartElement("trkseg");
+        writeCoordinates(writer, "trkpt", ls);
+        writer.writeEndElement();
+    }
+
+    private void writeRte(XMLStreamWriter writer, LineString ls, SimpleFeature f) throws XMLStreamException {
+        writer.writeStartElement("rte");
+        writeCoordinates(writer, "rtept", ls);
+        if (writeExtendedData) {
+            writeData(writer, f);
+        }
+        writer.writeEndElement();
+    }
+
+    private void writeWpt(XMLStreamWriter writer, Point pt, SimpleFeature f) throws XMLStreamException {
+        writer.writeStartElement("wpt");
+        Coordinate c = pt.getCoordinate();
+        writer.writeAttribute("lon", format.format(c.x));
+        writer.writeAttribute("lat", format.format(c.y));
+        if (!Double.isNaN(c.z)) {
+            writer.writeAttribute("ele", format.format(c.z));
+        }
+        if (writeExtendedData) {
+            writeData(writer, f);
+        }
+        writer.writeEndElement();
+    }
+
+    private void writeData(XMLStreamWriter writer, SimpleFeature f) throws XMLStreamException {
+        writer.writeStartElement("extensions");
+        for (Property p : f.getProperties()) {
+            Name name = p.getName();
+            if (!(p.getValue() instanceof Geometry) && p.getValue() != null) {
+                writer.writeStartElement("att:" + name.getLocalPart());
+                writer.writeCharacters(p.getValue().toString());
+                writer.writeEndElement();
+            }
+        }
+        writer.writeEndElement();
+    }
 
 }

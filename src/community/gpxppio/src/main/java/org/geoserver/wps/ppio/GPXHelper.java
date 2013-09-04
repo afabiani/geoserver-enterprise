@@ -7,9 +7,9 @@ package org.geoserver.wps.ppio;
 
 import java.util.List;
 
-import org.geotools.gpx.bean.GpxType;
-import org.geotools.gpx.bean.RteType;
-import org.geotools.gpx.bean.WptType;
+import org.geoserver.wps.ppio.gpx.GpxType;
+import org.geoserver.wps.ppio.gpx.RteType;
+import org.geoserver.wps.ppio.gpx.WptType;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.type.Name;
@@ -25,17 +25,17 @@ import com.vividsolutions.jts.geom.Point;
  * Small helper class to convert from JTS Geometry to GPX types
  * 
  * @author Peter Hopfgartner, R3 GIS
- *
+ * 
  */
 public class GPXHelper {
     private GpxType gpxType;
-    
+
     public GPXHelper(GpxType gpx) {
         this.gpxType = gpx;
     }
-    
+
     public void addFeature(SimpleFeature f) {
-        
+
         Object defaultGeometry = f.getDefaultGeometryProperty();
         if (defaultGeometry == null) {
             return;
@@ -43,25 +43,25 @@ public class GPXHelper {
         String nameStr = null;
         String commentStr = null;
         String descriptionStr = null;
-        
-        for ( Property p : f.getProperties() ) {
+
+        for (Property p : f.getProperties()) {
             Object object = p.getValue();
             if (object instanceof Geometry) {
                 continue;
             } else {
                 Name name = p.getName();
-                if (name.getLocalPart().equalsIgnoreCase("name") ||
-                        name.getLocalPart().equalsIgnoreCase("geographicalName")){
+                if (name.getLocalPart().equalsIgnoreCase("name")
+                        || name.getLocalPart().equalsIgnoreCase("geographicalName")) {
                     nameStr = p.getValue().toString();
-                }  else if (name.getLocalPart().equalsIgnoreCase("description")){
+                } else if (name.getLocalPart().equalsIgnoreCase("description")) {
                     descriptionStr = p.getValue().toString();
-                }  else if (name.getLocalPart().equalsIgnoreCase("comment")){
+                } else if (name.getLocalPart().equalsIgnoreCase("comment")) {
                     commentStr = p.getValue().toString();
                 }
             }
         }
-        
-        Object go = ((Property)defaultGeometry).getValue();
+
+        Object go = ((Property) defaultGeometry).getValue();
         if (go instanceof MultiLineString) {
             int nrls = ((MultiLineString) go).getNumGeometries();
             for (int li = 0; li < nrls; li++) {
@@ -110,21 +110,20 @@ public class GPXHelper {
             // no useful geometry, no feature!
             return;
         }
-        
-        
+
     }
-    
-    public WptType  toWpt(Point p) {
+
+    public WptType toWpt(Point p) {
         return coordToWpt(p.getX(), p.getY());
     }
-    
+
     private WptType coordToWpt(double x, double y) {
         WptType wpt = new WptType();
         wpt.setLon(x);
         wpt.setLat(y);
         return wpt;
     }
-    
+
     public RteType toRte(LineString ls) {
         RteType rte = new RteType();
         List<WptType> rtePts = rte.getRtept();
@@ -134,6 +133,6 @@ public class GPXHelper {
             rtePts.add(coordToWpt(coordinates[pi].x, coordinates[pi].y));
         }
         return rte;
-        
+
     }
 }

@@ -4,6 +4,6 @@
 <beans>
   <!-- GPXPPIO -->
   <bean id="GPXPPIO" class="org.geoserver.wps.ppio.GPXPPIO">
-  	  <!-- <constructor-arg ref="wpsResourceManager"/> -->
+  	  <constructor-arg ref="geoServer"/>
   </bean>
 </beans>
