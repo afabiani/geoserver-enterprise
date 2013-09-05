@@ -17,6 +17,7 @@ import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.gs.GSProcess;
 import org.geotools.util.logging.Logging;
+import org.opengis.feature.type.Name;
 import org.opengis.util.ProgressListener;
 
 /**
@@ -32,6 +33,39 @@ public class ClusterManagerProcess implements GSProcess {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(ClusterManagerProcess.class);
+    
+    /**
+     * Special implementation of ExecutionStatus with support for encoding the result.
+     * 
+     * @author Simone Giannecchini, GeoSolutions SAS
+     *
+     */
+    public final static class ExecutionStatusExt extends ExecutionStatus{
+        /**
+         * @param processName
+         * @param executionId
+         * @param phase
+         * @param progress
+         * @param result
+         */
+        public ExecutionStatusExt(Name processName, String executionId, ProcessState phase,
+                float progress, String result) {
+            super(processName, executionId, phase, progress);
+            this.result = result;
+        }
+
+        /**The result of the processing, this is either a link to a zip file or an exception message.*/
+        private final String result;
+
+        /**
+         * @return the result
+         */
+        public String getResult() {
+            return result;
+        }
+        
+        
+    }
 
     private final ProcessStorage storage;
 
@@ -65,8 +99,8 @@ public class ClusterManagerProcess implements GSProcess {
         }
         ProcessDescriptor process = storage.findByExecutionId(executionId, true);
         if (process != null) {
-            return new ExecutionStatus(new NameImpl(process.getNameSpace(), process.getName()),
-                    process.getExecutionId(), process.getPhase(), process.getProgress());
+            return new ExecutionStatusExt(new NameImpl(process.getNameSpace(), process.getName()),
+                    process.getExecutionId(), process.getPhase(), process.getProgress(),process.getResult());
         }
         throw new ProcessException("Unable to find process with executionId: " + executionId);
 

@@ -145,11 +145,6 @@ public class ClusterProcessManager extends DefaultProcessManager {
             super(status);
         }
 
-        @Override
-        public void warningOccurred(String source, String location, String warning) {
-            // TODO Auto-generated method stub
-            super.warningOccurred(source, location, warning);
-        }
 
         @Override
         public void exceptionOccurred(Throwable exception) {
