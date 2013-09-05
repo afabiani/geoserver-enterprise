@@ -14,12 +14,15 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.config.GeoServer;
 import org.geoserver.data.util.IOUtils;
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
+
+import com.mockrunner.util.common.FileUtil;
 
 /**
  * Handles input and output of feature collections as zipped files.
@@ -61,6 +64,12 @@ public class ZipArchivePPIO extends BinaryPPIO {
      */
     @Override
     public void encode(final Object output, OutputStream os) throws Exception {
+        // avoid double zipping
+        if (output instanceof File && IOUtils.isZpFile((File) output)) {
+            FileUtils.copyFile((File) output, os);
+            return;
+        }
+        
         ZipOutputStream zipout = new ZipOutputStream(os);
         zipout.setLevel(compressionLevel);
 
@@ -71,7 +80,6 @@ public class ZipArchivePPIO extends BinaryPPIO {
                 IOUtils.zipDirectory(file, zipout, FileFilterUtils.trueFileFilter());
             } else {
                 // check if is a zip file already
-
                 IOUtils.zipFile(file, zipout);
             }
         } else {
