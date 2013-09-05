@@ -116,8 +116,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
             boolean background) throws ProcessException {
 
         // is this a process to NOT log?
-        final boolean isProcessFiltered = (processNamesEsclusionList.contains(processName
-                .getLocalPart()));
+        final boolean isProcessFiltered = (processNamesEsclusionList.contains(processName.getLocalPart()))||!background;
 
         final ExecutionStatusEx status = isProcessFiltered ? createExecutionStatus(processName,
                 executionId) : new ClusterExecutionStatus(processName, clusterId, executionId,
