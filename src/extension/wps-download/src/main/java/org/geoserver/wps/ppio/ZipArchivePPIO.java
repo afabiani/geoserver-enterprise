@@ -22,8 +22,6 @@ import org.geoserver.data.util.IOUtils;
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
 
-import com.mockrunner.util.common.FileUtil;
-
 /**
  * Handles input and output of feature collections as zipped files.
  * 
