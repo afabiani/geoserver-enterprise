@@ -63,7 +63,7 @@ class VectorEstimator {
             MathTransform targetTX = null;
             if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
                 // we MIGHT have to reproject
-                targetTX = CRS.findMathTransform(roiCRS, nativeCRS);
+                targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
                 // reproject
                 if (!targetTX.isIdentity()) {
                     roiInNativeCRS = JTS.transform(roi, targetTX);

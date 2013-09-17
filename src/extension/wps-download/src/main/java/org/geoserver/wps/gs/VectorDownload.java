@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
 import org.geoserver.catalog.FeatureTypeInfo;
-import org.geoserver.wps.WPSClusterStorageCleaner;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geotools.data.Parameter;
@@ -70,7 +69,7 @@ class VectorDownload {
             MathTransform targetTX = null;
             if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
                 // we MIGHT have to reproject
-                targetTX = CRS.findMathTransform(roiCRS, nativeCRS);
+                targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
                 // reproject
                 if (!targetTX.isIdentity()) {
                     roiInNativeCRS = JTS.transform(roi, targetTX);
@@ -139,7 +138,7 @@ class VectorDownload {
         if (targetCRS != null && !CRS.equalsIgnoreMetadata(nativeCRS, targetCRS)) {
 
             // testing reprojection...
-            final MathTransform targetTX = CRS.findMathTransform(nativeCRS, targetCRS);
+            final MathTransform targetTX = CRS.findMathTransform(nativeCRS, targetCRS,true);
             if (!targetTX.isIdentity()) {
                 // avoid doing the transform if this is the identity
                 reprojectedFeatures = new ReprojectingFeatureCollection(clippedFeatures, targetCRS);

@@ -99,7 +99,7 @@ class RasterDownload {
             if (targetCRS != null && !CRS.equalsIgnoreMetadata(nativeCRS, targetCRS)) {
 
                 // testing reprojection...
-                reprojectionTrasform = CRS.findMathTransform(nativeCRS, targetCRS);
+                reprojectionTrasform = CRS.findMathTransform(nativeCRS, targetCRS,true);
                 if (!reprojectionTrasform.isIdentity()) {
                     // avoid doing the transform if this is the identity
                     reproject = true;
@@ -116,7 +116,7 @@ class RasterDownload {
                 MathTransform targetTX = null;
                 if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
                     // we MIGHT have to reproject
-                    targetTX = CRS.findMathTransform(roiCRS, nativeCRS);
+                    targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
                     // reproject
                     if (!targetTX.isIdentity()) {
                         roiInNativeCRS = JTS.transform(roi, targetTX);
@@ -199,7 +199,7 @@ class RasterDownload {
                     MathTransform targetTX = null;
                     if (!CRS.equalsIgnoreMetadata(roiCRS, targetCRS)) {
                         // we MIGHT have to reproject
-                        targetTX = CRS.findMathTransform(roiCRS, targetCRS);
+                        targetTX = CRS.findMathTransform(roiCRS, targetCRS,true);
                         // reproject
                         if (!targetTX.isIdentity()) {
                             roiInTargetCRS = JTS.transform(roi, targetTX);
