@@ -198,8 +198,24 @@ public class DownloadProcess implements GSProcess {
                 File style = GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename());
                 
                 List<File> filesToDownload = null; 
-                if (style != null && style.exists() && style.canRead()) filesToDownload = Arrays.asList(style, output);
-                else filesToDownload = Arrays.asList(output);
+                if (style != null && style.exists() && style.canRead())  {
+                    // the SLD file is public and avaialble, we can attach it to the download.
+                    filesToDownload = Arrays.asList(style, output);
+                }
+                else {
+                    // the SLD file is not public, most probably it is located under a workspace.
+                    // lets try to search for the file inside the same layer workspace folder ...
+                    File baseDir = GeoserverDataDirectory.getGeoserverDataDirectory();
+                    File styleFile = new File( new File( baseDir, "workspaces/"+ resourceInfo.getNamespace().getName() +"/styles" ), layerInfo.getDefaultStyle().getFilename() );
+
+                    if (styleFile.exists() ) {
+                        // got it! The style was under a specific workspace.
+                        filesToDownload = Arrays.asList(styleFile, output);
+                    } else {
+                        // unfortunately the style file cannot be found anywhere. We need to skip the SLD file!
+                        filesToDownload = Arrays.asList(output);
+                    }
+                }
                 
                 zipPPIO.encode(filesToDownload, os1);
 

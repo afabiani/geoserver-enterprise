@@ -13,9 +13,7 @@ import java.util.logging.Logger;
 import javax.imageio.stream.ImageOutputStream;
 
 import org.geoserver.catalog.CoverageInfo;
-import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.data.util.CoverageUtils;
-import org.geoserver.wps.WPSClusterStorageCleaner;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geotools.coverage.grid.GridCoverage2D;
