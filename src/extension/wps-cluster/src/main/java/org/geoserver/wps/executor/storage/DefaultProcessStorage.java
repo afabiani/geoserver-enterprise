@@ -290,7 +290,7 @@ public class DefaultProcessStorage implements ProcessStorage, ExtensionPriority 
             process.setResult(outputFile.getAbsolutePath());
 
         } else {
-            process.setResult(result.toString());
+            process.setResult(result != null ? result.toString() : "");
         }
 
         processDescriptorDAO.merge(process);

@@ -4,6 +4,7 @@
  */
 package org.geoserver.wps.gs;
 
+import java.io.File;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,8 @@ import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.test.GeoServerTestSupport;
 import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.storage.ProcessStorage;
+import org.geoserver.wps.executor.storage.TestProcessStorage;
+import org.geoserver.wps.executor.storage.dao.BaseDAOTest;
 import org.geoserver.wps.ppio.ExecutionStatusPPIO;
 import org.geotools.util.NullProgressListener;
 
@@ -35,6 +38,14 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
         super.populateDataDirectory(dataDirectory);
 
         dataDirectory.addWcs10Coverages();
+        
+        new File(dataDirectory.getDataDirectoryRoot(), "wps-cluster").mkdirs();
+        dataDirectory.copyTo(
+                BaseDAOTest.class.getClassLoader().getResourceAsStream(
+                        "wps-cluster/dbConfig.properties"), "wps-cluster/dbConfig.properties");
+        dataDirectory.copyTo(
+                BaseDAOTest.class.getClassLoader().getResourceAsStream(
+                        "wps-cluster/wpsCluster.properties"), "wps-cluster/wpsCluster.properties");
     }
 
     /**
@@ -43,6 +54,10 @@ public class ClusterManagerProcessTest extends GeoServerTestSupport {
      * @throws Exception the exception
      */
     public void testEncodeStatus() throws Exception {
+        
+        TestProcessStorage testProcessStorage = (TestProcessStorage) applicationContext.getBean("testClusteredProcessStorage");
+        testProcessStorage.setTestMode(true);
+        
         ProcessStorage storage = null;
         List<ProcessStorage> availableStorages = GeoServerExtensions
                 .extensions(ProcessStorage.class);

@@ -25,6 +25,8 @@ import org.springframework.context.ApplicationListener;
 public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
         ApplicationListener<ApplicationEvent> {
 
+    private boolean testMode = false;
+
     /**
      * On application event.
      * 
@@ -211,7 +213,12 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
 
     @Override
     public ProcessDescriptor findByExecutionId(String executionId, Boolean silently) {
-        // TODO Auto-generated method stub
+        
+        if (isTestMode()) {
+            ProcessDescriptor ps = new ProcessDescriptor();
+            ps.setExecutionId(executionId);
+            return ps;
+        }
         return null;
     }
 
@@ -219,6 +226,20 @@ public class TestProcessStorage implements ProcessStorage, ExtensionPriority,
     public void storeResult(ProcessDescriptor process, Object result) {
         // TODO Auto-generated method stub
 
+    }
+
+    /**
+     * @param testMode the testMode to set
+     */
+    public void setTestMode(boolean testMode) {
+        this.testMode = testMode;
+    }
+
+    /**
+     * @return the testMode
+     */
+    public boolean isTestMode() {
+        return testMode;
     }
 
 }

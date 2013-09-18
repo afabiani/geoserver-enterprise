@@ -337,8 +337,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
             public boolean accept(File dir, String name) {
                 return
 
-                (FilenameUtils.getBaseName(gtiffZip.getName()).equals(
-                        FilenameUtils.getBaseName(name)) && (FilenameUtils.getExtension(name)
+                (FilenameUtils.getBaseName(gtiffZip.getName()).startsWith(FilenameUtils.getBaseName(name)) && (FilenameUtils.getExtension(name)
                         .equalsIgnoreCase("tif")
                         || FilenameUtils.getExtension(name).equalsIgnoreCase("tiff") || FilenameUtils
                         .getExtension(name).equalsIgnoreCase("geotiff")));
@@ -415,7 +414,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         File rasterZip = downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                 null, // filter
                 null, // mail
-                "geotiff", // outputFormat
+                "image/tiff", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:4326", true), // roiCRS
                 roi, // roi
@@ -428,7 +427,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         File resampledZip = downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                 null, // filter
                 null, // mail
-                "geotiff", // outputFormat
+                "image/tiff", // outputFormat
                 CRS.decode("EPSG:900913", true), // targetCRS
                 CRS.decode("EPSG:900913", true), // roiCRS
                 roiResampled, // roi
@@ -459,18 +458,19 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         }
 
         try {
-            reader = new GeoTiffReader(exctractTIFFFile(resampledZip)[0]);
+            File[] files = exctractTIFFFile(resampledZip);
+            reader = new GeoTiffReader(files[files.length-1]);
             gcResampled = reader.read(null);
 
             assertNotNull(gcResampled);
 
-            assertEquals(-1.4566280988264106E7, gcResampled.getEnvelope().getLowerCorner()
+            assertEquals(-1.4566667062770225E7, gcResampled.getEnvelope().getLowerCorner()
                     .getOrdinate(0));
-            assertEquals(6207921.047800108,
+            assertEquals(6208490.431590931,
                     gcResampled.getEnvelope().getLowerCorner().getOrdinate(1));
-            assertEquals(-1.3801853466146953E7, gcResampled.getEnvelope().getUpperCorner()
+            assertEquals(-1.3801853466146952E7, gcResampled.getEnvelope().getUpperCorner()
                     .getOrdinate(0));
-            assertEquals(7182130.852574151,
+            assertEquals(7183250.863067665,
                     gcResampled.getEnvelope().getUpperCorner().getOrdinate(1));
 
         } finally {
@@ -503,7 +503,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         File rasterZip = downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                 null, // filter
                 null, // mail
-                "geotiff", // outputFormat
+                "image/tiff", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:4326"), // roiCRS
                 roi, // roi
@@ -545,7 +545,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
             downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                     null, // filter
                     null, // mail
-                    "geotiff", // outputFormat
+                    "image/tiff", // outputFormat
                     null, // targetCRS
                     CRS.decode("EPSG:4326", true), // roiCRS
                     roi, // roi
@@ -554,7 +554,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                     );
         } catch (ProcessException e) {
             assertEquals(
-                    "This request is trying to read too much data, the limit is 10B but the actual amount of bytes to be read is 11,32MB",
+                    "java.lang.IllegalArgumentException: Download Limits Exceeded. Unable to proceed!: Download Limits Exceeded. Unable to proceed!",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }
@@ -571,7 +571,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
                 DownloadEstimatorProcess.NO_LIMIT, 10, DownloadEstimatorProcess.NO_LIMIT,
-                DownloadEstimatorProcess.NO_LIMIT, getGeoServer());
+                10, getGeoServer());
 
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);
@@ -584,7 +584,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
             downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                     null, // filter
                     null, // mail
-                    "geotiff", // outputFormat
+                    "image/tiff", // outputFormat
                     null, // targetCRS
                     CRS.decode("EPSG:4326", true), // roiCRS
                     roi, // roi
@@ -609,7 +609,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
     public void testDownloadEstimatorMaxFeaturesLimit() throws Exception {
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT, 1,
                 DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT,
                 getGeoServer());
 
@@ -620,7 +620,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
             downloadProcess.execute(getLayerId(MockData.POLYGONS), // layerName
                     null, // filter
                     null, // mail
-                    "shape-zip", // outputFormat
+                    "application/zip", // outputFormat
                     null, // targetCRS
                     CRS.decode("EPSG:32615"), // roiCRS
                     roi, // roi
@@ -659,7 +659,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
         downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                 null, // filter
                 null, // mail
-                "geotiff", // outputFormat
+                "image/tiff", // outputFormat
                 null, // targetCRS
                 CRS.decode("EPSG:4326", true), // roiCRS
                 roi, // roi

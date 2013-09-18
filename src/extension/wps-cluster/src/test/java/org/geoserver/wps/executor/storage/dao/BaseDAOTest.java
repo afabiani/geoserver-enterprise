@@ -6,13 +6,12 @@
 package org.geoserver.wps.executor.storage.dao;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.geoserver.data.test.MockData;
-import org.geoserver.ows.Ows11Util;
 import org.geoserver.test.GeoServerTestSupport;
-import org.geoserver.wps.executor.ExecutionStatus;
 import org.geoserver.wps.executor.ExecutionStatus.ProcessState;
 import org.geoserver.wps.executor.storage.model.ProcessDescriptor;
 import org.geotools.util.logging.Logging;
@@ -109,8 +108,11 @@ public abstract class BaseDAOTest extends GeoServerTestSupport {
         process.setExecutionId(executionId);
         // process.setStatus(marshaller.toXML(createStatus(clusterId, executionId,
         // ProcessState.QUEUED, 0.0f)));
+        process.setName("");
+        process.setNameSpace("");
         process.setProgress(0.0f);
         process.setPhase(ProcessState.QUEUED);
+        process.setStartTime(new Date());
 
         return process;
     }

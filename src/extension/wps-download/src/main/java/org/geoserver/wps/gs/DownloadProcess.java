@@ -7,6 +7,7 @@ package org.geoserver.wps.gs;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
@@ -194,8 +195,13 @@ public class DownloadProcess implements GSProcess {
                 os1 = new FileOutputStream(newOutput);
 
                 // add old output and default SLD to zip
-                zipPPIO.encode(Arrays.asList(GeoserverDataDirectory.findStyleFile(layerInfo
-                        .getDefaultStyle().getFilename()), output), os1);
+                File style = GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename());
+                
+                List<File> filesToDownload = null; 
+                if (style != null && style.exists() && style.canRead()) filesToDownload = Arrays.asList(style, output);
+                else filesToDownload = Arrays.asList(output);
+                
+                zipPPIO.encode(filesToDownload, os1);
 
             } finally {
                 if (os1 != null) {

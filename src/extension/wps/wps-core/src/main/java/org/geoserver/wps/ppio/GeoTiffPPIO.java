@@ -28,6 +28,7 @@ import org.geotools.gce.geotiff.GeoTiffFormat;
 import org.geotools.gce.geotiff.GeoTiffReader;
 import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.image.ImageWorker;
+import org.geotools.process.ProcessException;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.parameter.ParameterValueGroup;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -166,6 +167,8 @@ public class GeoTiffPPIO extends BinaryPPIO {
                         "Could not find the GeoTIFF writer, please check it's in the classpath");
             try {
                 writer.write(coverage, wps);
+            } catch(IOException e) {
+                throw new ProcessException(e);
             } finally {
                 try {
                     writer.dispose();

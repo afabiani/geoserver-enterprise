@@ -32,11 +32,12 @@
 		<constructor-arg ref="dataDirectory" />
 		<property name="location" value="file:wps-cluster/dbConfig.properties" />
 		<property name="ignoreUnresolvablePlaceholders" value="true"/>
-		<!-- property name="properties">
+		<!--  property name="properties">
 			<props>
-				<prop key="prop1">value1</prop> 
-				<prop key="prop2">value2</prop>
-		</props> </property -->
+				<prop key="processStorageVendorAdapter.databasePlatform">org.hibernate.dialect.H2Dialect</prop> 
+				<prop key="processStorageDataSource.driverClassName">org.h2.Driver</prop>
+			</props> 
+		</property -->
 	</bean>
 
 	<!--
