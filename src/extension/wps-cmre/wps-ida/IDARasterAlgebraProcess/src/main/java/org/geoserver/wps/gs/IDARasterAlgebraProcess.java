@@ -1,6 +1,7 @@
 package org.geoserver.wps.gs;
 
 import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -28,6 +30,7 @@ import org.geoserver.wps.raster.algebra.ListCoverageCollector;
 import org.geoserver.wps.raster.algebra.RasterAlgebraProcess;
 import org.geoserver.wps.raster.algebra.ResolutionChoice;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.InvalidGridGeometryException;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.collection.ListFeatureCollection;
@@ -44,13 +47,17 @@ import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.jts.GeometryBuilder;
 import org.geotools.geometry.jts.JTS;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.process.ProcessException;
 import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.gs.GSProcess;
+import org.geotools.process.raster.gs.AreaGridProcess;
+import org.geotools.process.raster.gs.MultiplyCoveragesProcess;
 import org.geotools.process.raster.gs.RasterZonalStatistics;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.matrix.XAffineTransform;
 import org.geotools.util.NullProgressListener;
 import org.geotools.util.logging.Logging;
 import org.jaitools.imageutils.ImageLayout2;
@@ -65,6 +72,7 @@ import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.ProgressListener;
 import org.springframework.util.StringUtils;
@@ -238,6 +246,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		attributes.add(new FeatureAttribute("sum", ""));
 		attributes.add(new FeatureAttribute("avg", ""));
 		attributes.add(new FeatureAttribute("stddev", ""));
+		attributes.add(new FeatureAttribute("riskarea", ""));
 
 		Geometry geometry = geomBuilder.point(0, 0);
 		SimpleFeatureCollection features = toFeatureProcess.execute(geometry, crs, DEFAULT_TYPE_NAME, attributes, null);
@@ -535,6 +544,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 			List<String> sum = new ArrayList<String>();
 			List<String> avg = new ArrayList<String>();
 			List<String> stddev = new ArrayList<String>();
+			List<String> riskArea = new ArrayList<String>();
 			
 			SimpleFeatureCollection stats = null;
 			String coverageName = null;
@@ -550,6 +560,9 @@ public class IDARasterAlgebraProcess implements GSProcess {
 					sum.add(String.valueOf((Double) statFeature.getAttribute("sum")));
 					avg.add(String.valueOf((Double) statFeature.getAttribute("avg")));
 					stddev.add(String.valueOf((Double) statFeature.getAttribute("stddev")));
+					
+					String totalInternalArea = getTotalInternalRiskArea(coverage, areaOfInterest, crs, progressListener);
+					riskArea.add(totalInternalArea);
 				}
 
 				if (coverages != null && !coverages.isEmpty()) {
@@ -567,6 +580,9 @@ public class IDARasterAlgebraProcess implements GSProcess {
 								sum.add(String.valueOf((Double) statFeature.getAttribute("sum")));
 								avg.add(String.valueOf((Double) statFeature.getAttribute("avg")));
 								stddev.add(String.valueOf((Double) statFeature.getAttribute("stddev")));
+								
+								String totalInternalArea = getTotalInternalRiskArea(gc, areaOfInterest, crs, progressListener);
+								riskArea.add(totalInternalArea);
 							}
 						} catch (Exception e) {
 							LOGGER.warning("Failing to compute the stats for Coverage : " + entry.getKey());
@@ -586,6 +602,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 			feature.setAttribute("sum", toPipedString(sum));
 			feature.setAttribute("avg", toPipedString(avg));
 			feature.setAttribute("stddev", toPipedString(stddev));
+			feature.setAttribute("riskarea", toPipedString(riskArea));
 			
 			// set layer attribution info
 			LayerInfo layer = catalog.getLayerByName(new NameImpl(wsName, rstAlgebraRasterLayerName));
@@ -608,6 +625,51 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		}
 
 		return features;
+	}
+
+	/**
+	 * @param areaOfInterest
+	 * @param progressListener
+	 * @param crs
+	 * @param coverage
+	 * @throws InvalidGridGeometryException
+	 * @throws MismatchedDimensionException
+	 * @throws ProcessException
+	 * @throws NoSuchAuthorityCodeException
+	 * @throws FactoryException
+	 * @throws TransformException
+	 * @throws NoSuchElementException
+	 */
+	protected String getTotalInternalRiskArea(
+			GridCoverage2D coverage, 
+			Geometry areaOfInterest, 
+			CoordinateReferenceSystem crs,
+			ProgressListener progressListener) throws InvalidGridGeometryException,
+			MismatchedDimensionException, ProcessException,
+			NoSuchAuthorityCodeException, FactoryException, TransformException,
+			NoSuchElementException {
+		// pixel scale
+		final MathTransform tempTransform = coverage.getGridGeometry().getGridToCRS();
+		AffineTransform tr = (AffineTransform) tempTransform;
+		// resolution
+		double pixelSizesX = XAffineTransform.getScaleX0(tr);
+		double pixelSizesY = XAffineTransform.getScaleY0(tr);
+		
+		AreaGridProcess cvAreaProcess = new AreaGridProcess();
+		double x1 = areaOfInterest.getEnvelopeInternal().getMinX();
+		double x2 = areaOfInterest.getEnvelopeInternal().getMaxX();
+		double y1 = areaOfInterest.getEnvelopeInternal().getMinY();
+		double y2 = areaOfInterest.getEnvelopeInternal().getMaxY();
+		ReferencedEnvelope area = new ReferencedEnvelope(x1, x2, y1, y2, crs);
+		GridCoverage2D cvArea = cvAreaProcess.execute(area, (int) pixelSizesX, (int) pixelSizesY);
+		
+		MultiplyCoveragesProcess cvMuxProcess = new MultiplyCoveragesProcess();
+		GridCoverage2D cvInternalArea = cvMuxProcess.execute(coverage, cvArea, progressListener);
+		SimpleFeatureCollection totalInternalAreaStats = getCoverageStatistics(areaOfInterest, cvInternalArea);
+		SimpleFeature totalInternalAreaStatFeature = totalInternalAreaStats.features().next();
+		String totalInternalArea = String.valueOf((Long) totalInternalAreaStatFeature.getAttribute("sum"));
+		
+		return totalInternalArea;
 	}
 
 	/**

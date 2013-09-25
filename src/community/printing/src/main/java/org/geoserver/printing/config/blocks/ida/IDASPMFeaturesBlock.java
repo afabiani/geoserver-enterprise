@@ -73,7 +73,7 @@ public class IDASPMFeaturesBlock extends FeaturesBlock {
             	final String key = keyIterator.next();
             	final String value = properties.getString(key).replace("\\", "/");
             	
-            	if (key.equals("coverages") || key.equals("avg") || key.equals("count") || key.equals("min") || key.equals("max") || key.equals("sum") || key.equals("stddev")) {
+            	if (key.equals("coverages") || key.equals("avg") || key.equals("count") || key.equals("min") || key.equals("max") || key.equals("sum") || key.equals("stddev") || key.equals("riskarea")) {
             		coveragesMap.put(key, value.split(" | "));
             		continue;
             	}
@@ -159,6 +159,7 @@ public class IDASPMFeaturesBlock extends FeaturesBlock {
         				result.add("  - Max : " + coveragesMap.get("max")[i] + " \r\n");
         				result.add("  - Avg : " + coveragesMap.get("avg")[i] + " \r\n");
         				result.add("  - Std Dev : " + coveragesMap.get("stddev")[i] + " \r\n");
+        				result.add("  - Risk Area : " + coveragesMap.get("riskarea")[i] + " \r\n");
         			}
         			
         			i++;
