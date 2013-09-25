@@ -71,14 +71,6 @@ public class DownloadEstimatorProcess implements GSProcess {
         this.catalog = geoserver.getCatalog();
     }
 
-    //
-    // /**
-    // * @param geoserver
-    // */
-    // public DownloadEstimatorProcess(GeoServer geoserver) {
-    // this(NO_LIMIT, NO_LIMIT, NO_LIMIT, NO_LIMIT, geoserver);
-    // }
-
     /**
      * Execute.
      * 

@@ -157,6 +157,7 @@ public class GeoTiffPPIO extends BinaryPPIO {
                 final Dimension defaultTileSize = JAI.getDefaultTileSize();
                 wp.setTiling(defaultTileSize.width, defaultTileSize.height);
             }
+            
             final ParameterValueGroup wparams = TIFF_FORMAT.getWriteParameters();
             wparams.parameter(AbstractGridFormat.GEOTOOLS_WRITE_PARAMS.getName().toString()).setValue(wp);
             final GeneralParameterValue[] wps = (GeneralParameterValue[]) wparams.values().toArray(new GeneralParameterValue[1]);

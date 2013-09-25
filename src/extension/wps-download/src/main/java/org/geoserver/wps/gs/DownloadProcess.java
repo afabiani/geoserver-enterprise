@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
@@ -35,14 +36,19 @@ import org.vfny.geoserver.global.GeoserverDataDirectory;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
- * The Class DownloadProcess.
+ * The main DownloadProcess class.
+ * 
+ * This class is simply responsible for deciding who is going to take care of the request 
+ * and then for putting together the final result as a zip file adding the needed styles.
+ * 
  * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ * @author Simone Giannecchini, GeoSOlutions SAS
  */
 @DescribeProcess(title = "Enterprise Download Process", description = "Downloads Layer Stream and provides a ZIP.")
 public class DownloadProcess implements GSProcess {
 
-    /** The Constant LOGGER. */
+    /** The LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(DownloadProcess.class);
 
     /** The estimator. */
@@ -51,6 +57,7 @@ public class DownloadProcess implements GSProcess {
     /** The catalog. */
     private final Catalog catalog;
 
+    /** The PPIO we are going to use to produce the final ZIP file.*/
     private ZipArchivePPIO zipPPIO;
 
     /**
@@ -103,6 +110,8 @@ public class DownloadProcess implements GSProcess {
             if (layerName == null || layerName.length() <= 0) {
                 throw new IllegalArgumentException("Empty or null layerName provided!");
             }
+            LOGGER.fine("Download process called on resource: "+layerName);
+            // Default behavior is intersection
             if (clip == null) {
                 clip = false;
             }
@@ -117,6 +126,7 @@ public class DownloadProcess implements GSProcess {
             //
             // do we respect limits?
             //
+            LOGGER.fine("Running the estimator");
             if (!estimator.execute(layerName, filter, targetCRS, roiCRS, roi, clip,
                     progressListener)) {
                 throw new IllegalArgumentException("Download Limits Exceeded. Unable to proceed!");
@@ -139,10 +149,12 @@ public class DownloadProcess implements GSProcess {
                         + layerName);
 
             }
+            LOGGER.log(Level.FINE,"The resource to work on is "+resourceInfo.getName());
 
             // CORE CODE
             File output;
             if (resourceInfo instanceof FeatureTypeInfo) {
+                LOGGER.log(Level.FINE,"The resource to work on is a vector layer");
                 //
                 // VECTOR
                 //
@@ -151,6 +163,7 @@ public class DownloadProcess implements GSProcess {
                         mimeType, roi, clip, filter, targetCRS, progressListener);
 
             } else if (resourceInfo instanceof CoverageInfo) {
+                LOGGER.log(Level.FINE,"The resource to work on is a raster layer");
                 //
                 // RASTER
                 //
@@ -185,7 +198,7 @@ public class DownloadProcess implements GSProcess {
             }
 
             // zipping and adding the style
-
+            LOGGER.log(Level.FINE,"Preparing the result");
             // build destination zip
             final File newOutput = File.createTempFile(FilenameUtils.getBaseName(output.getName()),
                     ".zip", output.getParentFile());
@@ -195,7 +208,7 @@ public class DownloadProcess implements GSProcess {
                 os1 = new FileOutputStream(newOutput);
 
                 // add old output and default SLD to zip
-                File style = GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename());
+                final File style = GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename());
                 
                 List<File> filesToDownload = null; 
                 if (style != null && style.exists() && style.canRead())  {
@@ -212,11 +225,12 @@ public class DownloadProcess implements GSProcess {
                         // got it! The style was under a specific workspace.
                         filesToDownload = Arrays.asList(styleFile, output);
                     } else {
+                        LOGGER.log(Level.FINE,"The style file cannot be found anywhere. We need to skip the SLD file");
                         // unfortunately the style file cannot be found anywhere. We need to skip the SLD file!
                         filesToDownload = Arrays.asList(output);
                     }
                 }
-                
+                // zip them all
                 zipPPIO.encode(filesToDownload, os1);
 
             } finally {
@@ -245,7 +259,7 @@ public class DownloadProcess implements GSProcess {
             // return
             return output;
         } catch (Exception e) {
-            // catch and rethrow
+            // catch and rethrow but warn the listener
             final ProcessException processException = new ProcessException(e);
             if (progressListener != null) {
                 progressListener.exceptionOccurred(processException);

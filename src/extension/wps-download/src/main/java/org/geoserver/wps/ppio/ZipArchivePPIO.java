@@ -26,6 +26,7 @@ import org.geotools.util.logging.Logging;
  * Handles input and output of feature collections as zipped files.
  * 
  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+ * @author Simone Giannecchini, GeoSolutions SAS
  */
 public class ZipArchivePPIO extends BinaryPPIO {
 

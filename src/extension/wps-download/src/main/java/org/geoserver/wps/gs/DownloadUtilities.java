@@ -16,18 +16,15 @@
  */
 package org.geoserver.wps.gs;
 
-import java.awt.image.SampleModel;
-import java.text.DecimalFormat;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.LiteralPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
-import org.geotools.coverage.grid.GridCoverageFactory;
-import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.data.Parameter;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.process.ProcessException;
 import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
@@ -40,6 +37,7 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
 /**
  * Various Utilities for Download Services.
@@ -48,9 +46,6 @@ import com.vividsolutions.jts.geom.Point;
  * 
  */
 final class DownloadUtilities {
-
-    /** The gc factory. */
-    final static GridCoverageFactory GC_FACTORY = new GridCoverageFactory();
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = Logging.getLogger(DownloadUtilities.class);
@@ -62,58 +57,12 @@ final class DownloadUtilities {
     }
 
     /**
-     * Computes the number of pixels for this {@link GridEnvelope2D}.
+     * This method checks whether or not the provided geometry is valid {@link Polygon}
+     * or not.
+     * <p>
+     * In case the egometry is not a valid polygon, it throws an {@link IllegalStateException};
      * 
-     * @param rasterEnvelope the {@link GridEnvelope2D} to compute the number of pixels for
-     * @return the number of pixels for the provided {@link GridEnvelope2D}
-     */
-    static long computePixelsNumber(GridEnvelope2D rasterEnvelope) {
-        // pixels
-        long pixelsNumber = 1;
-        final int dimensions = rasterEnvelope.getDimension();
-        for (int i = 0; i < dimensions; i++) {
-            pixelsNumber *= rasterEnvelope.getSpan(i);
-        }
-        return pixelsNumber;
-    }
-
-    /**
-     * Utility function to format a byte amount into a human readable string.
-     * 
-     * @param bytes the bytes
-     * @return the string
-     */
-    static String formatBytes(long bytes) {
-        if (bytes < 1024) {
-            return bytes + "B";
-        } else if (bytes < 1024 * 1024) {
-            return new DecimalFormat("#.##").format(bytes / 1024.0) + "KB";
-        } else {
-            return new DecimalFormat("#.##").format(bytes / 1024.0 / 1024.0) + "MB";
-        }
-    }
-
-    /**
-     * Computes the size of a grid coverage given its grid envelope and the target sample model.
-     * 
-     * @param envelope the envelope
-     * @param sm the sm
-     * @return the coverage size
-     */
-    static long getCoverageSize(GridEnvelope2D envelope, SampleModel sm) {
-        // === compute the coverage memory usage and compare with limit
-        final long pixelsNumber = computePixelsNumber(envelope);
-
-        long pixelSize = 0;
-        final int numBands = sm.getNumBands();
-        for (int i = 0; i < numBands; i++) {
-            pixelSize += sm.getSampleSize(i);
-        }
-        return pixelsNumber * pixelSize / 8;
-    }
-
-    /**
-     * @param roi
+     * @param roi the {@link Geometry} to check.
      * @throws IllegalStateException
      */
     static void checkPolygonROI(Geometry roi) throws IllegalStateException {
@@ -127,6 +76,19 @@ final class DownloadUtilities {
         }
     }
 
+    /**
+     * Looks for a valid PPIO given the provided mime type and process parameter.
+     * 
+     * @param p
+     * @param context
+     * <p>
+     * The lenient approach makes this method try harder to send back a result but it is preferrable 
+     * to be non-lenient since otherwise we might get s a PPIO which is not really what we need.
+     * 
+     * @param mime the mime-type for which we are searching for a {@link ProcessParameterIO}
+     * @param lenient whether or not trying to be lenient when returning a suitable {@link ProcessParameterIO}.
+     * @return either <code>null</code> or the found 
+     */
     final static ProcessParameterIO find(Parameter<?> p, ApplicationContext context, String mime,
             boolean lenient) {
         //
@@ -163,49 +125,18 @@ final class DownloadUtilities {
     }
 
     /**
-     * @param clippedFeatures
+     * This methods checks if the provided {@link FeatureCollection} is empty or not.
+     * <p>
+     * In case the provided feature collection is empty it throws an {@link IllegalStateException};
+     * 
+     * @param features the {@link SimpleFeatureCollection} to check
      * @throws IllegalStateException
      */
-    final static void checkIsEmptyFeatureCollection(SimpleFeatureCollection clippedFeatures)
+    final static void checkIsEmptyFeatureCollection(SimpleFeatureCollection features)
             throws IllegalStateException {
-        if (clippedFeatures == null || clippedFeatures.isEmpty()) {
+        if (features == null || features.isEmpty()) {
             throw new IllegalStateException("Got an empty feature collection.");
         }
-    }
-
-    /**
-     * Chek target crs validity.
-     * 
-     * @param targetCRS the target crs
-     * @param referenceCRS the reference crs
-     * @param needResample the need resample
-     * @param progressListener the progress listener
-     * @return true, if successful
-     */
-    static boolean checkTargetCRSValidity(CoordinateReferenceSystem targetCRS,
-            CoordinateReferenceSystem referenceCRS, boolean needResample,
-            ProgressListener progressListener) {
-        if (targetCRS != null) {
-            if (!CRS.equalsIgnoreMetadata(referenceCRS, targetCRS)) {
-
-                // testing reprojection...
-                try {
-                    /* if (! ( */CRS.findMathTransform(referenceCRS, targetCRS) /*
-                                                                                 * instanceof AffineTransform) ) throw new ProcessException
-                                                                                 * ("Could not reproject to reference CRS")
-                                                                                 */;
-                } catch (Exception e) {
-                    if (progressListener != null) {
-                        progressListener.exceptionOccurred(new ProcessException(
-                                "Could not reproject to reference CRS", e));
-                    }
-                    throw new ProcessException("Could not reproject to reference CRS", e);
-                }
-
-                needResample = true;
-            }
-        }
-        return needResample;
     }
 
 }

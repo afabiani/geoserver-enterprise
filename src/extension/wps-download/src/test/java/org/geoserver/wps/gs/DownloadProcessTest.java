@@ -393,8 +393,10 @@ public class DownloadProcessTest extends GeoServerTestSupport {
      */
     public void testDownloadRaster() throws Exception {
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT,
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT,
+                1,
                 getGeoServer());
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);

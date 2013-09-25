@@ -41,17 +41,22 @@ import org.opengis.util.ProgressListener;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import com.vividsolutions.jts.geom.Geometry;
-
+/**
+ * Implements the download services for raster data
+ * @author Simone Giannecchini, GeoSolutions SAS
+ *
+ */
 class RasterDownload {
 
-    static final Logger LOGGER = Logging.getLogger(RasterDownload.class);
+    private static final Logger LOGGER = Logging.getLogger(RasterDownload.class);
 
     /** The estimator. */
     private DownloadEstimatorProcess estimator;
 
     /**
-     * @param estimator
-     * @param geoServer
+     * Constructor, takes a {@link DownloadEstimatorProcess}.
+     * 
+     * @param estimator the {@link DownloadEstimatorProcess} to check for not exceeding the download limits.
      */
     public RasterDownload(DownloadEstimatorProcess estimator) {
         this.estimator = estimator;
@@ -237,17 +242,17 @@ class RasterDownload {
             //
             // STEP 3 - Writing
             //
-            final File output = writeRaster(mimeType, coverageInfo, clippedGridCoverage);
-
-            // return
-            return output;
+            return writeRaster(mimeType, coverageInfo, clippedGridCoverage);
         } finally {
-            if (originalGridCoverage != null)
+            if (originalGridCoverage != null){
                 originalGridCoverage.dispose(true);
-            if (reprojectedGridCoverage != null)
+            }
+            if (reprojectedGridCoverage != null){
                 reprojectedGridCoverage.dispose(true);
-            if (clippedGridCoverage != null)
+            }
+            if (clippedGridCoverage != null){
                 clippedGridCoverage.dispose(true);
+            }
         }
     }
 
@@ -268,7 +273,6 @@ class RasterDownload {
             limit = estimator.getHardOutputLimit();
         }
 
-        // TODO refactor to use MIME-TYPE
         // Search a proper PPIO
         ProcessParameterIO ppio_ = DownloadUtilities.find(new Parameter<GridCoverage2D>(
                 "fakeParam", GridCoverage2D.class), null, mimeType, false);
