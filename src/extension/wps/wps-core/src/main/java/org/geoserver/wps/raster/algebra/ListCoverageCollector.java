@@ -38,6 +38,7 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
@@ -325,7 +326,10 @@ public class ListCoverageCollector {
                 
                 ReferencedEnvelope refEnvelope= new ReferencedEnvelope(envelope, roiCRS);
                 refEnvelope=refEnvelope.transform(referenceCRS, true);
-                finalEnvelope=new ReferencedEnvelope(refEnvelope.intersection(finalEnvelope),referenceCRS);
+                if (finalEnvelope.contains(JTS.transform(envelope, CRS.findMathTransform(roiCRS, referenceCRS))))
+                	finalEnvelope=new ReferencedEnvelope(refEnvelope.intersection(finalEnvelope),referenceCRS);
+                else
+                	finalEnvelope=refEnvelope;
                 
             }
             final GeneralEnvelope envelope=new GeneralEnvelope(finalEnvelope);

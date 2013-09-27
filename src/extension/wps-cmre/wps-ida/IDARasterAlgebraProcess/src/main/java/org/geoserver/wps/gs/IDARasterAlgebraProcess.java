@@ -2,6 +2,7 @@ package org.geoserver.wps.gs;
 
 import java.awt.RenderingHints;
 import java.io.File;
+import java.io.FileInputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,10 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-import javax.media.jai.Interpolation;
 import javax.media.jai.JAI;
 
 import org.apache.commons.io.FilenameUtils;
@@ -24,6 +25,7 @@ import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.wps.WPSException;
+import org.geoserver.wps.gs.utils.GeometryUtilis;
 import org.geoserver.wps.ppio.FeatureAttribute;
 import org.geoserver.wps.raster.algebra.CoverageCollector;
 import org.geoserver.wps.raster.algebra.JiffleProcess;
@@ -36,6 +38,7 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.imageio.GeoToolsWriteParams;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
@@ -46,7 +49,6 @@ import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.gce.geotiff.GeoTiffReader;
 import org.geotools.gce.geotiff.GeoTiffWriteParams;
 import org.geotools.gce.geotiff.GeoTiffWriter;
-import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.GeometryBuilder;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -54,8 +56,10 @@ import org.geotools.process.ProcessException;
 import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
+import org.geotools.process.feature.gs.ClipProcess;
 import org.geotools.process.gs.GSProcess;
 import org.geotools.process.raster.gs.AreaGridProcess;
+import org.geotools.process.raster.gs.CropCoverage;
 import org.geotools.process.raster.gs.MultiplyCoveragesProcess;
 import org.geotools.process.raster.gs.RasterZonalStatistics;
 import org.geotools.referencing.CRS;
@@ -74,11 +78,10 @@ import org.opengis.parameter.ParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.ProgressListener;
 import org.springframework.util.StringUtils;
-import org.vfny.geoserver.util.WCSUtils;
+import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.MultiPolygon;
@@ -139,9 +142,12 @@ import com.vividsolutions.jts.geom.Polygon;
 @DescribeProcess(title = "IDA Raster Algebra Process", description = "Raster Algebra using OGC filters.")
 public class IDARasterAlgebraProcess implements GSProcess {
 
-	protected static final Logger LOGGER = Logging
-			.getLogger(IDARasterAlgebraProcess.class);
+	protected static final Logger LOGGER = Logging.getLogger(IDARasterAlgebraProcess.class);
 
+	private static final String URI_URL = "http://www.nurc.nato.int";
+	
+	protected Geometry maskGeometry = null;
+	
 	protected GeoServer geoServer;
 
 	protected Catalog catalog;
@@ -195,9 +201,11 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		/**
 		 * Raster Algebra Processes
 		 */
-		RasterAlgebraProcess rstAlgebraProcess = new RasterAlgebraProcess(catalog);
-		JiffleProcess advRstAlgebraProcess = new JiffleProcess(catalog);
-
+		final RasterAlgebraProcess rstAlgebraProcess = new RasterAlgebraProcess(catalog);
+		final JiffleProcess advRstAlgebraProcess = new JiffleProcess(catalog);
+		final ClipProcess clipProcess = new ClipProcess();
+		final CropCoverage cropProcess = new CropCoverage();
+		
 		/**
 		 * Convert the spread attributes into a FeatureType
 		 */
@@ -212,16 +220,12 @@ public class IDARasterAlgebraProcess implements GSProcess {
 			if (progressListener != null) {
 				progressListener.exceptionOccurred(e);
 			}
-			throw new ProcessException(
-					"Could not DECODE the footprint CRS due to an Exception.",
-					e);
+			throw new ProcessException("Could not DECODE the footprint CRS due to an Exception.", e);
 		} catch (FactoryException e) {
 			if (progressListener != null) {
 				progressListener.exceptionOccurred(e);
 			}
-			throw new ProcessException(
-					"Could not DECODE the footprint CRS due to an Exception.",
-					e);
+			throw new ProcessException("Could not DECODE the footprint CRS due to an Exception.", e);
 		}
 
 		UUID uuid = UUID.randomUUID();
@@ -330,8 +334,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 					try {
 						ra = ECQL.toExpression(attributeFilter);
 					} catch (Exception e1) {
-						throw new WPSException(
-								"Unable to parse input expression", e1);
+						throw new WPSException("Unable to parse input expression", e1);
 					}
 				}
 
@@ -356,6 +359,73 @@ public class IDARasterAlgebraProcess implements GSProcess {
 				throw new Exception("WPS RasterAlgebraProcess failed.");
 			}
 
+			// //
+			// Check Masking
+			// //
+			SimpleFeatureCollection maskCollection = null;
+			try
+	        {
+				Properties idaExecProperties = new Properties();
+				//idaExecProperties.load(IDASoundPropagationModelProcess.class.getClassLoader().getResourceAsStream("ida-exec.properties"));
+				idaExecProperties.load(new FileInputStream(GeoserverDataDirectory.findConfigFile("ida-exec.properties").getAbsolutePath()));
+
+				if (idaExecProperties.containsKey("maskfilename")) {
+					// try to load mask collection
+					String maskfilename = idaExecProperties.getProperty("maskfilename");
+					maskCollection = GeometryUtilis.simpleFeatureCollectionByShp(maskfilename, URI_URL);
+					
+					if (maskCollection != null && !maskCollection.isEmpty()) {
+						//
+		                // generate the union of the mask geometries
+		                //
+						if (maskGeometry == null) {
+							SimpleFeatureIterator sfi = null;
+							sfi = maskCollection.features();
+							if (sfi.hasNext())
+							{
+								maskGeometry = (Geometry) sfi.next().getDefaultGeometry();
+							}
+
+							while (sfi.hasNext())
+							{
+								Geometry gg = (Geometry) sfi.next().getDefaultGeometry();
+								if (maskGeometry.getSRID() == 0) maskGeometry.setSRID(gg.getSRID());
+								maskGeometry = GeometryUtilis.union(maskGeometry, gg);
+							}
+							
+							// Assuming 4326 id SRID == 0
+							if (maskGeometry.getSRID() == 0) {
+								maskGeometry.setSRID(4326);
+							}
+						}
+
+						// Reproject the maskGeometry into the same AOI CRS
+						int aoiID = CRS.lookupEpsgCode(crs, true);
+						if (maskGeometry.getSRID() > 0 && maskGeometry.getSRID() != aoiID) {
+							maskGeometry = JTS.transform(maskGeometry, CRS.findMathTransform(CRS.decode("EPSG:"+maskGeometry.getSRID(), true), crs));
+							maskGeometry.setSRID(aoiID);
+						}
+
+						// Calculate the difference between the bbox of srcCollection and the mask layer
+						if (maskGeometry != null) {
+							Geometry bboxDiff = GeometryUtilis.difference(areaOfInterest, maskGeometry);
+							
+							if(!bboxDiff.equalsExact(areaOfInterest))
+		                    {
+								// If the maskLayer and srcLayerBBox aren't disjoint we must invoke the clip process to find the features
+		                        // that are contained in the bboxDiff 
+								coverage = cropProcess.execute(coverage, bboxDiff, progressListener);
+								areaOfInterest = bboxDiff;
+		                    }
+						}
+					}
+				}
+	        }
+	        catch (Throwable e)
+	        {
+	            LOGGER.warning("Failed to load some layers : " + e.getLocalizedMessage());
+	        }
+			
 			// //
 			// Write the GeoTIFF
 			// //
@@ -781,4 +851,5 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		
 		return totalInternalArea;
 	}
+	
 }
