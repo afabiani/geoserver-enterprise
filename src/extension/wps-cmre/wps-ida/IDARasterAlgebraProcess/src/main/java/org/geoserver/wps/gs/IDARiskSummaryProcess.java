@@ -78,32 +78,23 @@ public class IDARiskSummaryProcess implements GSProcess {
 			StoreInfo storeInfo = resourceInfo.getStore();
 
 			if (storeInfo == null) {
-				cause = new IllegalArgumentException(
-						"Unable to locate coverage:" + resourceInfo.getName());
+				cause = new IllegalArgumentException("Unable to locate coverage:" + resourceInfo.getName());
 				if (progressListener != null) {
-					progressListener.exceptionOccurred(new ProcessException(
-							"Could not complete the Process", cause));
+					progressListener.exceptionOccurred(new ProcessException("Could not complete the Process", cause));
 				}
-				throw new ProcessException("Could not complete the Process",
-						cause);
+				throw new ProcessException("Could not complete the Process", cause);
 			}
 
 			if (storeInfo instanceof CoverageStoreInfo) {
 				final CoverageStoreInfo coverageStore = (CoverageStoreInfo) storeInfo;
-				final CoverageInfo coverage = catalog
-						.getCoverageByName(resourceInfo.getName());
+				final CoverageInfo coverage = catalog.getCoverageByName(resourceInfo.getName());
 
 				if (coverageStore == null || coverage == null) {
-					cause = new IllegalArgumentException(
-							"Unable to locate coverage:"
-									+ resourceInfo.getName());
+					cause = new IllegalArgumentException("Unable to locate coverage:" + resourceInfo.getName());
 					if (progressListener != null) {
-						progressListener
-								.exceptionOccurred(new ProcessException(
-										"Could not complete the Process", cause));
+						progressListener.exceptionOccurred(new ProcessException("Could not complete the Process", cause));
 					}
-					throw new ProcessException(
-							"Could not complete the Process", cause);
+					throw new ProcessException("Could not complete the Process", cause);
 				} else {
 					RasterZonalStatistics statProcess = new RasterZonalStatistics();
 
@@ -115,8 +106,7 @@ public class IDARiskSummaryProcess implements GSProcess {
 						SimpleFeatureCollection zones = null;
 
 						if (areaOfInterest != null) {
-							if (areaOfInterest instanceof Polygon
-									|| areaOfInterest instanceof MultiPolygon) {
+							if (areaOfInterest instanceof Polygon || areaOfInterest instanceof MultiPolygon) {
 								// build the feature type
 								List<Object> values = new LinkedList<Object>();
 								SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
@@ -127,15 +117,13 @@ public class IDARiskSummaryProcess implements GSProcess {
 									if (areaOfInterest.getUserData() instanceof CoordinateReferenceSystem) {
 										aoiCRS = (CoordinateReferenceSystem) areaOfInterest.getUserData();
 									} else {
-										// assume the geometry is in the same
-										// crs
+										// assume the geometry is in the same crs
 										aoiCRS = crs;
 									}
 								}
 
 								if (!CRS.equalsIgnoreMetadata(aoiCRS, crs)) {
-									areaOfInterest = JTS.transform(
-											areaOfInterest, CRS.findMathTransform(aoiCRS, crs, true));
+									areaOfInterest = JTS.transform(areaOfInterest, CRS.findMathTransform(aoiCRS, crs, true));
 								}
 								values.add(areaOfInterest);
 
@@ -153,30 +141,22 @@ public class IDARiskSummaryProcess implements GSProcess {
 					} catch (Exception e) {
 						cause = e;
 						if (progressListener != null) {
-							progressListener
-									.exceptionOccurred(new ProcessException(
-											"Could not complete the Process",
-											cause));
+							progressListener.exceptionOccurred(new ProcessException("Could not complete the Process", cause));
 						}
-						throw new ProcessException(
-								"Could not complete the Process", cause);
+						throw new ProcessException("Could not complete the Process", cause);
 					}
 				}
 			} else {
-				cause = new IllegalArgumentException(
-						"The layer is not a coverage");
+				cause = new IllegalArgumentException("The layer is not a coverage");
 				if (progressListener != null) {
-					progressListener.exceptionOccurred(new ProcessException(
-							"Could not complete the Process", cause));
+					progressListener.exceptionOccurred(new ProcessException("Could not complete the Process", cause));
 				}
-				throw new ProcessException("Could not complete the Process",
-						cause);
+				throw new ProcessException("Could not complete the Process", cause);
 			}
 		} else {
 			cause = new IllegalArgumentException("Layer name is null");
 			if (progressListener != null) {
-				progressListener.exceptionOccurred(new ProcessException(
-						"Could not complete the Process", cause));
+				progressListener.exceptionOccurred(new ProcessException("Could not complete the Process", cause));
 			}
 			throw new ProcessException("Could not complete the Process", cause);
 		}

@@ -379,33 +379,37 @@ public class IDARasterAlgebraProcess implements GSProcess {
 		                // generate the union of the mask geometries
 		                //
 						if (maskGeometry == null) {
-							SimpleFeatureIterator sfi = null;
-							sfi = maskCollection.features();
-							if (sfi.hasNext())
-							{
-								maskGeometry = (Geometry) sfi.next().getDefaultGeometry();
-							}
+							synchronized (maskGeometry) {
+								SimpleFeatureIterator sfi = null;
+								sfi = maskCollection.features();
+								if (sfi.hasNext())
+								{
+									maskGeometry = (Geometry) sfi.next().getDefaultGeometry();
+								}
 
-							while (sfi.hasNext())
-							{
-								Geometry gg = (Geometry) sfi.next().getDefaultGeometry();
-								if (maskGeometry.getSRID() == 0) maskGeometry.setSRID(gg.getSRID());
-								maskGeometry = GeometryUtilis.union(maskGeometry, gg);
-							}
-							
-							// Assuming 4326 id SRID == 0
-							if (maskGeometry.getSRID() == 0) {
-								maskGeometry.setSRID(4326);
+								while (sfi.hasNext())
+								{
+									Geometry gg = (Geometry) sfi.next().getDefaultGeometry();
+									if (maskGeometry.getSRID() == 0) maskGeometry.setSRID(gg.getSRID());
+									maskGeometry = GeometryUtilis.union(maskGeometry, gg);
+								}
+
+								// Assuming 4326 id SRID == 0
+								if (maskGeometry.getSRID() == 0) {
+									maskGeometry.setSRID(4326);
+								}
 							}
 						}
 
 						// Reproject the maskGeometry into the same AOI CRS
-						int aoiID = CRS.lookupEpsgCode(crs, true);
-						if (maskGeometry.getSRID() > 0 && maskGeometry.getSRID() != aoiID) {
-							maskGeometry = JTS.transform(maskGeometry, CRS.findMathTransform(CRS.decode("EPSG:"+maskGeometry.getSRID(), true), crs));
-							maskGeometry.setSRID(aoiID);
+						synchronized (maskGeometry) {
+							int aoiID = CRS.lookupEpsgCode(crs, true);
+							if (maskGeometry.getSRID() > 0 && maskGeometry.getSRID() != aoiID) {
+								maskGeometry = JTS.transform(maskGeometry, CRS.findMathTransform(CRS.decode("EPSG:"+maskGeometry.getSRID(), true), crs));
+								maskGeometry.setSRID(aoiID);
+							}
 						}
-
+						
 						// Calculate the difference between the bbox of srcCollection and the mask layer
 						if (maskGeometry != null) {
 							Geometry bboxDiff = GeometryUtilis.difference(areaOfInterest, maskGeometry);
