@@ -16,9 +16,18 @@
  */
 package org.geoserver.wps.raster.algebra;
 
+import java.awt.Dimension;
 import java.awt.RenderingHints;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +35,8 @@ import java.util.Map;
 import javax.media.jai.ImageLayout;
 import javax.media.jai.JAI;
 import javax.media.jai.ParameterBlockJAI;
+import javax.media.jai.PlanarImage;
+import javax.media.jai.RasterFactory;
 import javax.media.jai.operator.BinarizeDescriptor;
 
 import org.geoserver.wps.raster.GridCoverage2DRIA;
@@ -58,6 +69,8 @@ import org.opengis.filter.expression.Expression;
 import org.opengis.filter.expression.Function;
 import org.opengis.filter.expression.Literal;
 import org.opengis.filter.expression.PropertyName;
+
+import com.sun.media.jai.util.ImageUtil;
 
 /**
  * {@link FilterVisitor} implementation that computes the 
@@ -210,27 +223,40 @@ public class CoverageProcessor extends DefaultFilterVisitor implements FilterVis
             layout= new ImageLayout2();
             layout.setTileHeight(JAI.getDefaultTileSize().height).setTileWidth(JAI.getDefaultTileSize().width);
         }
+
+        // Sample Model
 //        if(!ImageUtil.isBinary(source.getSampleModel())){
-////            SampleModel sm = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
-////                                                     layout.getTileWidth(source),
-////                                                     layout.getTileHeight(source),
-////                                                     1);      
-////            layout.setSampleModel(sm);
-////            layout.setColorModel(ImageUtil.getCompatibleColorModel(sm,Collections.emptyMap()));  
-//            ColorModel cm = new ComponentColorModel(
-//                    ColorSpace.getInstance(ColorSpace.CS_GRAY), 
-//                    false, 
-//                    false, 
-//                    Transparency.OPAQUE, 
-//                    DataBuffer.TYPE_BYTE);
-//            
-//            layout.setColorModel(cm);
-//            layout.setSampleModel(cm.createCompatibleSampleModel(layout.getTileWidth(source),layout.getTileHeight(source)));             
+//        	SampleModel sm = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE,
+//        			layout.getTileWidth(source),
+//        			layout.getTileHeight(source),
+//        			1);      
+//        	layout.setSampleModel(sm);
+//        	layout.setColorModel(ImageUtil.getCompatibleColorModel(sm,Collections.emptyMap()));  
+//        	ColorModel cm = new ComponentColorModel(
+//        			ColorSpace.getInstance(ColorSpace.CS_GRAY), 
+//        			false, 
+//        			false, 
+//        			Transparency.OPAQUE, 
+//        			DataBuffer.TYPE_BYTE);
+//
+//        	layout.setColorModel(cm);
+//        	layout.setSampleModel(cm.createCompatibleSampleModel(layout.getTileWidth(source),layout.getTileHeight(source)));             
 //        } else {
-//            layout.setColorModel(source.getColorModel());
-//            layout.setSampleModel(source.getSampleModel());
+//        	layout.setColorModel(source.getColorModel());
+//        	layout.setSampleModel(source.getSampleModel());
 //        }
-//        tempHints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT,layout));
+//        hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT,layout));
+        
+//        // Ignore any ImageLayout that was provided and create one here
+//        ColorModel cm = new ComponentColorModel(
+//    			ColorSpace.getInstance(ColorSpace.CS_GRAY), 
+//    			false, 
+//    			false, 
+//    			Transparency.OPAQUE, 
+//    			DataBuffer.TYPE_SHORT);
+//        layout.setColorModel(cm);
+//        layout.setSampleModel(cm.createCompatibleSampleModel(layout.getTileWidth(source),layout.getTileHeight(source)));
+//        hints.add(new RenderingHints(JAI.KEY_IMAGE_LAYOUT,layout));
         
         // operation
         ParameterBlockJAI pb = new ParameterBlockJAI("rangelookup");

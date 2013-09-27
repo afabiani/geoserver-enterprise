@@ -31,21 +31,15 @@ public class IDADeleteTransactionListener implements TransactionListener {
 
 	protected Catalog catalog;
 
-	List events = new ArrayList();
-	List features = new ArrayList();
-
 	public IDADeleteTransactionListener(GeoServer geoServer) {
 		this.geoServer = geoServer;
 		this.catalog = geoServer.getCatalog();
 	}
 
 	public void clear() {
-		events.clear();
-		features.clear();
 	}
 
 	public void dataStoreChange(TransactionEvent event) throws WFSException {
-		events.add(event);
 		String typeName = event.getAffectedFeatures().getSchema().getTypeName();
 		
 		if (LOGGER.isLoggable(Level.FINE))
@@ -55,6 +49,7 @@ public class IDADeleteTransactionListener implements TransactionListener {
 		
 		// check the correct event type and the correct FeatureType Name
 		if ((typeName.contains(IDARasterAlgebraProcess.DEFAULT_TYPE_NAME) || typeName.contains(IDASoundPropagationModelProcess.DEFAULT_TYPE_NAME)) && TransactionEventType.PRE_DELETE == event.getType()) {
+			List features = new ArrayList();
 			features.addAll(DataUtilities.list(event.getAffectedFeatures()));
 			for (Object ft : features) {
 				if (ft instanceof SimpleFeature) {

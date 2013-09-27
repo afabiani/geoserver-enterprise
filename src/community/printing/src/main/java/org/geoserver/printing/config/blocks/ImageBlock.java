@@ -68,8 +68,8 @@ public class ImageBlock extends Block {
         final URI url;
         try {
             final String urlTxt = PDFUtils.evalString(context, params, this.url);
-            if (urlTxt.startsWith("file://") && !urlTxt.startsWith("file:///")) {
-            	url = new File(urlTxt.substring("file://".length())).toURI();
+            if (urlTxt.startsWith("file:/") && !urlTxt.startsWith("file:///")) {
+            	url = new File(urlTxt.substring("file:/".length())).toURI();
             	
             	if (!url.getPath().endsWith(".svg")) {
             		final Image image = getImage(context, url, (float) maxWidth, (float) maxHeight);
