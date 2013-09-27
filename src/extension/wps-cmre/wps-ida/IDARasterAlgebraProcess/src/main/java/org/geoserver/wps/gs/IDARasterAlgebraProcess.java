@@ -374,11 +374,19 @@ public class IDARasterAlgebraProcess implements GSProcess {
 					String maskfilename = idaExecProperties.getProperty("maskfilename");
 					maskCollection = GeometryUtilis.simpleFeatureCollectionByShp(maskfilename, URI_URL);
 					
+					LOGGER.info("Mask is enabled : " + maskfilename);
+					
 					if (maskCollection != null && !maskCollection.isEmpty()) {
+
+						LOGGER.info("Mask collection fetched from : " + maskfilename);
+						
 						//
 		                // generate the union of the mask geometries
 		                //
 						if (maskGeometry == null) {
+							
+							LOGGER.info("Caching Mask the first time from : " + maskfilename);
+
 							synchronized (maskGeometry) {
 								SimpleFeatureIterator sfi = null;
 								sfi = maskCollection.features();
@@ -390,14 +398,17 @@ public class IDARasterAlgebraProcess implements GSProcess {
 								while (sfi.hasNext())
 								{
 									Geometry gg = (Geometry) sfi.next().getDefaultGeometry();
-									if (maskGeometry.getSRID() == 0) maskGeometry.setSRID(gg.getSRID());
 									maskGeometry = GeometryUtilis.union(maskGeometry, gg);
+									if (maskGeometry != null && maskGeometry.getSRID() == 0) maskGeometry.setSRID(gg.getSRID());
 								}
 
 								// Assuming 4326 id SRID == 0
 								if (maskGeometry.getSRID() == 0) {
 									maskGeometry.setSRID(4326);
 								}
+
+								LOGGER.info("Cached Mask the first time : " + maskGeometry.getSRID());
+
 							}
 						}
 
@@ -416,6 +427,9 @@ public class IDARasterAlgebraProcess implements GSProcess {
 							
 							if(!bboxDiff.equalsExact(areaOfInterest))
 		                    {
+
+								LOGGER.info("Applying Mask to AOI : " + bboxDiff.toText());
+
 								// If the maskLayer and srcLayerBBox aren't disjoint we must invoke the clip process to find the features
 		                        // that are contained in the bboxDiff 
 								coverage = cropProcess.execute(coverage, bboxDiff, progressListener);
