@@ -387,7 +387,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 							
 							LOGGER.info("Caching Mask the first time from : " + maskfilename);
 
-							synchronized (maskGeometry) {
+							synchronized (this) {
 								SimpleFeatureIterator sfi = null;
 								sfi = maskCollection.features();
 								if (sfi.hasNext())
@@ -413,7 +413,7 @@ public class IDARasterAlgebraProcess implements GSProcess {
 						}
 
 						// Reproject the maskGeometry into the same AOI CRS
-						synchronized (maskGeometry) {
+						synchronized (this) {
 							int aoiID = CRS.lookupEpsgCode(crs, true);
 							if (maskGeometry.getSRID() > 0 && maskGeometry.getSRID() != aoiID) {
 								maskGeometry = JTS.transform(maskGeometry, CRS.findMathTransform(CRS.decode("EPSG:"+maskGeometry.getSRID(), true), crs));
