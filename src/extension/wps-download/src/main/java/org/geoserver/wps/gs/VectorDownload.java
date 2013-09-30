@@ -1,3 +1,7 @@
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
 import java.io.BufferedOutputStream;
@@ -5,6 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
@@ -30,18 +35,26 @@ import org.opengis.util.ProgressListener;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import com.vividsolutions.jts.geom.Geometry;
-
+/**
+ * The class that does the real work of checking if we are exceeeding
+ * the download limits for vector data.
+ * 
+ * @author Simone Giannecchini, GeoSolutions SAS
+ *
+ */
 class VectorDownload {
+    
+    static final Logger LOGGER = Logging.getLogger(VectorDownload.class);
 
     /**
-     * @param estimator
-     * @param geoServer
+     * Constructor 
+     * 
+     * @param estimator the parent {@link DownloadEstimatorProcess} that contains the download limits to be enforced.
+     * 
      */
     public VectorDownload(DownloadEstimatorProcess estimator) {
         this.estimator = estimator;
     }
-
-    static final Logger LOGGER = Logging.getLogger(VectorDownload.class);
 
     /** The estimator. */
     private DownloadEstimatorProcess estimator;
@@ -51,13 +64,9 @@ class VectorDownload {
             final ProgressListener progressListener) throws Exception {
 
         // prepare native CRS
-        CoordinateReferenceSystem nativeCRS = resourceInfo.getNativeCRS();
-        if (nativeCRS == null) {
-            nativeCRS = resourceInfo.getCRS();
-        }
-        if (nativeCRS == null) {
-            throw new NullPointerException(
-                    "Unable to find a valid CRS for the requested feature type");
+        CoordinateReferenceSystem nativeCRS = DownloadUtilities.getNativeCRS(resourceInfo);
+        if(LOGGER.isLoggable(Level.FINE)){
+            LOGGER.fine("Native CRS is "+nativeCRS.toWKT());
         }
 
         //

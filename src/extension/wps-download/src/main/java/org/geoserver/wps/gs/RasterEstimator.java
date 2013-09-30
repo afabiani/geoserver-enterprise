@@ -1,3 +1,7 @@
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
 import java.awt.geom.Rectangle2D;
@@ -33,15 +37,20 @@ class RasterEstimator {
 
     private static final Logger LOGGER = Logging.getLogger(RasterEstimator.class);
 
-    /** The estimator. */
+    /** The parent process. */
     private DownloadEstimatorProcess estimator;
 
     /**
-     * @param estimator
-     * @param geoServer
+     * Constructor 
+     * 
+     * @param estimator the parent {@link DownloadEstimatorProcess} that contains the download limits to be enforced.
+     * 
      */
     public RasterEstimator(DownloadEstimatorProcess estimator) {
         this.estimator = estimator;
+        if(estimator==null){
+            throw new NullPointerException("The provided DownloadEstimatorProcess is null!");
+        }
     }
 
     /**
@@ -74,22 +83,7 @@ class RasterEstimator {
         if(LOGGER.isLoggable(Level.FINE)){
             LOGGER.fine("Checking download limits for raster request");
         }
-        // prepare native CRS
-        CoordinateReferenceSystem nativeCRS;
-        switch(coverageInfo.getProjectionPolicy()){
-        case FORCE_DECLARED:
-            nativeCRS=coverageInfo.getCRS();
-            break;
-        case NONE: case REPROJECT_TO_DECLARED:
-            nativeCRS= coverageInfo.getNativeCRS();
-            break;
-        default:
-            throw new IllegalStateException("The provided ProjectPolicy is unknown.");
-        }
-        if (nativeCRS == null) {
-            throw new NullPointerException(
-                    "Unable to find a valid CRS for the requested feature type");
-        }
+        CoordinateReferenceSystem nativeCRS = DownloadUtilities.getNativeCRS(coverageInfo);
         if(LOGGER.isLoggable(Level.FINE)){
             LOGGER.fine("Native CRS is "+nativeCRS.toWKT());
         }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2001 - 2007 TOPP - www.openplans.org. All rights reserved.
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
@@ -21,7 +21,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import org.geoserver.platform.GeoServerExtensions;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import freemarker.template.Configuration;

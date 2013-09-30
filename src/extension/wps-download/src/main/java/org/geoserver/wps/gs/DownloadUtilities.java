@@ -1,24 +1,16 @@
-/*
- *    GeoTools - The Open Source Java GIS Toolkit
- *    http://geotools.org
- *
- *    (C) 2002-2011, Open Source Geospatial Foundation (OSGeo)
- *
- *    This library is free software; you can redistribute it and/or
- *    modify it under the terms of the GNU Lesser General Public
- *    License as published by the Free Software Foundation;
- *    version 2.1 of the License.
- *
- *    This library is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *    Lesser General Public License for more details.
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
  */
 package org.geoserver.wps.gs;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.geoserver.catalog.CoverageInfo;
+import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.LiteralPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
@@ -66,6 +58,9 @@ final class DownloadUtilities {
      * @throws IllegalStateException
      */
     static void checkPolygonROI(Geometry roi) throws IllegalStateException {
+        if(roi==null){
+            throw new NullPointerException("The provided ROI is null!");
+        }
         if (roi instanceof Point || roi instanceof MultiPoint || roi instanceof LineString
                 || roi instanceof MultiLineString) {
             throw new IllegalStateException(
@@ -136,6 +131,26 @@ final class DownloadUtilities {
             throws IllegalStateException {
         if (features == null || features.isEmpty()) {
             throw new IllegalStateException("Got an empty feature collection.");
+        }
+    }
+
+    /**
+     * Retrieves the native {@link CoordinateReferenceSystem} for the provided {@link ResourceInfo}.
+     * 
+     * @param resourceInfo
+     * @return the native {@link CoordinateReferenceSystem} for the provided {@link ResourceInfo}. 
+     * @throws IOException in case something bad happems!
+     */
+    static CoordinateReferenceSystem getNativeCRS(ResourceInfo resourceInfo)
+            throws IOException {
+        // prepare native CRS
+        switch(resourceInfo.getProjectionPolicy()){
+        case FORCE_DECLARED:
+            return resourceInfo.getCRS();
+        case NONE: case REPROJECT_TO_DECLARED:
+            return resourceInfo.getNativeCRS();
+        default:
+            throw new IllegalStateException("The provided ProjectPolicy is unknown.");
         }
     }
 

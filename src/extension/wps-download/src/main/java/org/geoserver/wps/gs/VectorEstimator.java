@@ -1,5 +1,10 @@
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.geoserver.catalog.FeatureTypeInfo;
@@ -45,13 +50,9 @@ class VectorEstimator {
         }
 
         // prepare native CRS
-        CoordinateReferenceSystem nativeCRS = resourceInfo.getNativeCRS();
-        if (nativeCRS == null) {
-            nativeCRS = resourceInfo.getCRS();
-        }
-        if (nativeCRS == null) {
-            throw new NullPointerException(
-                    "Unable to find a valid CRS for the requested feature type");
+        CoordinateReferenceSystem nativeCRS = DownloadUtilities.getNativeCRS(resourceInfo);
+        if(LOGGER.isLoggable(Level.FINE)){
+            LOGGER.fine("Native CRS is "+nativeCRS.toWKT());
         }
 
         //

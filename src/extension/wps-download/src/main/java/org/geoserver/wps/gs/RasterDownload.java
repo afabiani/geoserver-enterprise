@@ -1,3 +1,7 @@
+/* Copyright (c) 2012 GeoSolutions http://www.geo-solutions.it. All rights reserved.
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.wps.gs;
 
 import it.geosolutions.imageio.stream.output.FileImageOutputStreamExtImpl;
@@ -86,14 +90,11 @@ class RasterDownload {
             //
 
             // prepare native CRS
-            CoordinateReferenceSystem nativeCRS = coverageInfo.getNativeCRS();
-            if (nativeCRS == null) {
-                nativeCRS = coverageInfo.getCRS();
+            CoordinateReferenceSystem nativeCRS = DownloadUtilities.getNativeCRS(coverageInfo);
+            if(LOGGER.isLoggable(Level.FINE)){
+                LOGGER.fine("Native CRS is "+nativeCRS.toWKT());
             }
-            if (nativeCRS == null) {
-                throw new NullPointerException(
-                        "Unable to find a valid CRS for the requested feature type");
-            }
+            
             //
             // STEP 1 - Reproject if needed
             //
