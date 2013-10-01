@@ -28,7 +28,6 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.processing.Operations;
 import org.geotools.data.Parameter;
 import org.geotools.factory.GeoTools;
-import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.process.ProcessException;
 import org.geotools.process.raster.gs.CropCoverage;
@@ -113,29 +112,14 @@ class RasterDownload {
             //
             // STEP 0 - Push ROI back to native CRS (if ROI is provided)
             //
-            CoordinateReferenceSystem roiCRS = null;
-            Geometry roiInNativeCRS = roi;
+            ROIManager roiManager= null;
             if (roi != null) {
-                roiCRS = (CoordinateReferenceSystem) roi.getUserData();
-                MathTransform targetTX = null;
-                if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
-                    // we MIGHT have to reproject
-                    targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
-                    // reproject
-                    if (!targetTX.isIdentity()) {
-                        roiInNativeCRS = JTS.transform(roi, targetTX);
-
-                        // checks
-                        if (roiInNativeCRS == null) {
-                            throw new IllegalStateException(
-                                    "The Region of Interest is null after going back to native CRS!");
-                        }
-                        DownloadUtilities.checkPolygonROI(roiInNativeCRS);
-                        roiInNativeCRS.setUserData(nativeCRS); // set new CRS
-                    }
-                }
-
+                final CoordinateReferenceSystem roiCRS = (CoordinateReferenceSystem) roi.getUserData();
+                roiManager=new ROIManager(roi, roiCRS);
             }
+            
+
+            
             // get a reader for this CoverageInfo
             final AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) coverageInfo
                     .getGridCoverageReader(null, null);
@@ -154,8 +138,11 @@ class RasterDownload {
             }
             // read GridGeometry preparation
             if (roi != null) {
+                // set crs in roi manager
+                roiManager.useNativeCRS(reader.getCrs());
                 final ReferencedEnvelope roiEnvelope = new ReferencedEnvelope(
-                        roiInNativeCRS.getEnvelopeInternal(), nativeCRS);
+                        roiManager.getSafeRoiInNativeCRS().getEnvelopeInternal(), // safe envelope 
+                        nativeCRS);
                 GridGeometry2D gg2D = new GridGeometry2D(PixelInCell.CELL_CENTER,
                         reader.getOriginalGridToWorld(PixelInCell.CELL_CENTER), roiEnvelope,
                         GeoTools.getDefaultHints());
@@ -196,29 +183,12 @@ class RasterDownload {
             //
             // we need to push the ROI to the final CRS to crop or CLIP
             if (roi != null) {
-                Geometry roiInTargetCRS = roi;
-
+                
                 // do we need to reproject the roi to target CRS for clipping/cropping
                 if (targetCRS != null) {
-                    MathTransform targetTX = null;
-                    if (!CRS.equalsIgnoreMetadata(roiCRS, targetCRS)) {
-                        // we MIGHT have to reproject
-                        targetTX = CRS.findMathTransform(roiCRS, targetCRS,true);
-                        // reproject
-                        if (!targetTX.isIdentity()) {
-                            roiInTargetCRS = JTS.transform(roi, targetTX);
-
-                            // checks
-                            if (roiInTargetCRS == null) {
-                                throw new IllegalStateException(
-                                        "The Region of Interest is null after going back to native CRS!");
-                            }
-                            DownloadUtilities.checkPolygonROI(roiInTargetCRS);
-                            roiInTargetCRS.setUserData(targetCRS);
-                        }
-                    }
+                    roiManager.useTargetCRS(targetCRS);
                 } else {
-                    roiInTargetCRS = roiInNativeCRS;
+                    roiManager.useTargetCRS(nativeCRS);
                 }
 
                 // Crop or Clip
@@ -226,14 +196,14 @@ class RasterDownload {
                 if (clip) {
                     // clipping means carefully following the ROI shape
                     clippedGridCoverage = cropCoverage.execute(reprojectedGridCoverage,
-                            roiInTargetCRS, progressListener);
+                            roiManager.getSafeRoiInTargetCRS(), progressListener);
                 } else {
                     // use envelope of the ROI to simply crop and not clip the raster. This is important since when
                     // reprojecting we might read a bit more than needed!
-                    final Geometry polygon = roiInTargetCRS.getEnvelope();
+                    final Geometry polygon = roiManager.getSafeRoiInTargetCRS();
                     polygon.setUserData(targetCRS);
                     clippedGridCoverage = cropCoverage.execute(reprojectedGridCoverage,
-                            roiInTargetCRS, progressListener);
+                            roiManager.getSafeRoiInTargetCRS(), progressListener);
                 }
             } else {
                 // do nothing

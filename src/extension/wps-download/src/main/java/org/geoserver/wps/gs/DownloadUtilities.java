@@ -6,10 +6,8 @@ package org.geoserver.wps.gs;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.LiteralPPIO;
@@ -17,11 +15,11 @@ import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geotools.data.Parameter;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.feature.FeatureCollection;
-import org.geotools.process.ProcessException;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.geotools.util.logging.Logging;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.util.ProgressListener;
+import org.opengis.referencing.operation.MathTransform;
 import org.springframework.context.ApplicationContext;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -152,6 +150,37 @@ final class DownloadUtilities {
         default:
             throw new IllegalStateException("The provided ProjectPolicy is unknown.");
         }
+    }
+
+    static Geometry transformGeometry(Geometry geometry, CoordinateReferenceSystem crs)throws IOException{
+        final CoordinateReferenceSystem geometryCRS=(CoordinateReferenceSystem) geometry.getUserData();
+        // find math transform between the two coordinate reference systems
+        MathTransform targetTX = null;
+        if (!CRS.equalsIgnoreMetadata(geometry,crs)) {
+            // we MIGHT have to reproject
+            try {
+                targetTX = CRS.findMathTransform(geometryCRS, crs,true);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            // reproject
+            if (!targetTX.isIdentity()) {
+                try {
+                    geometry = JTS.transform(geometry, targetTX);
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+    
+                // checks
+                if (geometry == null) {
+                    throw new IllegalStateException(
+                            "The Region of Interest is null after going back to native CRS!");
+                }
+                geometry.setUserData(crs); // set new CRS
+                DownloadUtilities.checkPolygonROI(geometry);
+            }
+        }
+        return geometry;
     }
 
 }
