@@ -36,6 +36,8 @@ final class ROIManager {
     
     Geometry safeRoiInNativeCRS;
     
+    CoordinateReferenceSystem nativeCRS;
+    
     Geometry roiInTargetCRS;
     
     Geometry safeRoiInTargetCRS;
@@ -82,8 +84,14 @@ final class ROIManager {
         }
         roiInNativeCRS=DownloadUtilities.transformGeometry(roi, nativeCRS);
         DownloadUtilities.checkPolygonROI(roiInNativeCRS);
-        safeRoiInNativeCRS=roiInNativeCRS.getEnvelope();
+        if(isROIBBOX){
+            // if the ROI is a BBOX we tend to preserve the fact that it is a BBOX
+            safeRoiInNativeCRS=roiInNativeCRS.getEnvelope();
+        }else{
+            safeRoiInNativeCRS=roiInNativeCRS;
+        }
         safeRoiInNativeCRS.setUserData(nativeCRS);
+        this.nativeCRS=nativeCRS;
     }
   
     /**
@@ -106,15 +114,22 @@ final class ROIManager {
         }
         this.targetCRS=targetCRS;
         if(isROIBBOX){
+            // we need to use a larget bbox in native CRS
             roiInTargetCRS=DownloadUtilities.transformGeometry(safeRoiInNativeCRS, targetCRS);
             DownloadUtilities.checkPolygonROI(roiInTargetCRS);
             safeRoiInTargetCRS=roiInTargetCRS.getEnvelope();
             safeRoiInTargetCRS.setUserData(targetCRS);
+            
+            // touch safeRoiInNativeCRS
+            safeRoiInNativeCRS=DownloadUtilities.transformGeometry(safeRoiInTargetCRS, nativeCRS);
+            DownloadUtilities.checkPolygonROI(safeRoiInNativeCRS);
+            safeRoiInNativeCRS=safeRoiInNativeCRS.getEnvelope();
+            safeRoiInNativeCRS.setUserData(nativeCRS);
         }else{
             roiInTargetCRS=DownloadUtilities.transformGeometry(roiInNativeCRS, targetCRS);
-            DownloadUtilities.checkPolygonROI(roiInTargetCRS);
             safeRoiInTargetCRS=roiInTargetCRS;
         }
+        
 
     }
     /**

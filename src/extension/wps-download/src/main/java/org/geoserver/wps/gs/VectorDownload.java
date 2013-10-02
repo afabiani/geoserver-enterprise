@@ -20,8 +20,8 @@ import org.geotools.data.Parameter;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.store.ReprojectingFeatureCollection;
+import org.geotools.factory.GeoTools;
 import org.geotools.filter.visitor.SimplifyingFilterVisitor;
-import org.geotools.geometry.jts.JTS;
 import org.geotools.process.ProcessException;
 import org.geotools.process.feature.gs.ClipProcess;
 import org.geotools.referencing.CRS;
@@ -44,8 +44,11 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 class VectorDownload {
     
-    static final Logger LOGGER = Logging.getLogger(VectorDownload.class);
+    private static final Logger LOGGER = Logging.getLogger(VectorDownload.class);
 
+    /** The estimator. */
+    private DownloadEstimatorProcess estimator;
+    
     /**
      * Constructor 
      * 
@@ -56,9 +59,19 @@ class VectorDownload {
         this.estimator = estimator;
     }
 
-    /** The estimator. */
-    private DownloadEstimatorProcess estimator;
-
+    /**
+     * Extract vector data to a file, given the provided mime-type.
+     * 
+     * @param resourceInfo the {@link FeatureTypeInfo} to download from
+     * @param mimeType the mme-type for the requested output format
+     * @param roi the {@link Geometry} for the clip/intersection
+     * @param clip whether or not to clip the resulting data (useless for the moment)
+     * @param filter the {@link Filter} to load the data
+     * @param targetCRS the reproject {@link CoordinateReferenceSystem} 
+     * @param progressListener
+     * @return a file, given the provided mime-type.
+     * @throws Exception
+     */
     public File execute(FeatureTypeInfo resourceInfo, String mimeType, Geometry roi, boolean clip,
             Filter filter, CoordinateReferenceSystem targetCRS,
             final ProgressListener progressListener) throws Exception {
@@ -72,28 +85,14 @@ class VectorDownload {
         //
         // STEP 0 - Push ROI back to native CRS (if ROI is provided)
         //
-        Geometry roiInNativeCRS = roi;
+        ROIManager roiManager= null;
         if (roi != null) {
             CoordinateReferenceSystem roiCRS = (CoordinateReferenceSystem) roi.getUserData();
-            MathTransform targetTX = null;
-            if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
-                // we MIGHT have to reproject
-                targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
-                // reproject
-                if (!targetTX.isIdentity()) {
-                    roiInNativeCRS = JTS.transform(roi, targetTX);
-
-                    // checks
-                    if (roiInNativeCRS == null) {
-                        throw new IllegalStateException(
-                                "The Region of Interest is null after going back to native CRS!");
-                    }
-                    DownloadUtilities.checkPolygonROI(roiInNativeCRS);
-                    roiInNativeCRS.setUserData(nativeCRS);
-                }
-            }
-
+            roiManager=new ROIManager(roi, roiCRS);
+            // set use nativeCRS
+            roiManager.useNativeCRS(nativeCRS);
         }
+
 
         //
         // STEP 1 - Read and Filter
@@ -101,7 +100,7 @@ class VectorDownload {
 
         // access feature source and collection of features
         final SimpleFeatureSource featureSource = (SimpleFeatureSource) resourceInfo
-                .getFeatureSource(null, null); // TODO hints!!!
+                .getFeatureSource(null, GeoTools.getDefaultHints()); 
 
         // basic filter preparation
         Filter ra = Filter.INCLUDE;
@@ -110,12 +109,12 @@ class VectorDownload {
         }
         // and with the ROI if we have one
         SimpleFeatureCollection originalFeatures;
-        if (roiInNativeCRS != null) {
+        if (roiManager != null) {
             final String dataGeomName = featureSource.getSchema().getGeometryDescriptor()
                     .getLocalName();
             final Intersects intersectionFilter = FeatureUtilities.DEFAULT_FILTER_FACTORY
                     .intersects(FeatureUtilities.DEFAULT_FILTER_FACTORY.property(dataGeomName),
-                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(roiInNativeCRS));
+                            FeatureUtilities.DEFAULT_FILTER_FACTORY.literal(roiManager.getSafeRoiInNativeCRS()));
             ra = FeatureUtilities.DEFAULT_FILTER_FACTORY.and(ra, intersectionFilter);
         }
 
@@ -125,45 +124,47 @@ class VectorDownload {
         originalFeatures = featureSource.getFeatures(ra);
         DownloadUtilities.checkIsEmptyFeatureCollection(originalFeatures);
 
-        //
-        // STEP 2 - Clip
-        //
-        SimpleFeatureCollection clippedFeatures;
-        if (clip && roi != null) {
-            final ClipProcess clipProcess = new ClipProcess();// TODO avoid unnecessary creation
-            clippedFeatures = clipProcess.execute(originalFeatures, roiInNativeCRS);
-
-            // checks
-            DownloadUtilities.checkIsEmptyFeatureCollection(clippedFeatures);
-        } else {
-            clippedFeatures = originalFeatures;
-        }
 
         //
-        // STEP 3 - Reproject feature collection
+        // STEP 2 - Reproject feature collection
         //
         // do we need to reproject?
         SimpleFeatureCollection reprojectedFeatures;
         if (targetCRS != null && !CRS.equalsIgnoreMetadata(nativeCRS, targetCRS)) {
-
+            roiManager.useTargetCRS(targetCRS);
             // testing reprojection...
             final MathTransform targetTX = CRS.findMathTransform(nativeCRS, targetCRS,true);
             if (!targetTX.isIdentity()) {
                 // avoid doing the transform if this is the identity
-                reprojectedFeatures = new ReprojectingFeatureCollection(clippedFeatures, targetCRS);
+                reprojectedFeatures = new ReprojectingFeatureCollection(originalFeatures, targetCRS);
             } else {
-                reprojectedFeatures = clippedFeatures;
+                reprojectedFeatures = originalFeatures;
                 DownloadUtilities.checkIsEmptyFeatureCollection(reprojectedFeatures);
             }
         } else {
-            reprojectedFeatures = clippedFeatures;
+            reprojectedFeatures = originalFeatures;
+            roiManager.useTargetCRS(nativeCRS);
+        }
+        
+        //
+        // STEP 3 - Clip in targetCRS
+        //
+        SimpleFeatureCollection clippedFeatures;
+        if (clip && roi != null) {
+            final ClipProcess clipProcess = new ClipProcess();// TODO avoid unnecessary creation
+            clippedFeatures = clipProcess.execute(reprojectedFeatures, roiManager.getSafeRoiInTargetCRS());
+
+            // checks
+            DownloadUtilities.checkIsEmptyFeatureCollection(clippedFeatures);
+        } else {
+            clippedFeatures = reprojectedFeatures;
         }
 
         //
         // STEP 4 - Write down respecting limits in bytes
         //
         // writing the output, making sure it is a zip
-        return writeVectorOutput(progressListener, reprojectedFeatures, resourceInfo.getName(),
+        return writeVectorOutput(progressListener, clippedFeatures, resourceInfo.getName(),
                 mimeType);
 
     }

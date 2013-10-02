@@ -12,14 +12,12 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.logging.Logging;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.datum.PixelInCell;
-import org.opengis.referencing.operation.MathTransform;
 import org.opengis.util.ProgressListener;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -54,11 +52,13 @@ class RasterEstimator {
     }
 
     /**
+     * Check the download limits for raster data.
      * 
-     * @param coverage
-     * @param roi
-     * @param roiCRS
-     * @param targetCRS
+     * @param coverage the {@link CoverageInfo} to estimate the download limits
+     * @param roi the {@link Geometry} for the clip/intersection
+     * @param targetCRS the reproject {@link CoordinateReferenceSystem} (useless for the moment)
+     * @param clip whether or not to clip the resulting data (useless for the moment)
+     * @param filter the {@link Filter} to load the data
      * @return
      */
     public boolean execute(final ProgressListener progressListener, CoverageInfo coverageInfo,
@@ -91,44 +91,22 @@ class RasterEstimator {
         //
         // STEP 0 - Push ROI back to native CRS (if ROI is provided)
         //
-        CoordinateReferenceSystem roiCRS = null;
-        Geometry roiInNativeCRS = roi;
+        ROIManager roiManager= null;
         if (roi != null) {
-            if(LOGGER.isLoggable(Level.FINE)){
-                LOGGER.fine("Checking ROI: "+roi.toText());
-            }
-
-            roiCRS = (CoordinateReferenceSystem) roi.getUserData();
-            MathTransform targetTX = null;
-            if (!CRS.equalsIgnoreMetadata(nativeCRS, roiCRS)) {
-                // we MIGHT have to reproject
-                targetTX = CRS.findMathTransform(roiCRS, nativeCRS,true);
-                // reproject
-                if (!targetTX.isIdentity()) {
-                    roiInNativeCRS = JTS.transform(roi, targetTX);
-
-                    // checks
-                    if (roiInNativeCRS == null) {
-                        throw new IllegalStateException(
-                                "The Region of Interest is null after going back to native CRS!");
-                    }
-                    DownloadUtilities.checkPolygonROI(roiInNativeCRS);
-                    roiInNativeCRS.setUserData(nativeCRS); // set new CRS
-
-                    if(LOGGER.isLoggable(Level.FINE)){
-                        LOGGER.fine("Reprojected ROI: "+roiInNativeCRS.toText());
-                    }
-                }
-            }
-
+            CoordinateReferenceSystem roiCRS = (CoordinateReferenceSystem) roi.getUserData();
+            roiManager=new ROIManager(roi, roiCRS);
+            // set use nativeCRS
+            roiManager.useNativeCRS(nativeCRS);
         }
+        
         // get a reader for this CoverageInfo
         final AbstractGridCoverage2DReader reader = (AbstractGridCoverage2DReader) coverageInfo.getGridCoverageReader(null, null);
 
         // read GridGeometry preparation
         final double areaRead;
         if (roi != null) {
-            Geometry roiInNativeCRS_ = roiInNativeCRS.intersection(FeatureUtilities.getPolygon(
+            final Geometry safeRoiInNativeCRS = roiManager.getSafeRoiInNativeCRS();
+            Geometry roiInNativeCRS_ = safeRoiInNativeCRS.intersection(FeatureUtilities.getPolygon(
                     reader.getOriginalEnvelope(), new GeometryFactory(new PrecisionModel(
                             PrecisionModel.FLOATING))));
             if (roiInNativeCRS_.isEmpty()) {

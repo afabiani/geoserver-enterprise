@@ -6,8 +6,9 @@ package org.geoserver.wps.gs;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,6 +20,7 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.StyleInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.wps.ppio.ZipArchivePPIO;
 import org.geotools.process.ProcessException;
@@ -207,29 +209,15 @@ public class DownloadProcess implements GSProcess {
             try {
                 os1 = new FileOutputStream(newOutput);
 
-                // add old output and default SLD to zip
-                final File style = GeoserverDataDirectory.findStyleFile(layerInfo.getDefaultStyle().getFilename());
+                // output
+                List<File> filesToDownload = new ArrayList<File>(); 
+                filesToDownload.add(output);
                 
-                List<File> filesToDownload = null; 
-                if (style != null && style.exists() && style.canRead())  {
-                    // the SLD file is public and avaialble, we can attach it to the download.
-                    filesToDownload = Arrays.asList(style, output);
-                }
-                else {
-                    // the SLD file is not public, most probably it is located under a workspace.
-                    // lets try to search for the file inside the same layer workspace folder ...
-                    File baseDir = GeoserverDataDirectory.getGeoserverDataDirectory();
-                    File styleFile = new File( new File( baseDir, "workspaces/"+ resourceInfo.getNamespace().getName() +"/styles" ), layerInfo.getDefaultStyle().getFilename() );
-
-                    if (styleFile.exists() ) {
-                        // got it! The style was under a specific workspace.
-                        filesToDownload = Arrays.asList(styleFile, output);
-                    } else {
-                        LOGGER.log(Level.FINE,"The style file cannot be found anywhere. We need to skip the SLD file");
-                        // unfortunately the style file cannot be found anywhere. We need to skip the SLD file!
-                        filesToDownload = Arrays.asList(output);
-                    }
-                }
+                
+                // add all SLD to zip
+                List<File> styles=collectStyles(layerInfo);
+                filesToDownload.addAll(styles);
+                
                 // zip them all
                 zipPPIO.encode(filesToDownload, os1);
 
@@ -266,5 +254,53 @@ public class DownloadProcess implements GSProcess {
             }
             throw processException;
         }
+    }
+
+    private File findStyle(StyleInfo style) {
+        File styleFile = GeoserverDataDirectory.findStyleFile(style.getFilename());
+        if (styleFile != null && styleFile.exists() && styleFile.canRead()&& styleFile.isFile())  {
+            // the SLD file is public and avaialble, we can attach it to the download.
+            return styleFile;
+        }
+        else {
+            // the SLD file is not public, most probably it is located under a workspace.
+            // lets try to search for the file inside the same layer workspace folder ...
+            File baseDir = GeoserverDataDirectory.getGeoserverDataDirectory();
+            styleFile = new File( new File( baseDir, "workspaces/"+ style.getWorkspace().getName() +"/styles" ), style.getFilename() );
+
+            if (!(styleFile.exists() && styleFile.canRead()&& styleFile.isFile() )) {
+                LOGGER.log(Level.FINE,"The style file cannot be found anywhere. We need to skip the SLD file");
+                // unfortunately the style file cannot be found anywhere. We need to skip the SLD file!
+                return null;
+            }
+            return styleFile;
+        }
+    }
+
+    /**
+     * @param layerInfo
+     * @return
+     */
+    private List<File> collectStyles(LayerInfo layerInfo) {
+        final List<File> styles = new ArrayList<File>();
+
+        // default style
+        final StyleInfo style = layerInfo.getDefaultStyle();
+        File styleFile = findStyle(style);
+        if (styleFile != null) {
+            styles.add(styleFile);
+        }
+
+        // other styles
+        final Set<StyleInfo> otherStyles = layerInfo.getStyles();
+        if (otherStyles != null && !otherStyles.isEmpty()) {
+            for (StyleInfo si : otherStyles) {
+                styleFile = findStyle(si);
+                if (styleFile != null) {
+                    styles.add(styleFile);
+                }
+            }
+        }
+        return styles;
     }
 }

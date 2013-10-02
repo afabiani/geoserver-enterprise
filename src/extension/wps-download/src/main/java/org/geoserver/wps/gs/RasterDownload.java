@@ -32,6 +32,7 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.process.ProcessException;
 import org.geotools.process.raster.gs.CropCoverage;
 import org.geotools.referencing.CRS;
+import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.geotools.util.logging.Logging;
 import org.opengis.filter.Filter;
 import org.opengis.parameter.GeneralParameterDescriptor;
@@ -46,6 +47,7 @@ import org.vfny.geoserver.global.GeoserverDataDirectory;
 import com.vividsolutions.jts.geom.Geometry;
 /**
  * Implements the download services for raster data
+ * 
  * @author Simone Giannecchini, GeoSolutions SAS
  *
  */
@@ -67,11 +69,15 @@ class RasterDownload {
 
     /**
      * 
-     * @param coverage
+     * @param mimeType
+     * @param progressListener
+     * @param coverageInfo
      * @param roi
-     * @param roiCRS
      * @param targetCRS
+     * @param clip
+     * @param filter the {@link Filter} to load the data
      * @return
+     * @throws Exception
      */
     public File execute(String mimeType, final ProgressListener progressListener,
             CoverageInfo coverageInfo, Geometry roi, CoordinateReferenceSystem targetCRS,
@@ -107,6 +113,8 @@ class RasterDownload {
                     // avoid doing the transform if this is the identity
                     reproject = true;
                 }
+            } else {
+                targetCRS=nativeCRS;
             }
 
             //
@@ -140,6 +148,9 @@ class RasterDownload {
             if (roi != null) {
                 // set crs in roi manager
                 roiManager.useNativeCRS(reader.getCrs());
+                roiManager.useTargetCRS(targetCRS);
+                
+                // create GridGeometry
                 final ReferencedEnvelope roiEnvelope = new ReferencedEnvelope(
                         roiManager.getSafeRoiInNativeCRS().getEnvelopeInternal(), // safe envelope 
                         nativeCRS);
@@ -149,8 +160,8 @@ class RasterDownload {
                 if (reproject) {
                     // enlarge GridRange by 20 px in each direction
                     Rectangle gr2D = gg2D.getGridRange2D();
-                    gr2D.grow(20, 20);
-                    // new GG2D
+                    gr2D.grow((int)(gr2D.width*0.5+0.5), (int)(gr2D.height*0.5+0.5));
+//                     new GG2D
                     gg2D = new GridGeometry2D(new GridEnvelope2D(gr2D), gg2D.getGridToCRS(),
                             gg2D.getCoordinateReferenceSystem());
                 }
@@ -164,7 +175,6 @@ class RasterDownload {
 
             // --> READ
             originalGridCoverage = (GridCoverage2D) reader.read(readParameters);
-            //
 
             //
             // STEP 1 - Reproject if needed
@@ -183,13 +193,6 @@ class RasterDownload {
             //
             // we need to push the ROI to the final CRS to crop or CLIP
             if (roi != null) {
-                
-                // do we need to reproject the roi to target CRS for clipping/cropping
-                if (targetCRS != null) {
-                    roiManager.useTargetCRS(targetCRS);
-                } else {
-                    roiManager.useTargetCRS(nativeCRS);
-                }
 
                 // Crop or Clip
                 final CropCoverage cropCoverage = new CropCoverage(); // TODO avoid creation
@@ -209,7 +212,9 @@ class RasterDownload {
                 // do nothing
                 clippedGridCoverage = reprojectedGridCoverage;
             }
-
+            //
+            RenderedImageBrowser.showChain(clippedGridCoverage.getRenderedImage(),false,false);
+            
             //
             // STEP 3 - Writing
             //
