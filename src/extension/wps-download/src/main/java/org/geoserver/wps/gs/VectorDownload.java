@@ -23,7 +23,6 @@ import org.geotools.data.store.ReprojectingFeatureCollection;
 import org.geotools.filter.visitor.SimplifyingFilterVisitor;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.process.ProcessException;
-import org.geotools.process.feature.gs.ClipProcess;
 import org.geotools.referencing.CRS;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.logging.Logging;
@@ -130,8 +129,8 @@ class VectorDownload {
         //
         SimpleFeatureCollection clippedFeatures;
         if (clip && roi != null) {
-            final ClipProcess clipProcess = new ClipProcess();// TODO avoid unnecessary creation
-            clippedFeatures = clipProcess.execute(originalFeatures, roiInNativeCRS);
+            final ClipProcess clipProcess = new ClipProcess();
+            clippedFeatures = clipProcess.execute(originalFeatures, roiInNativeCRS, true);
 
             // checks
             DownloadUtilities.checkIsEmptyFeatureCollection(clippedFeatures);
