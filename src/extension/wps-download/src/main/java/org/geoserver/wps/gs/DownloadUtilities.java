@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.LiteralPPIO;
@@ -142,13 +143,11 @@ final class DownloadUtilities {
     static CoordinateReferenceSystem getNativeCRS(ResourceInfo resourceInfo)
             throws IOException {
         // prepare native CRS
-        switch(resourceInfo.getProjectionPolicy()){
-        case FORCE_DECLARED:
+        ProjectionPolicy pp = resourceInfo.getProjectionPolicy();
+        if(pp == null || pp == ProjectionPolicy.FORCE_DECLARED) {
             return resourceInfo.getCRS();
-        case NONE: case REPROJECT_TO_DECLARED:
+        } else {
             return resourceInfo.getNativeCRS();
-        default:
-            throw new IllegalStateException("The provided ProjectPolicy is unknown.");
         }
     }
 

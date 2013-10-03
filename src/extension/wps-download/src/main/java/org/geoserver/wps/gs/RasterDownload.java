@@ -32,7 +32,6 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.process.ProcessException;
 import org.geotools.process.raster.gs.CropCoverage;
 import org.geotools.referencing.CRS;
-import org.geotools.renderedimage.viewer.RenderedImageBrowser;
 import org.geotools.util.logging.Logging;
 import org.opengis.filter.Filter;
 import org.opengis.parameter.GeneralParameterDescriptor;
@@ -213,7 +212,7 @@ class RasterDownload {
                 clippedGridCoverage = reprojectedGridCoverage;
             }
             //
-            RenderedImageBrowser.showChain(clippedGridCoverage.getRenderedImage(),false,false);
+            // RenderedImageBrowser.showChain(clippedGridCoverage.getRenderedImage(),false,false);
             
             //
             // STEP 3 - Writing
