@@ -159,7 +159,14 @@ public class IDASPMFeaturesBlock extends FeaturesBlock {
         				result.add("  - Max : " + coveragesMap.get("max")[i] + " \r\n");
         				result.add("  - Avg : " + coveragesMap.get("avg")[i] + " \r\n");
         				result.add("  - Std Dev : " + coveragesMap.get("stddev")[i] + " \r\n");
-        				result.add("  - Risk Area : " + coveragesMap.get("riskarea")[i] + " \r\n");
+        				final String riskArea = coveragesMap.get("riskarea")[i];
+        				if (riskArea != null && !riskArea.isEmpty() && !riskArea.equalsIgnoreCase(" - "))
+        					try {
+        						Double.parseDouble(riskArea);
+        						result.add("  - Risk Area : " + riskArea + " Km2 \r\n");
+        					} catch (Exception e) {
+        						// Eat exception
+        					}
         			}
         			
         			i++;

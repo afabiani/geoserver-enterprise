@@ -321,13 +321,13 @@ public class IDASoundPropagationModelProcess implements GSProcess {
             data.put("bottomType", bottomType);
             data.put("quality", quality);
 
-            if (maxRange != null)
+            if (maxRange != null && !Double.isNaN(maxRange))
             {
             	data.put("maxRange", nff.format(maxRange));
             }
             else
             {
-            	data.put("maxRange", maxRange);
+            	data.put("maxRange", nff.format(100.0));
             }
             
             data.put("sourceDepth", sourceDepth);
