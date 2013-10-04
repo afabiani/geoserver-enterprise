@@ -396,7 +396,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 DownloadEstimatorProcess.NO_LIMIT,
                 DownloadEstimatorProcess.NO_LIMIT,
                 DownloadEstimatorProcess.NO_LIMIT,
-                1,
+                DownloadEstimatorProcess.NO_LIMIT,
                 getGeoServer());
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);
@@ -572,8 +572,11 @@ public class DownloadProcessTest extends GeoServerTestSupport {
     public void testDownloadEstimatorWriteLimitsRaster() throws Exception {
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, 10, DownloadEstimatorProcess.NO_LIMIT,
-                10, getGeoServer());
+                DownloadEstimatorProcess.NO_LIMIT, 
+                10, 
+                DownloadEstimatorProcess.NO_LIMIT,
+                10, 
+                getGeoServer());
 
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);
@@ -595,7 +598,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                     );
         } catch (ProcessException e) {
             assertEquals(
-                    "This request is trying to generate too much data, the limit is 10B but the actual amount of bytes to be written in the output is 10,86MB",
+                    "org.geotools.process.ProcessException: java.io.IOException: Download Exceeded the maximum HARD allowed size!: java.io.IOException: Download Exceeded the maximum HARD allowed size!",
                     e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }
@@ -611,8 +614,10 @@ public class DownloadProcessTest extends GeoServerTestSupport {
     public void testDownloadEstimatorMaxFeaturesLimit() throws Exception {
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, 1,
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT, 
+                DownloadEstimatorProcess.NO_LIMIT,
+                DownloadEstimatorProcess.NO_LIMIT, 
+                1,
                 getGeoServer());
 
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
@@ -630,7 +635,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                     new NullProgressListener() // progressListener
                     );
         } catch (ProcessException e) {
-            assertEquals("Max allowed of 0 features exceeded.", e.getMessage()
+            assertEquals("java.io.IOException: Download Exceeded the maximum HARD allowed size!: Download Exceeded the maximum HARD allowed size!", e.getMessage()
                     + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
             return;
         }
@@ -648,8 +653,8 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 ProcessState.RUNNING, 0));
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT, 10,
-                DownloadEstimatorProcess.NO_LIMIT, getGeoServer());
+                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT, 
+                DownloadEstimatorProcess.NO_LIMIT, 10, getGeoServer());
 
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);
@@ -658,6 +663,7 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 .read("POLYGON (( -127.57473954542964 54.06575021619523, -130.8545966116691 52.00807146727025, -129.50812897394974 49.85372324691927, -130.5300633861675 49.20465679591609, -129.25955033314003 48.60392508062591, -128.00975216684665 50.986137055052474, -125.8623089087404 48.63154492960477, -123.984159178178 50.68231871628503, -126.91186316993704 52.15307567440926, -125.3444367403868 53.54787804784162, -127.57473954542964 54.06575021619523 ))");
         roi.setSRID(4326);
 
+        try{
         downloadProcess.execute(getLayerId(MockData.USA_WORLDIMG), // layerName
                 null, // filter
                 null, // mail
@@ -668,12 +674,14 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 true, // cropToGeometry
                 listener // progressListener
                 );
+        }catch (Exception e) {
+            Throwable e1 = listener.exception;
+            assertNotNull(e1);
+            assertEquals(
+                    "org.geotools.process.ProcessException: java.io.IOException: Download Exceeded the maximum HARD allowed size!: java.io.IOException: Download Exceeded the maximum HARD allowed size!",
+                    e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
+        }
 
-        Throwable e = listener.exception;
-        assertNotNull(e);
-        assertEquals(
-                "Could not complete the Download Process: Download Exceeded the maximum HARD allowed size!",
-                e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : ""));
     }
 
     /**
@@ -686,8 +694,11 @@ public class DownloadProcessTest extends GeoServerTestSupport {
                 ProcessState.RUNNING, 0));
 
         DownloadEstimatorProcess estimator = new DownloadEstimatorProcess(
-                DownloadEstimatorProcess.NO_LIMIT, DownloadEstimatorProcess.NO_LIMIT, 1,
-                DownloadEstimatorProcess.NO_LIMIT, getGeoServer());
+                DownloadEstimatorProcess.NO_LIMIT, 
+                DownloadEstimatorProcess.NO_LIMIT, 
+                DownloadEstimatorProcess.NO_LIMIT,
+                1,
+                getGeoServer());
 
         ZipArchivePPIO ppio = new ZipArchivePPIO(getGeoServer(), ZipOutputStream.STORED);
         DownloadProcess downloadProcess = new DownloadProcess(getGeoServer(), estimator, ppio);

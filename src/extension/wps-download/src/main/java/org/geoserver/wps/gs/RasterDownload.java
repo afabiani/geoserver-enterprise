@@ -156,14 +156,14 @@ class RasterDownload {
                 GridGeometry2D gg2D = new GridGeometry2D(PixelInCell.CELL_CENTER,
                         reader.getOriginalGridToWorld(PixelInCell.CELL_CENTER), roiEnvelope,
                         GeoTools.getDefaultHints());
-                if (reproject) {
-                    // enlarge GridRange by 20 px in each direction
-                    Rectangle gr2D = gg2D.getGridRange2D();
-                    gr2D.grow((int)(gr2D.width*0.5+0.5), (int)(gr2D.height*0.5+0.5));
-//                     new GG2D
-                    gg2D = new GridGeometry2D(new GridEnvelope2D(gr2D), gg2D.getGridToCRS(),
-                            gg2D.getCoordinateReferenceSystem());
-                }
+//                if (reproject) {
+//                    // enlarge GridRange by 20 px in each direction
+//                    Rectangle gr2D = gg2D.getGridRange2D();
+//                    gr2D.grow((int)(gr2D.width*0.5+0.5), (int)(gr2D.height*0.5+0.5));
+//                    // new GG2D
+//                    gg2D = new GridGeometry2D(new GridEnvelope2D(gr2D), gg2D.getGridToCRS(),
+//                            gg2D.getCoordinateReferenceSystem());
+//                }
                 // TODO make sure the GridRange is not empty, depending on the resolution it might happen
                 readParameters = CoverageUtils.mergeParameter(parameterDescriptors, readParameters,
                         gg2D, AbstractGridFormat.READ_GRIDGEOMETRY2D.getName().getCode());
@@ -236,6 +236,7 @@ class RasterDownload {
      * @param mimeType
      * @param coverageInfo
      * @param gridCoverage
+     * @param progressListener 
      * @return
      * @throws Exception
      */
@@ -284,6 +285,7 @@ class RasterDownload {
         // write
         try {
             complexPPIO.encode(gridCoverage, new OutputStreamAdapter(os));
+            os.flush();
         } finally {
             try {
                 if (os != null) {

@@ -4,12 +4,18 @@
  */
 package org.geoserver.wps.gs;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.StyleInfo;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.LiteralPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
@@ -22,6 +28,7 @@ import org.geotools.util.logging.Logging;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.springframework.context.ApplicationContext;
+import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
@@ -180,6 +187,61 @@ final class DownloadUtilities {
             }
         }
         return geometry;
+    }
+
+    /**
+     * Retrieves the underlying SLD {@link File} for the provided GeoSerevr Style.
+     * 
+     * @param style the underlying SLD {@link File} for the provided GeoSerevr Style.
+     * @return the underlying SLD {@link File} for the provided GeoSerevr Style.
+     */
+    static File findStyle(StyleInfo style) {
+        File styleFile = GeoserverDataDirectory.findStyleFile(style.getFilename());
+        if (styleFile != null && styleFile.exists() && styleFile.canRead()&& styleFile.isFile())  {
+            // the SLD file is public and avaialble, we can attach it to the download.
+            return styleFile;
+        }
+        else {
+            // the SLD file is not public, most probably it is located under a workspace.
+            // lets try to search for the file inside the same layer workspace folder ...
+            File baseDir = GeoserverDataDirectory.getGeoserverDataDirectory();
+            styleFile = new File( new File( baseDir, "workspaces/"+ style.getWorkspace().getName() +"/styles" ), style.getFilename() );
+    
+            if (!(styleFile.exists() && styleFile.canRead()&& styleFile.isFile() )) {
+                LOGGER.log(Level.FINE,"The style file cannot be found anywhere. We need to skip the SLD file");
+                // unfortunately the style file cannot be found anywhere. We need to skip the SLD file!
+                return null;
+            }
+            return styleFile;
+        }
+    }
+
+    /**
+     * Collect all the underlying SLD {@link File}s for the provided GeoServer layer. 
+     * @param layerInfo the provided GeoServer layer. 
+     * @return all the underlying SLD {@link File}s for the provided GeoServer layer. 
+     */
+    static List<File> collectStyles(LayerInfo layerInfo) {
+        final List<File> styles = new ArrayList<File>();
+    
+        // default style
+        final StyleInfo style = layerInfo.getDefaultStyle();
+        File styleFile = findStyle(style);
+        if (styleFile != null) {
+            styles.add(styleFile);
+        }
+    
+        // other styles
+        final Set<StyleInfo> otherStyles = layerInfo.getStyles();
+        if (otherStyles != null && !otherStyles.isEmpty()) {
+            for (StyleInfo si : otherStyles) {
+                styleFile = findStyle(si);
+                if (styleFile != null) {
+                    styles.add(styleFile);
+                }
+            }
+        }
+        return styles;
     }
 
 }

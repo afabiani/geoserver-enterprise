@@ -163,7 +163,7 @@ class VectorDownload {
         // STEP 4 - Write down respecting limits in bytes
         //
         // writing the output, making sure it is a zip
-        return writeVectorOutput(progressListener, clippedFeatures, resourceInfo.getName(),
+        return writeVectorOutput(clippedFeatures, resourceInfo.getName(),
                 mimeType);
 
     }
@@ -171,15 +171,13 @@ class VectorDownload {
     /**
      * Write vector output with the provided PPIO. It returns the {@link File} it writes to.
      * 
-     * @param progressListener
      * @param features
      * @param name
      * @param mimeType
      * @return
      * @throws Exception
      */
-    private File writeVectorOutput(final ProgressListener progressListener,
-            final SimpleFeatureCollection features, final String name, final String mimeType)
+    private File writeVectorOutput(final SimpleFeatureCollection features, final String name, final String mimeType)
             throws Exception {
 
         // Search a proper PPIO
@@ -221,7 +219,8 @@ class VectorDownload {
 
                     @Override
                     protected void raiseError(long pSizeMax, long pCount) throws IOException {
-                        throw new IOException("Download Exceeded the maximum HARD allowed size!");
+                        IOException ioe= new IOException("Download Exceeded the maximum HARD allowed size!");
+                        throw ioe;
                     }
 
                 };
@@ -234,7 +233,7 @@ class VectorDownload {
             if (ppio_ instanceof ComplexPPIO) {
                 ((ComplexPPIO) ppio_).encode(features, os);
             }
-
+            os.flush();
         } finally {
             if (os != null) {
                 IOUtils.closeQuietly(os);
