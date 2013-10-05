@@ -46,7 +46,7 @@ public class SendMail {
     /** The conf. */
     private final MailConfiguration conf = new MailConfiguration();
 
-    private final static Logger LOGGER=Logging.getLogger(SendMail2.class);
+    private final static Logger LOGGER=Logging.getLogger(SendMail.class);
 
     /** FreeMarker TEMPLATES *. */
     static final Configuration TEMPLATES;
