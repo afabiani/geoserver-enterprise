@@ -563,12 +563,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
             // email
             String email = process.getEmail();
             if (email != null) {
-                try {
-                    sendMail.sendFailedNotification(email, executionId, localizedMessage);
-                } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
-                    // chew the exception this is ok albeit not desirable
-                }
+                sendMail.sendFailedNotification(email, executionId, localizedMessage);
             }
         }
     }

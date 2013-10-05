@@ -4,13 +4,6 @@
  */
 package org.geoserver.wps.mail;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
-import org.apache.commons.io.IOUtils;
 
 /**
  * The Class MailConfiguration.
@@ -165,46 +158,6 @@ public class MailConfiguration {
      */
     public String getUserName() {
         return userName;
-    }
-
-    /**
-     * Load configuration.
-     * 
-     * @return the properties
-     * @throws IOException Signals that an I/O exception has occurred.
-     */
-    public Properties loadConfiguration() throws IOException {
-        // InputStream inputStream = this.getClass().getClassLoader()
-        // .getResourceAsStream("mail.properties");
-
-        InputStream inputStream = null;
-        // load the inputStream using the Properties
-        try {
-            inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath()
-                    .getParentFile(), "mail.properties"));
-
-            Properties properties = new Properties();
-            properties.load(inputStream);
-            this.setMailSmtpHost(properties.getProperty("mail.smtp.host"));
-            this.setMailSmtpSocketFactoryPort(properties
-                    .getProperty("mail.smtp.socketFactory.port"));
-            this.setMailSmtpFactoryClass(properties.getProperty("mail.smtp.socketFactory.class"));
-            this.setMailSmtpAuth(properties.getProperty("mail.smtp.auth"));
-            this.setMailSmtpPort(properties.getProperty("mail.smtp.port"));
-            this.setUserName(properties.getProperty("username"));
-            this.setPassword(properties.getProperty("password"));
-            this.setFromAddress(properties.getProperty("fromAddress"));
-            this.setFromAddressname(properties.getProperty("fromAddressname"));
-            this.setSubjet(properties.getProperty("subject"));
-            this.setBody(properties.getProperty("body"));
-            // get the value of the property
-            return properties;
-        } finally {
-            if (inputStream == null) {
-                IOUtils.closeQuietly(inputStream);
-            }
-        }
-
     }
 
     /**

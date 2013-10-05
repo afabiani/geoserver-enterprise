@@ -5,13 +5,16 @@
 package org.geoserver.wps.mail;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -21,6 +24,8 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.apache.commons.io.IOUtils;
+import org.geotools.util.logging.Logging;
 import org.vfny.geoserver.global.GeoserverDataDirectory;
 
 import freemarker.template.Configuration;
@@ -40,6 +45,8 @@ public class SendMail {
 
     /** The conf. */
     private final MailConfiguration conf = new MailConfiguration();
+
+    private final static Logger LOGGER=Logging.getLogger(SendMail2.class);
 
     /** FreeMarker TEMPLATES *. */
     static final Configuration TEMPLATES;
@@ -68,7 +75,7 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      */
     public SendMail() throws IOException {
-        props = conf.loadConfiguration();
+        props = loadConfiguration();
     }
 
     /**
@@ -80,18 +87,15 @@ public class SendMail {
      * @throws MessagingException the messaging exception
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    public void send(String address, String subject, String body) throws MessagingException,
-            IOException {
-
-        // Session session = Session.getDefaultInstance(props, null);
-        Session session = Session.getDefaultInstance(props, (conf.getMailSmtpAuth()
-                .equalsIgnoreCase("true") ? new javax.mail.Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(conf.getUserName(), conf.getPassword());
-            }
-        } : null));
-
+    public void send(String address, String subject, String body){
         try {
+            // Session session = Session.getDefaultInstance(props, null);
+            Session session = Session.getDefaultInstance(props, (conf.getMailSmtpAuth()
+                    .equalsIgnoreCase("true") ? new javax.mail.Authenticator() {
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(conf.getUserName(), conf.getPassword());
+                }
+            } : null));
 
             Message message = new MimeMessage(session);
             message.setFrom(new InternetAddress(conf.getFromAddress(), conf.getFromAddressname()));
@@ -101,8 +105,10 @@ public class SendMail {
 
             Transport.send(message);
 
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            if(LOGGER.isLoggable(Level.SEVERE)){
+                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
+            }
         }
 
     }
@@ -117,15 +123,20 @@ public class SendMail {
      * @throws MessagingException the messaging exception
      */
     public void sendFinishedNotification(String toAddress, String executiondId, String result,
-            int expirationDelay) throws IOException, MessagingException {
-
-        // load template for the password reset email
-        Template mailTemplate = TEMPLATES.getTemplate("FinishedNotificationMail.ftl");
-
-        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
-                mailTemplate);
-
-        send(toAddress, conf.getSubjet(), body.toString());
+            int expirationDelay){
+        try{
+            // load template for the password reset email
+            Template mailTemplate = TEMPLATES.getTemplate("FinishedNotificationMail.ftl");
+    
+            StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
+                    mailTemplate);
+    
+            send(toAddress, conf.getSubjet(), body.toString());
+        } catch (Exception e) {
+            if(LOGGER.isLoggable(Level.SEVERE)){
+                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
+            }
+        }        
     }
 
     /**
@@ -180,14 +191,19 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendStartedNotification(String toAddress, String executiondId) throws IOException,
-            MessagingException {
-        // load template for the password reset email
-        Template mailTemplate = TEMPLATES.getTemplate("StartedNotificationMail.ftl");
+    public void sendStartedNotification(String toAddress, String executiondId){
+        try {
+            // load template for the password reset email
+            Template mailTemplate = TEMPLATES.getTemplate("StartedNotificationMail.ftl");
 
-        StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
+            StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
 
-        send(toAddress, conf.getSubjet(), body.toString());
+            send(toAddress, conf.getSubjet(), body.toString());
+        } catch (Exception e) {
+            if (LOGGER.isLoggable(Level.SEVERE)) {
+                LOGGER.log(Level.SEVERE, e.getLocalizedMessage(), e);
+            }
+        }    
     }
 
     /**
@@ -198,26 +214,66 @@ public class SendMail {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws MessagingException the messaging exception
      */
-    public void sendFailedNotification(String toAddress, String executiondId, String reason)
-            throws IOException {
-        // load template for failed error
-        Template mailTemplate = TEMPLATES.getTemplate("FailedNotificationMail.ftl");
+    public void sendFailedNotification(String toAddress, String executiondId, String reason){
 
-        // create template context
-        StringWriter body = new StringWriter();
-        Map<String, Object> templateContext = new HashMap<String, Object>();
-        templateContext.put("toAddress", toAddress);
-        templateContext.put("executiondId", executiondId);
-        templateContext.put("reason", reason);
-
-        // create message string
         try {
+            // load template for failed error
+            Template mailTemplate = TEMPLATES.getTemplate("FailedNotificationMail.ftl");
+    
+            // create template context
+            StringWriter body = new StringWriter();
+            Map<String, Object> templateContext = new HashMap<String, Object>();
+            templateContext.put("toAddress", toAddress);
+            templateContext.put("executiondId", executiondId);
+            templateContext.put("reason", reason);
+    
+            // create message string
             mailTemplate.process(templateContext, body);
             send(toAddress, conf.getSubjet(), body.toString());
         } catch (Exception e) {
-            throw new IOException(e);
+            if(LOGGER.isLoggable(Level.SEVERE)){
+                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
+            }
         }
 
+    }
+
+    /**
+     * Load configuration.
+     * 
+     * @return the properties
+     * @throws IOException Signals that an I/O exception has occurred.
+     */
+    public Properties loadConfiguration() throws IOException {
+    
+        InputStream inputStream = null;
+        // load the inputStream using the Properties
+        try {
+            inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath()
+                    .getParentFile(), "mail.properties"));
+    
+            Properties properties = new Properties();
+            properties.load(inputStream);
+            conf.setMailSmtpHost(properties.getProperty("mail.smtp.host"));
+            conf.setMailSmtpSocketFactoryPort(properties
+                    .getProperty("mail.smtp.socketFactory.port"));
+            conf.setMailSmtpFactoryClass(properties.getProperty("mail.smtp.socketFactory.class"));
+            conf.setMailSmtpAuth(properties.getProperty("mail.smtp.auth"));
+            conf.setMailSmtpPort(properties.getProperty("mail.smtp.port"));
+            conf.setUserName(properties.getProperty("username"));
+            conf.setPassword(properties.getProperty("password"));
+            conf.setFromAddress(properties.getProperty("fromAddress"));
+            conf.setFromAddressname(properties.getProperty("fromAddressname"));
+            conf.setSubjet(properties.getProperty("subject"));
+            conf.setBody(properties.getProperty("body"));
+            // get the value of the property
+            return properties;
+        } finally {
+            if (inputStream == null) {
+                IOUtils.closeQuietly(inputStream);
+            }
+        }
+    
     }
 
     /**
