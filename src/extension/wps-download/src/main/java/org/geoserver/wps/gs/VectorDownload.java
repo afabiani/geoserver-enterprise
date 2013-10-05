@@ -68,12 +68,13 @@ class VectorDownload {
      * @param filter the {@link Filter} to load the data
      * @param targetCRS the reproject {@link CoordinateReferenceSystem} 
      * @param progressListener
+     * @param collector collector for temp files to delete
      * @return a file, given the provided mime-type.
      * @throws Exception
      */
     public File execute(FeatureTypeInfo resourceInfo, String mimeType, Geometry roi, boolean clip,
             Filter filter, CoordinateReferenceSystem targetCRS,
-            final ProgressListener progressListener) throws Exception {
+            final ProgressListener progressListener, TempFilesCollector collector) throws Exception {
 
         // prepare native CRS
         CoordinateReferenceSystem nativeCRS = DownloadUtilities.getNativeCRS(resourceInfo);
@@ -164,7 +165,7 @@ class VectorDownload {
         //
         // writing the output, making sure it is a zip
         return writeVectorOutput(clippedFeatures, resourceInfo.getName(),
-                mimeType);
+                mimeType,collector);
 
     }
 
@@ -174,10 +175,11 @@ class VectorDownload {
      * @param features
      * @param name
      * @param mimeType
+     * @param collector 
      * @return
      * @throws Exception
      */
-    private File writeVectorOutput(final SimpleFeatureCollection features, final String name, final String mimeType)
+    private File writeVectorOutput(final SimpleFeatureCollection features, final String name, final String mimeType, TempFilesCollector collector)
             throws Exception {
 
         // Search a proper PPIO
@@ -206,6 +208,8 @@ class VectorDownload {
         // create output file
         final File output = File.createTempFile(name, extension,
                 GeoserverDataDirectory.findCreateConfigDir("temp"));
+        output.deleteOnExit();
+        collector.addFile(output);//schedule for clean up
 
         // write checking limits
         OutputStream os = null;

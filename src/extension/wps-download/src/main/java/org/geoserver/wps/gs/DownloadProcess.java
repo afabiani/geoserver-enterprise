@@ -6,6 +6,7 @@ package org.geoserver.wps.gs;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -101,7 +102,9 @@ public class DownloadProcess implements GSProcess {
             @DescribeParameter(name = "cropToROI", min = 0, description = "Crop to ROI") Boolean clip,
             final ProgressListener progressListener) throws ProcessException {
 
+        final TempFilesCollector collector = new TempFilesCollector();
         try {
+            
             //
             // initial checks on mandatory params
             //
@@ -159,7 +162,7 @@ public class DownloadProcess implements GSProcess {
                 //
                 // perform the actual download of vectorial data accordingly to the request inputs
                 output = new VectorDownload(estimator).execute((FeatureTypeInfo) resourceInfo,
-                        mimeType, roi, clip, filter, targetCRS, progressListener);
+                        mimeType, roi, clip, filter, targetCRS, progressListener,collector);
 
             } else if (resourceInfo instanceof CoverageInfo) {
                 LOGGER.log(Level.FINE,"The resource to work on is a raster layer");
@@ -169,7 +172,7 @@ public class DownloadProcess implements GSProcess {
                 CoverageInfo cInfo = (CoverageInfo) resourceInfo;
                 // convert/reproject/crop if needed the coverage
                 output = new RasterDownload(estimator).execute(mimeType, progressListener, cInfo,
-                        roi, targetCRS, clip, filter);
+                        roi, targetCRS, clip, filter,collector);
             } else {
 
                 // wrong type
@@ -244,6 +247,22 @@ public class DownloadProcess implements GSProcess {
             // return
             return output;
         } catch (Exception e) {
+            
+            // schedule clean up
+            if(!collector.isEmpty()){
+                for(File file:collector.getAll()){
+                    if(file.isDirectory()){
+                        try {
+                            org.geoserver.data.util.IOUtils.delete(file);
+                        } catch (IOException e1) {
+                            LOGGER.log(Level.FINE, e1.getMessage(), e1);
+                        }
+                    }else{
+                        FileUtils.deleteQuietly(file);
+                    }
+                }
+            }
+            
             // catch and rethrow but warn the listener
             final ProcessException processException = new ProcessException(e);
             if (progressListener != null) {

@@ -1,0 +1,379 @@
+diff --git a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/executor/ClusterProcessManager.java b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/executor/ClusterProcessManager.java
+index 85129be..9588d95 100644
+--- a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/executor/ClusterProcessManager.java
++++ b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/executor/ClusterProcessManager.java
+@@ -5,7 +5,6 @@
+ package org.geoserver.wps.executor;
+ 
+ import java.io.File;
+-import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collection;
+@@ -15,7 +14,6 @@ import java.util.Map;
+ import java.util.Map.Entry;
+ import java.util.concurrent.Callable;
+ import java.util.concurrent.Future;
+-import java.util.logging.Level;
+ import java.util.logging.Logger;
+ 
+ import org.apache.commons.io.FileUtils;
+@@ -563,12 +561,7 @@ public class ClusterProcessManager extends DefaultProcessManager {
+             // email
+             String email = process.getEmail();
+             if (email != null) {
+-                try {
+-                    sendMail.sendFailedNotification(email, executionId, localizedMessage);
+-                } catch (IOException e) {
+-                    LOGGER.log(Level.SEVERE, e.getMessage(), e);
+-                    // chew the exception this is ok albeit not desirable
+-                }
++                sendMail.sendFailedNotification(email, executionId, localizedMessage);
+             }
+         }
+     }
+diff --git a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/MailConfiguration.java b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/MailConfiguration.java
+index a5c4e27..9ca78f1 100644
+--- a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/MailConfiguration.java
++++ b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/MailConfiguration.java
+@@ -4,13 +4,6 @@
+  */
+ package org.geoserver.wps.mail;
+ 
+-import java.io.File;
+-import java.io.FileInputStream;
+-import java.io.IOException;
+-import java.io.InputStream;
+-import java.util.Properties;
+-
+-import org.apache.commons.io.IOUtils;
+ 
+ /**
+  * The Class MailConfiguration.
+@@ -168,46 +161,6 @@ public class MailConfiguration {
+     }
+ 
+     /**
+-     * Load configuration.
+-     * 
+-     * @return the properties
+-     * @throws IOException Signals that an I/O exception has occurred.
+-     */
+-    public Properties loadConfiguration() throws IOException {
+-        // InputStream inputStream = this.getClass().getClassLoader()
+-        // .getResourceAsStream("mail.properties");
+-
+-        InputStream inputStream = null;
+-        // load the inputStream using the Properties
+-        try {
+-            inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath()
+-                    .getParentFile(), "mail.properties"));
+-
+-            Properties properties = new Properties();
+-            properties.load(inputStream);
+-            this.setMailSmtpHost(properties.getProperty("mail.smtp.host"));
+-            this.setMailSmtpSocketFactoryPort(properties
+-                    .getProperty("mail.smtp.socketFactory.port"));
+-            this.setMailSmtpFactoryClass(properties.getProperty("mail.smtp.socketFactory.class"));
+-            this.setMailSmtpAuth(properties.getProperty("mail.smtp.auth"));
+-            this.setMailSmtpPort(properties.getProperty("mail.smtp.port"));
+-            this.setUserName(properties.getProperty("username"));
+-            this.setPassword(properties.getProperty("password"));
+-            this.setFromAddress(properties.getProperty("fromAddress"));
+-            this.setFromAddressname(properties.getProperty("fromAddressname"));
+-            this.setSubjet(properties.getProperty("subject"));
+-            this.setBody(properties.getProperty("body"));
+-            // get the value of the property
+-            return properties;
+-        } finally {
+-            if (inputStream == null) {
+-                IOUtils.closeQuietly(inputStream);
+-            }
+-        }
+-
+-    }
+-
+-    /**
+      * Sets the body.
+      * 
+      * @param body the new body
+diff --git a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/SendMail.java b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/SendMail.java
+index c1b185b..afc3341 100644
+--- a/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/SendMail.java
++++ b/src/extension/wps-cluster/src/main/java/org/geoserver/wps/mail/SendMail.java
+@@ -5,13 +5,16 @@
+ package org.geoserver.wps.mail;
+ 
+ import java.io.File;
++import java.io.FileInputStream;
+ import java.io.IOException;
++import java.io.InputStream;
+ import java.io.StringWriter;
+-import java.io.UnsupportedEncodingException;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Properties;
+ import java.util.concurrent.TimeUnit;
++import java.util.logging.Level;
++import java.util.logging.Logger;
+ 
+ import javax.mail.Message;
+ import javax.mail.MessagingException;
+@@ -21,6 +24,8 @@ import javax.mail.Transport;
+ import javax.mail.internet.InternetAddress;
+ import javax.mail.internet.MimeMessage;
+ 
++import org.apache.commons.io.IOUtils;
++import org.geotools.util.logging.Logging;
+ import org.vfny.geoserver.global.GeoserverDataDirectory;
+ 
+ import freemarker.template.Configuration;
+@@ -34,6 +39,8 @@ import freemarker.template.TemplateException;
+  * @author "Alessio Fabiani - alessio.fabiani@geo-solutions.it"
+  */
+ public class SendMail {
++    
++    private final static Logger LOGGER=Logging.getLogger(SendMail.class);
+ 
+     /** The props. */
+     private Properties props;
+@@ -41,36 +48,73 @@ public class SendMail {
+     /** The conf. */
+     private final MailConfiguration conf = new MailConfiguration();
+ 
+-    /** FreeMarker TEMPLATES *. */
+-    static final Configuration TEMPLATES;
++    /** FreeMarker templates *. */
++    private final Configuration templates = new Configuration();
++
++    /**
++     * Instantiates a new send mail.
++     * 
++     * @throws IOException Signals that an I/O exception has occurred.
++     */
++    public SendMail() throws IOException {
+ 
+-    static {
+-        TEMPLATES = new Configuration();
+         // same package of this class
+         try {
+             File templatesPath = getSendMailTemplatesPath();
+ 
+             if (templatesPath != null) {
+-                TEMPLATES.setDirectoryForTemplateLoading(templatesPath);
++                templates.setDirectoryForTemplateLoading(templatesPath);
+             } else {
+-                TEMPLATES.setClassForTemplateLoading(SendMail.class, "");
++                templates.setClassForTemplateLoading(SendMail.class, "");
+             }
+         } catch (IOException e) {
+-            TEMPLATES.setClassForTemplateLoading(SendMail.class, "");
++            if(LOGGER.isLoggable(Level.INFO)){
++                LOGGER.log(Level.INFO,e.getLocalizedMessage());
++            }
++            templates.setClassForTemplateLoading(SendMail.class, "");
+ 
+         }
+-        TEMPLATES.setObjectWrapper(new DefaultObjectWrapper());
++        templates.setObjectWrapper(new DefaultObjectWrapper());
++        loadConfiguration();
+     }
+ 
+     /**
+-     * Instantiates a new send mail.
++     * Load configuration.
+      * 
++     * @return the properties
+      * @throws IOException Signals that an I/O exception has occurred.
+      */
+-    public SendMail() throws IOException {
+-        props = conf.loadConfiguration();
+-    }
++    public void loadConfiguration() throws IOException {
++
++        InputStream inputStream = null;
++        // load the inputStream using the Properties
++        try {
++            inputStream = new FileInputStream(new File(SendMail.getSendMailTemplatesPath().getParentFile(), "mail.properties"));
++
++            Properties properties = new Properties();
++            properties.load(inputStream);
++            conf.setMailSmtpHost(properties.getProperty("mail.smtp.host"));
++            conf.setMailSmtpSocketFactoryPort(properties
++                    .getProperty("mail.smtp.socketFactory.port"));
++            conf.setMailSmtpFactoryClass(properties.getProperty("mail.smtp.socketFactory.class"));
++            conf.setMailSmtpAuth(properties.getProperty("mail.smtp.auth"));
++            conf.setMailSmtpPort(properties.getProperty("mail.smtp.port"));
++            conf.setUserName(properties.getProperty("username"));
++            conf.setPassword(properties.getProperty("password"));
++            conf.setFromAddress(properties.getProperty("fromAddress"));
++            conf.setFromAddressname(properties.getProperty("fromAddressname"));
++            conf.setSubjet(properties.getProperty("subject"));
++            conf.setBody(properties.getProperty("body"));
++            // get the value of the property
++            this.props= properties;
++        } finally {
++            if (inputStream == null) {
++                IOUtils.closeQuietly(inputStream);
++            }
++        }
+ 
++    }
++    
+     /**
+      * Send an EMail to a specified address.
+      * 
+@@ -80,19 +124,16 @@ public class SendMail {
+      * @throws MessagingException the messaging exception
+      * @throws IOException Signals that an I/O exception has occurred.
+      */
+-    public void send(String address, String subject, String body) throws MessagingException,
+-            IOException {
+-
+-        // Session session = Session.getDefaultInstance(props, null);
+-        Session session = Session.getDefaultInstance(props, (conf.getMailSmtpAuth()
+-                .equalsIgnoreCase("true") ? new javax.mail.Authenticator() {
+-            protected PasswordAuthentication getPasswordAuthentication() {
+-                return new PasswordAuthentication(conf.getUserName(), conf.getPassword());
+-            }
+-        } : null));
++    public void sendMail(String address, String subject, String body) {
+ 
+         try {
+-
++            // Session session = Session.getDefaultInstance(props, null);
++            Session session = Session.getDefaultInstance(props, (conf.getMailSmtpAuth()
++                    .equalsIgnoreCase("true") ? new javax.mail.Authenticator() {
++                protected PasswordAuthentication getPasswordAuthentication() {
++                    return new PasswordAuthentication(conf.getUserName(), conf.getPassword());
++                }
++            } : null));
+             Message message = new MimeMessage(session);
+             message.setFrom(new InternetAddress(conf.getFromAddress(), conf.getFromAddressname()));
+             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(address));
+@@ -101,8 +142,10 @@ public class SendMail {
+ 
+             Transport.send(message);
+ 
+-        } catch (UnsupportedEncodingException e) {
+-            throw new RuntimeException(e);
++        } catch (Exception e) {
++            if(LOGGER.isLoggable(Level.SEVERE)){
++                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
++            }
+         }
+ 
+     }
+@@ -117,15 +160,20 @@ public class SendMail {
+      * @throws MessagingException the messaging exception
+      */
+     public void sendFinishedNotification(String toAddress, String executiondId, String result,
+-            int expirationDelay) throws IOException, MessagingException {
+-
+-        // load template for the password reset email
+-        Template mailTemplate = TEMPLATES.getTemplate("FinishedNotificationMail.ftl");
+-
+-        StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
+-                mailTemplate);
+-
+-        send(toAddress, conf.getSubjet(), body.toString());
++            int expirationDelay){
++        try{
++            // load template for the password reset email
++            Template mailTemplate = templates.getTemplate("FinishedNotificationMail.ftl");
++    
++            StringWriter body = fillMailBody(toAddress, executiondId, result, expirationDelay,
++                    mailTemplate);
++    
++            sendMail(toAddress, conf.getSubjet(), body.toString());
++        }catch (Exception e) {
++            if(LOGGER.isLoggable(Level.SEVERE)){
++                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
++            }
++        }
+     }
+ 
+     /**
+@@ -183,11 +231,17 @@ public class SendMail {
+     public void sendStartedNotification(String toAddress, String executiondId) throws IOException,
+             MessagingException {
+         // load template for the password reset email
+-        Template mailTemplate = TEMPLATES.getTemplate("StartedNotificationMail.ftl");
+-
+-        StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
+-
+-        send(toAddress, conf.getSubjet(), body.toString());
++        try{
++            Template mailTemplate = templates.getTemplate("StartedNotificationMail.ftl");
++    
++            StringWriter body = fillMailBody(toAddress, executiondId, null, 0, mailTemplate);
++    
++            sendMail(toAddress, conf.getSubjet(), body.toString());
++        }catch (Exception e) {
++            if(LOGGER.isLoggable(Level.SEVERE)){
++                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
++            }
++        }
+     }
+ 
+     /**
+@@ -198,38 +252,42 @@ public class SendMail {
+      * @throws IOException Signals that an I/O exception has occurred.
+      * @throws MessagingException the messaging exception
+      */
+-    public void sendFailedNotification(String toAddress, String executiondId, String reason)
+-            throws IOException {
+-        // load template for failed error
+-        Template mailTemplate = TEMPLATES.getTemplate("FailedNotificationMail.ftl");
++    public void sendFailedNotification(String toAddress, String executiondId, String reason){
+ 
+-        // create template context
+-        StringWriter body = new StringWriter();
+-        Map<String, Object> templateContext = new HashMap<String, Object>();
+-        templateContext.put("toAddress", toAddress);
+-        templateContext.put("executiondId", executiondId);
+-        templateContext.put("reason", reason);
+ 
+         // create message string
+         try {
++            // load template for failed error
++            Template mailTemplate = templates.getTemplate("FailedNotificationMail.ftl");
++
++            // create template context
++            StringWriter body = new StringWriter();
++            Map<String, Object> templateContext = new HashMap<String, Object>();
++            templateContext.put("toAddress", toAddress);
++            templateContext.put("executiondId", executiondId);
++            templateContext.put("reason", reason);
++            
+             mailTemplate.process(templateContext, body);
+-            send(toAddress, conf.getSubjet(), body.toString());
++            sendMail(toAddress, conf.getSubjet(), body.toString());
+         } catch (Exception e) {
+-            throw new IOException(e);
++            if(LOGGER.isLoggable(Level.SEVERE)){
++                LOGGER.log(Level.SEVERE,e.getLocalizedMessage(),e);
++            }
+         }
+ 
+     }
+ 
+     /**
++     * Retrieves the templates path.
++     * 
++     * @return the mail templates path.
+      * 
+-     * @return
+-     * @throws IOException
++     * @throws IOException in case something bad happens
+      */
+-    public static File getSendMailTemplatesPath() throws IOException {
++    private static File getSendMailTemplatesPath() throws IOException {
+         // get the temporary storage for WPS
+         try {
+-            File storage = GeoserverDataDirectory.findCreateConfigDir("wps-cluster/templates");
+-            return storage;
++            return GeoserverDataDirectory.findCreateConfigDir("wps-cluster/templates");
+         } catch (Exception e) {
+             throw new IOException("Could not find the data directory for WPS CLUSTER");
+         }

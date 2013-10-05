@@ -7,7 +7,6 @@ package org.geoserver.wps.gs;
 import it.geosolutions.imageio.stream.output.FileImageOutputStreamExtImpl;
 import it.geosolutions.io.output.adapter.OutputStreamAdapter;
 
-import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -21,7 +20,6 @@ import org.geoserver.data.util.CoverageUtils;
 import org.geoserver.wps.ppio.ComplexPPIO;
 import org.geoserver.wps.ppio.ProcessParameterIO;
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
@@ -75,12 +73,13 @@ class RasterDownload {
      * @param targetCRS
      * @param clip
      * @param filter the {@link Filter} to load the data
+     * @param collector collector for temp files to delete
      * @return
      * @throws Exception
      */
     public File execute(String mimeType, final ProgressListener progressListener,
             CoverageInfo coverageInfo, Geometry roi, CoordinateReferenceSystem targetCRS,
-            boolean clip, Filter filter) throws Exception {
+            boolean clip, Filter filter, TempFilesCollector collector) throws Exception {
 
         GridCoverage2D clippedGridCoverage = null, reprojectedGridCoverage = null, originalGridCoverage = null;
         try {
@@ -217,7 +216,7 @@ class RasterDownload {
             //
             // STEP 3 - Writing
             //
-            return writeRaster(mimeType, coverageInfo, clippedGridCoverage);
+            return writeRaster(mimeType, coverageInfo, clippedGridCoverage,collector);
         } finally {
             if (originalGridCoverage != null){
                 originalGridCoverage.dispose(true);
@@ -232,15 +231,17 @@ class RasterDownload {
     }
 
     /**
+     * Writes the providede GridCoverage as a GeoTiff file.
      * 
      * @param mimeType
      * @param coverageInfo
      * @param gridCoverage
-     * @param progressListener 
-     * @return
+     * @param collector
+     * @return a {@link File} that points to the GridCoverage we wrote.
+     * 
      * @throws Exception
      */
-    private File writeRaster(String mimeType, CoverageInfo coverageInfo, GridCoverage2D gridCoverage)
+    private File writeRaster(String mimeType, CoverageInfo coverageInfo, GridCoverage2D gridCoverage, TempFilesCollector collector)
             throws Exception {
 
         // limits
@@ -264,6 +265,7 @@ class RasterDownload {
         final File output = File.createTempFile(coverageInfo.getName(), "." + extension,
                 GeoserverDataDirectory.findCreateConfigDir("temp"));
         output.deleteOnExit();
+        collector.addFile(output);//schedule for clean up
 
         // the limit ouutput stream will throw an exception if the process is trying to writr more than the max allowed bytes
         final FileImageOutputStreamExtImpl fileImageOutputStreamExtImpl = new FileImageOutputStreamExtImpl(
