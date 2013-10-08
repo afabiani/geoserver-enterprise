@@ -74,6 +74,7 @@ public class IOUtils extends org.apache.commons.io.IOUtils {
         FILE_CLEANER.setMaxAttempts(100);
         FILE_CLEANER.setPeriod(30);
         FILE_CLEANER.setPriority(1);
+        FILE_CLEANER.setDaemon(true);
         FILE_CLEANER.start();
 }
 
